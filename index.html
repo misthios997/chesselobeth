@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHESSELOBETH - Login</title>
+    <style>
+        body { background-color: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #2d2d2d; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 300px; text-align: center; }
+        h1 { color: #ffd700; letter-spacing: 2px; font-size: 24px; margin-bottom: 20px; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: none; border-radius: 5px; background: #404040; color: white; }
+        button { width: 100%; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.3s; }
+        .btn-primary { background: #ffd700; color: #1a1a1a; }
+        .btn-primary:hover { background: #e6c200; }
+        .btn-link { background: none; color: #aaa; font-size: 0.9em; text-decoration: underline; }
+        .hidden { display: none; }
+        .error { color: #ff4d4d; font-size: 0.8em; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>CHESSELOBETH</h1>
+
+    <div id="loginForm">
+        <input type="text" id="loginUser" placeholder="Username">
+        <input type="password" id="loginPass" placeholder="Password">
+        <div id="loginError" class="error"></div>
+        <button class="btn-link" onclick="toggleForm()">Dont Have Account? Register.</button>
+        <button class="btn-primary" onclick="login()">Login</button>
+    </div>
+
+    <div id="registerForm" class="hidden">
+        <input type="text" id="regUser" placeholder="Username">
+        <input type="password" id="regPass" placeholder="Password">
+        <input type="password" id="regConfirm" placeholder="Confirm Password">
+        <div id="regError" class="error"></div>
+        <button class="btn-primary" onclick="register()">Register & Login</button>
+        <button class="btn-link" onclick="toggleForm()">Back to Login</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw",
+      authDomain: "chesselobeth.firebaseapp.com",
+      projectId: "chesselobeth",
+      storageBucket: "chesselobeth.firebasestorage.app",
+      messagingSenderId: "829508204106",
+      appId: "1:829508204106:web:e8952c359f63d49646d8b3",
+      measurementId: "G-7C58TZQ48M"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    window.toggleForm = () => {
+        document.getElementById('loginForm').classList.toggle('hidden');
+        document.getElementById('registerForm').classList.toggle('hidden');
+    };
+
+    window.register = async () => {
+        const user = document.getElementById('regUser').value;
+        const pass = document.getElementById('regPass').value;
+        const confirm = document.getElementById('regConfirm').value;
+
+        if(pass !== confirm) {
+            document.getElementById('regError').innerText = "Password does not match!";
+            return;
+        }
+
+        try {
+            const email = user.toLowerCase().replace(/\s/g, '') + "@chesselobeth.com";
+            const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+            await updateProfile(userCredential.user, { displayName: user });
+            window.location.href = "main.html";
+        } catch (error) {
+            document.getElementById('regError').innerText = "Register failed. Use min 6 chars password.";
+        }
+    };
+
+    window.login = async () => {
+        const user = document.getElementById('loginUser').value;
+        const pass = document.getElementById('loginPass').value;
+
+        try {
+            const email = user.toLowerCase().replace(/\s/g, '') + "@chesselobeth.com";
+            await signInWithEmailAndPassword(auth, email, pass);
+            window.location.href = "main.html";
+        } catch (error) {
+            document.getElementById('loginError').innerText = "Wrong Username/Password";
+        }
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) window.location.href = "main.html";
+    });
+</script>
+</body>
+</html>
