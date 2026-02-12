@@ -6,50 +6,48 @@
     <title>CHESSELOBETH - Main</title>
     <style>
         body { background-color: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; }
-        header { background: #2d2d2d; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        header { background: #2d2d2d; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.5); position: sticky; top: 0; z-index: 100; }
         .brand { font-weight: bold; color: #ffd700; font-size: 1.2rem; }
-        .nav-btns { display: flex; gap: 10px; align-items: center; }
         
-        .logout-btn { background: #ff4d4d; border: none; color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .chat-open-btn { background: #ffd700; border: none; color: #1a1a1a; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 1.2rem; }
+        .nav-btns { display: flex; gap: 12px; align-items: center; }
+        .icon-btn { background: #333; border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; transition: 0.3s; border: 1px solid #444; overflow: hidden; }
+        .icon-btn:hover { background: #444; border-color: #ffd700; }
+        .profile-img-nav { width: 100%; height: 100%; object-fit: cover; }
 
         .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
-        .welcome { font-size: 1.5rem; margin-bottom: 20px; }
+        .welcome { font-size: 1.5rem; margin-bottom: 20px; color: #ffd700; }
         .broadcast-box { background: linear-gradient(45deg, #b8860b, #daa520); color: black; padding: 15px; border-radius: 8px; margin-bottom: 30px; font-weight: bold; }
         
-        /* Card Data */
-        .card { background: #333; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 5px solid #ffd700; position: relative; }
-        .rank-gm { color: #00ffcc; font-weight: bold; }
+        .card { background: #333; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 5px solid #ffd700; }
         .btn-action { background: none; border: 1px solid #777; color: #aaa; padding: 8px; margin-top: 10px; cursor: pointer; width: 100%; border-radius: 4px; font-weight: bold; }
-        .btn-delete { border: 1px solid #ff4d4d; color: #ff4d4d; display: none; margin-top: 5px; }
         .detail-view { display: none; margin-top: 10px; border-top: 1px solid #555; padding-top: 10px; }
 
-        /* Floating Button Owner */
         .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #ffd700; color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 30px; font-weight: bold; cursor: pointer; z-index: 99; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         
-        /* Modal Chat */
-        .chat-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; z-index: 1000; }
+        /* Chat UI */
+        .chat-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; display: none; flex-direction: column; z-index: 1000; }
         .chat-header { padding: 15px; background: #2d2d2d; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ffd700; }
         .chat-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         
-        /* Chat Bubbles */
-        .msg { max-width: 80%; padding: 10px; border-radius: 10px; position: relative; }
-        .msg-name { font-size: 0.75rem; color: #ffd700; margin-bottom: 3px; font-weight: bold; }
-        .msg-text { font-size: 0.95rem; word-wrap: break-word; }
-        .msg-left { align-self: flex-start; background: #444; border-bottom-left-radius: 0; }
-        .msg-right { align-self: flex-end; background: #ffd700; color: #1a1a1a; border-bottom-right-radius: 0; text-align: right; }
-        .msg-right .msg-name { color: #555; }
+        .msg { display: flex; gap: 10px; max-width: 85%; }
+        .msg-right { align-self: flex-end; flex-direction: row-reverse; }
+        .msg-avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; background: #555; border: 1px solid #ffd700; }
+        .msg-body { background: #333; padding: 10px; border-radius: 10px; }
+        .msg-right .msg-body { background: #ffd700; color: black; }
+        .msg-name { font-size: 0.7rem; font-weight: bold; margin-bottom: 2px; color: #ffd700; }
 
         .chat-input-area { padding: 15px; background: #2d2d2d; display: flex; gap: 10px; }
         .chat-input-area input { flex: 1; padding: 12px; border-radius: 5px; border: none; background: #444; color: white; }
-        .send-btn { background: #ffd700; border: none; width: 45px; border-radius: 5px; cursor: pointer; font-size: 1.2rem; }
 
-        /* General Modal */
+        /* Profile Modal */
+        .p-avatar-edit { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin: 0 auto 15px; border: 3px solid #ffd700; display: block; }
+
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 500; }
-        .modal { background: #2d2d2d; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; }
-        .modal input, .modal select, .modal textarea { width: 100%; padding: 10px; margin: 5px 0 15px 0; background: #444; border: none; color: white; border-radius: 4px; box-sizing: border-box; }
-        .btn-gold { background: #ffd700; color: black; width: 100%; padding: 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
-        .btn-cancel { background: #555; color: white; width: 100%; padding: 10px; border: none; border-radius: 5px; cursor: pointer; }
+        .modal { background: #2d2d2d; padding: 20px; border-radius: 15px; width: 90%; max-width: 400px; }
+        .modal input, .modal select, .modal textarea { width: 100%; padding: 12px; margin: 10px 0; background: #444; border: none; color: white; border-radius: 8px; box-sizing: border-box; }
+        .btn-gold { background: #ffd700; color: black; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .btn-logout { background: #ff4d4d; color: white; margin-top: 10px; }
+        .btn-cancel { background: #555; color: white; width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -57,8 +55,8 @@
     <header>
         <div class="brand">CHESSELOBETH</div>
         <div class="nav-btns">
-            <button class="chat-open-btn" onclick="toggleChat(true)">💬</button>
-            <button class="logout-btn" onclick="logout()">Logout</button>
+            <button class="icon-btn" onclick="toggleChat(true)">💬</button>
+            <button class="icon-btn" onclick="openProfileModal()" id="profileBtn">U</button>
         </div>
     </header>
 
@@ -70,16 +68,27 @@
 
     <div class="fab" id="ownerFab" onclick="openMenu()">+</div>
 
-    <div class="chat-overlay" id="chatModal">
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal" style="text-align: center;">
+            <h2>User Profile</h2>
+            <img src="" id="currentAvatar" class="p-avatar-edit" style="display:none">
+            <p style="font-size: 0.8rem; color: #aaa;">Paste Link Foto (Pinterest/Google/etc):</p>
+            <input type="text" id="linkInp" placeholder="https://example.com/foto.jpg">
+            <button class="btn-gold" onclick="updatePhotoLink()">[Update Photo]</button>
+            <button class="btn-gold btn-logout" onclick="logout()">[Logout]</button>
+            <button class="btn-cancel" onclick="closeModals()">Close</button>
+        </div>
+    </div>
+
+    <div class="chat-overlay" id="chatOverlay">
         <div class="chat-header">
             <span>LIVE CHAT</span>
-            <button onclick="toggleChat(false)" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <button onclick="toggleChat(false)" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
         </div>
-        <div class="chat-content" id="chatBox">
-            </div>
+        <div class="chat-content" id="chatBox"></div>
         <div class="chat-input-area">
-            <input type="text" id="chatInput" placeholder="Type here..." onkeypress="handleChatKey(event)">
-            <button class="send-btn" onclick="sendChat()">➤</button>
+            <input type="text" id="chatInput" placeholder="Tulis pesan..." onkeypress="if(event.key==='Enter')sendChat()">
+            <button onclick="sendChat()" style="background:#ffd700; border:none; padding:10px 15px; border-radius:5px; cursor:pointer;">➤</button>
         </div>
     </div>
 
@@ -88,6 +97,7 @@
             <h2>Owner Actions</h2>
             <button class="btn-gold" onclick="openAddData()">[Add Data]</button>
             <button class="btn-gold" onclick="openBroadcast()">[Make An Broadcast]</button>
+            <button class="btn-gold" style="background:#ff4d4d; color:white;" onclick="resetChat()">[Reset Chat]</button>
             <button class="btn-cancel" onclick="closeModals()">Cancel</button>
         </div>
     </div>
@@ -100,10 +110,8 @@
             <input type="text" id="inpDate" placeholder="Date (e.g. 12 Feb 2026)">
             <select id="inpRank">
                 <option value="None">None</option>
-                <option value="CM">CM</option>
-                <option value="FM">FM</option>
-                <option value="IM">IM</option>
-                <option value="GM">GM</option>
+                <option value="CM">CM</option><option value="FM">FM</option>
+                <option value="IM">IM</option><option value="GM">GM</option>
             </select>
             <input type="text" id="inpChessCom" placeholder="chess.com Account">
             <button class="btn-gold" onclick="submitData()">[Create]</button>
@@ -122,8 +130,8 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, setDoc, onSnapshot, query, orderBy, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, doc, setDoc, onSnapshot, query, orderBy, limit, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw",
@@ -131,8 +139,7 @@
       projectId: "chesselobeth",
       storageBucket: "chesselobeth.firebasestorage.app",
       messagingSenderId: "829508204106",
-      appId: "1:829508204106:web:e8952c359f63d49646d8b3",
-      measurementId: "G-7C58TZQ48M"
+      appId: "1:829508204106:web:e8952c359f63d49646d8b3"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -142,30 +149,32 @@
     let currentUsername = "";
     let isOwner = false;
 
-    // UI Navigation
-    window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
-    window.toggleChat = (show) => {
-        document.getElementById('chatModal').style.display = show ? 'flex' : 'none';
-        if(show) scrollToBottom();
-    };
-    window.openMenu = () => document.getElementById('menuModal').style.display = 'flex';
+    // PROFILE NAVIGATION
+    window.openProfileModal = () => document.getElementById('profileModal').style.display = 'flex';
     window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(e => e.style.display = 'none');
-    window.openAddData = () => { closeModals(); document.getElementById('addDataModal').style.display = 'flex'; };
-    window.openBroadcast = () => { closeModals(); document.getElementById('broadcastModal').style.display = 'flex'; };
-    window.toggleInfo = (id) => {
-        const d = document.getElementById(`detail-${id}`);
-        const b = document.getElementById(`btn-${id}`);
-        const isOpen = d.style.display === 'block';
-        d.style.display = isOpen ? 'none' : 'block';
-        b.innerText = isOpen ? '[See more Information]' : '[Back]';
+    window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
+
+    // FUNGSI UPDATE FOTO PAKAI LINK
+    window.updatePhotoLink = async () => {
+        const link = document.getElementById('linkInp').value;
+        if(!link.trim()) return alert("Paste link foto dulu!");
+        try {
+            await updateProfile(auth.currentUser, { photoURL: link });
+            alert("Photo Updated!");
+            location.reload();
+        } catch (e) { alert("Failed"); }
     };
 
-    // Auth Logic
     onAuthStateChanged(auth, (user) => {
         if (!user) window.location.href = "index.html";
         else {
             currentUsername = user.displayName;
             document.getElementById('welcomeMsg').innerText = `Welcome ${currentUsername}`;
+            if(user.photoURL) {
+                document.getElementById('profileBtn').innerHTML = `<img src="${user.photoURL}" class="profile-img-nav">`;
+                document.getElementById('currentAvatar').src = user.photoURL;
+                document.getElementById('currentAvatar').style.display = 'block';
+            }
             if(currentUsername === "Jovan") {
                 isOwner = true;
                 document.getElementById('ownerFab').style.display = 'flex';
@@ -173,89 +182,82 @@
         }
     });
 
-    // --- REALTIME DATA (PLAYERS) ---
-    onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (snap) => {
-        const feed = document.getElementById('dataFeed');
-        feed.innerHTML = "";
-        snap.forEach((docSnap) => {
-            const data = docSnap.data();
-            const id = docSnap.id;
-            const nameDisp = data.rank !== "None" ? `[${data.rank}] ${data.name}` : data.name;
-            const delBtn = isOwner ? `<button class="btn-action btn-delete" style="display:block" onclick="deleteData('${id}')">[Delete]</button>` : '';
-            
-            feed.innerHTML += `
-                <div class="card">
-                    <h3 class="${data.rank === 'GM' ? 'rank-gm' : ''}">${nameDisp}</h3>
-                    <p>Elo Rating: ${data.elo}</p><p>Date: ${data.date}</p>
-                    <button class="btn-action" id="btn-${id}" onclick="toggleInfo('${id}')">[See more Information]</button>
-                    ${delBtn}
-                    <div id="detail-${id}" class="detail-view">
-                        <p>Rank: ${data.rank} | Account: ${data.chessAccount || '-'}</p>
-                    </div>
-                </div>`;
-        });
-    });
-
-    // --- LIVE CHAT LOGIC ---
-    window.sendChat = async () => {
-        const msg = document.getElementById('chatInput').value;
-        if(!msg.trim()) return;
-        
-        await addDoc(collection(db, "chats"), {
-            name: currentUsername,
-            text: msg,
-            timestamp: Date.now()
-        });
-        document.getElementById('chatInput').value = "";
+    // CHAT SYSTEM
+    window.toggleChat = (show) => {
+        document.getElementById('chatOverlay').style.display = show ? 'flex' : 'none';
     };
 
-    window.handleChatKey = (e) => { if(e.key === 'Enter') sendChat(); };
+    window.sendChat = async () => {
+        const inp = document.getElementById('chatInput');
+        if(!inp.value.trim()) return;
+        await addDoc(collection(db, "chats"), {
+            name: currentUsername,
+            text: inp.value,
+            photo: auth.currentUser.photoURL || "",
+            timestamp: Date.now()
+        });
+        inp.value = "";
+    };
 
-    function scrollToBottom() {
-        const cb = document.getElementById('chatBox');
-        cb.scrollTop = cb.scrollHeight;
-    }
-
-    // Listen for Messages
-    const chatQ = query(collection(db, "chats"), orderBy("timestamp", "asc"), limit(50));
-    onSnapshot(chatQ, (snap) => {
+    onSnapshot(query(collection(db, "chats"), orderBy("timestamp", "asc"), limit(50)), (snap) => {
         const chatBox = document.getElementById('chatBox');
         chatBox.innerHTML = "";
         snap.forEach(d => {
             const c = d.data();
-            const side = c.name === currentUsername ? 'msg-right' : 'msg-left';
+            const side = c.name === currentUsername ? 'msg-right' : '';
+            const av = c.photo || 'https://via.placeholder.com/35';
             chatBox.innerHTML += `
                 <div class="msg ${side}">
-                    <div class="msg-name">${c.name}</div>
-                    <div class="msg-text">${c.text}</div>
+                    <img src="${av}" class="msg-avatar">
+                    <div class="msg-body">
+                        <div class="msg-name">${c.name}</div>
+                        <div class="msg-text">${c.text}</div>
+                    </div>
                 </div>`;
         });
-        scrollToBottom();
+        chatBox.scrollTop = chatBox.scrollHeight;
     });
 
-    // --- ACTIONS ---
+    // OWNER ACTIONS
+    window.openMenu = () => document.getElementById('menuModal').style.display = 'flex';
+    window.openAddData = () => { closeModals(); document.getElementById('addDataModal').style.display = 'flex'; };
+    window.openBroadcast = () => { closeModals(); document.getElementById('broadcastModal').style.display = 'flex'; };
+    window.resetChat = async () => {
+        if(confirm("Hapus semua chat?")) {
+            const snap = await getDocs(collection(db, "chats"));
+            snap.forEach(async (d) => await deleteDoc(doc(db, "chats", d.id)));
+        }
+    };
     window.submitData = async () => {
         const n = document.getElementById('inpName').value;
         const e = document.getElementById('inpElo').value;
         const d = document.getElementById('inpDate').value;
         const r = document.getElementById('inpRank').value;
         const a = document.getElementById('inpChessCom').value;
-        if(!n || !e || !d) return alert("Fill data!");
         await addDoc(collection(db, "players"), { name:n, elo:e, date:d, rank:r, chessAccount:a, timestamp:Date.now() });
         closeModals();
     };
-
-    window.deleteData = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "players", id)); };
     window.submitBroadcast = async () => {
-        const t = document.getElementById('inpBroadcast').value;
-        await setDoc(doc(db, "config", "broadcastMsg"), { text:t });
+        await setDoc(doc(db, "config", "broadcastMsg"), { text: document.getElementById('inpBroadcast').value });
         closeModals();
     };
-
+    onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (snap) => {
+        const feed = document.getElementById('dataFeed'); feed.innerHTML = "";
+        snap.forEach(docSnap => {
+            const data = docSnap.data();
+            const id = docSnap.id;
+            const del = isOwner ? `<button class="btn-action" style="color:red" onclick="deleteData('${id}')">Delete</button>` : '';
+            feed.innerHTML += `<div class="card">
+                <h3>${data.rank !== 'None' ? '['+data.rank+'] ' : ''}${data.name}</h3>
+                <p>Elo: ${data.elo} | Date: ${data.date}</p>
+                ${del}
+            </div>`;
+        });
+    });
+    window.deleteData = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "players", id)); };
     onSnapshot(doc(db, "config", "broadcastMsg"), (d) => {
         if(d.exists()) document.getElementById('broadcastDisplay').innerText = `Broadcast: ${d.data().text}`;
     });
-
 </script>
 </body>
 </html>
