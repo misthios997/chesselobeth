@@ -71,8 +71,8 @@
         <div class="modal" style="text-align: center;">
             <h2>User Profile</h2>
             <img src="" id="currentAvatar" class="p-avatar-edit">
-            <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 10px;">Upload Foto Profil (PNG/JPG):</p>
-            <input type="file" id="fileInp" accept="image/png, image/jpeg" style="display: none;" onchange="uploadToImgBB(this)">
+            <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 10px;">Upload Foto Profil Baru:</p>
+            <input type="file" id="fileInp" accept="image/*" style="display: none;" onchange="uploadToImgBB(this)">
             <button class="btn-gold" onclick="document.getElementById('fileInp').click()">[ Pilih File Foto ]</button>
             <div id="uploadStatus" style="font-size: 0.7rem; color: #ffd700; margin-top: 5px;"></div>
             <button class="btn-gold btn-logout" onclick="logout()">[Logout]</button>
@@ -107,14 +107,22 @@
             <h2>Add Player Data</h2>
             <input type="text" id="inpName" placeholder="Full Name">
             <input type="number" id="inpElo" placeholder="Elo Rating">
-            <input type="text" id="inpDate" placeholder="Date (e.g. 12 Feb 2026)">
+            <input type="text" id="inpDate" placeholder="Date">
             <select id="inpRank">
-                <option value="None">None</option>
-                <option value="CM">CM</option><option value="FM">FM</option>
+                <option value="None">None</option><option value="CM">CM</option><option value="FM">FM</option>
                 <option value="IM">IM</option><option value="GM">GM</option>
             </select>
             <input type="text" id="inpChessCom" placeholder="chess.com Account">
             <button class="btn-gold" onclick="submitData()">[Create]</button>
+            <button class="btn-cancel" onclick="closeModals()">[Cancel]</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="broadcastModal">
+        <div class="modal">
+            <h2>Make Broadcast</h2>
+            <textarea id="inpBroadcast" rows="4" placeholder="Type message..."></textarea>
+            <button class="btn-gold" onclick="submitBroadcast()">[Send]</button>
             <button class="btn-cancel" onclick="closeModals()">[Cancel]</button>
         </div>
     </div>
@@ -139,13 +147,14 @@
 
     let currentUsername = "";
     let isOwner = false;
+    let userPhotosCache = {}; 
+    let lastChats = [];
 
-    // FUNGSI UPLOAD (Pake API Key milikmu)
+    // 1. FIX UPLOAD & SYNC
     window.uploadToImgBB = async (input) => {
         const status = document.getElementById('uploadStatus');
         if (!input.files || !input.files[0]) return;
-
-        status.innerText = "Processing... ⌛";
+        status.innerText = "Uploading... ⌛";
         const formData = new FormData();
         formData.append("image", input.files[0]);
 
@@ -155,66 +164,28 @@
                 body: formData
             });
             const result = await response.json();
-            
             if(result.success) {
-                const imageUrl = result.data.url;
+                const imageUrl = result.data.display_url; 
                 await updateProfile(auth.currentUser, { photoURL: imageUrl });
-                status.innerText = "Success! Memperbarui...";
+                await setDoc(doc(db, "users", auth.currentUser.uid), { name: currentUsername, photo: imageUrl }, { merge: true });
+                status.innerText = "Success! Reloading...";
                 setTimeout(() => location.reload(), 1000);
-            } else {
-                status.innerText = "Gagal: " + result.error.message;
-            }
-        } catch (e) {
-            status.innerText = "Koneksi Error!";
-        }
+            } else { status.innerText = "Gagal: " + result.error.message; }
+        } catch (e) { status.innerText = "Error Koneksi!"; }
     };
 
-    // AUTH LOGIC
-    onAuthStateChanged(auth, (user) => {
-        if (!user) window.location.href = "index.html";
-        else {
-            currentUsername = user.displayName;
-            document.getElementById('welcomeMsg').innerText = `Welcome ${currentUsername}`;
-            
-            // UI AVATAR FALLBACK (Kalo foto none/pecah)
-            const fallback = `https://ui-avatars.com/api/?name=${currentUsername}&background=555&color=fff&bold=true`;
-            const finalPhoto = user.photoURL || fallback;
-
-            document.getElementById('profileBtn').innerHTML = `<img src="${finalPhoto}" class="profile-img-nav" onerror="this.src='${fallback}'">`;
-            document.getElementById('currentAvatar').src = finalPhoto;
-            
-            if(currentUsername === "Jovan") {
-                isOwner = true;
-                document.getElementById('ownerFab').style.display = 'flex';
-            }
-        }
-    });
-
-    // CHAT SYSTEM
-    window.toggleChat = (show) => { document.getElementById('chatOverlay').style.display = show ? 'flex' : 'none'; };
-    window.sendChat = async () => {
-        const inp = document.getElementById('chatInput');
-        if(!inp.value.trim()) return;
-        await addDoc(collection(db, "chats"), {
-            name: currentUsername,
-            text: inp.value,
-            photo: auth.currentUser.photoURL || "", 
-            timestamp: Date.now()
-        });
-        inp.value = "";
-    };
-
-    onSnapshot(query(collection(db, "chats"), orderBy("timestamp", "asc"), limit(50)), (snap) => {
+    // 2. RENDER CHAT DENGAN FOTO TERBARU
+    const renderChats = () => {
         const chatBox = document.getElementById('chatBox');
+        if (!chatBox) return;
         chatBox.innerHTML = "";
-        snap.forEach(d => {
-            const c = d.data();
+        lastChats.forEach(c => {
             const side = c.name === currentUsername ? 'msg-right' : '';
-            const fallbackAv = `https://ui-avatars.com/api/?name=${c.name}&background=random&color=fff`;
-            const av = c.photo || fallbackAv;
+            const fallback = `https://ui-avatars.com/api/?name=${c.name}&background=random&color=fff`;
+            const currentPhoto = userPhotosCache[c.name] || fallback;
             chatBox.innerHTML += `
                 <div class="msg ${side}">
-                    <img src="${av}" class="msg-avatar" onerror="this.src='${fallbackAv}'">
+                    <img src="${currentPhoto}" class="msg-avatar" onerror="this.src='${fallback}'">
                     <div class="msg-body">
                         <div class="msg-name">${c.name}</div>
                         <div class="msg-text">${c.text}</div>
@@ -222,9 +193,47 @@
                 </div>`;
         });
         chatBox.scrollTop = chatBox.scrollHeight;
+    };
+
+    // 3. LISTENERS
+    onAuthStateChanged(auth, (user) => {
+        if (!user) window.location.href = "index.html";
+        else {
+            currentUsername = user.displayName;
+            document.getElementById('welcomeMsg').innerText = `Welcome ${currentUsername}`;
+            
+            // Sync foto semua user
+            onSnapshot(collection(db, "users"), (snap) => {
+                snap.forEach(d => { userPhotosCache[d.data().name] = d.data().photo; });
+                renderChats();
+            });
+
+            const fallback = `https://ui-avatars.com/api/?name=${currentUsername}&background=555&color=fff&bold=true`;
+            document.getElementById('profileBtn').innerHTML = `<img src="${user.photoURL || fallback}" class="profile-img-nav" onerror="this.src='${fallback}'">`;
+            document.getElementById('currentAvatar').src = user.photoURL || fallback;
+
+            if(currentUsername === "Jovan") {
+                isOwner = true;
+                document.getElementById('ownerFab').style.display = 'flex';
+            }
+        }
     });
 
-    // MODAL & OWNER POWER
+    onSnapshot(query(collection(db, "chats"), orderBy("timestamp", "asc"), limit(50)), (snap) => {
+        lastChats = [];
+        snap.forEach(d => lastChats.push(d.data()));
+        renderChats();
+    });
+
+    window.sendChat = async () => {
+        const inp = document.getElementById('chatInput');
+        if(!inp.value.trim()) return;
+        await addDoc(collection(db, "chats"), { name: currentUsername, text: inp.value, timestamp: Date.now() });
+        inp.value = "";
+    };
+
+    // 4. UI LOGIC
+    window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
     window.openProfileModal = () => document.getElementById('profileModal').style.display = 'flex';
     window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(e => e.style.display = 'none');
     window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
@@ -233,10 +242,9 @@
     window.openBroadcast = () => { closeModals(); document.getElementById('broadcastModal').style.display = 'flex'; };
 
     window.resetChat = async () => {
-        if(confirm("Bersihkan semua chat?")) {
+        if(confirm("Hapus semua chat?")) {
             const snap = await getDocs(collection(db, "chats"));
             snap.forEach(async d => await deleteDoc(doc(db, "chats", d.id)));
-            alert("Chat dibersihkan!");
         }
     };
 
@@ -255,7 +263,7 @@
         snap.forEach(docSnap => {
             const data = docSnap.data();
             const id = docSnap.id;
-            const del = isOwner ? `<button class="btn-action" style="color:#ff4d4d; border-color:#ff4d4d" onclick="deleteData('${id}')">Delete</button>` : '';
+            const del = isOwner ? `<button class="btn-action" style="color:red" onclick="deleteData('${id}')">Delete</button>` : '';
             feed.innerHTML += `<div class="card">
                 <h3>${data.rank !== 'None' ? '['+data.rank+'] ' : ''}${data.name}</h3>
                 <p>Elo: ${data.elo} | Date: ${data.date}</p>
@@ -264,7 +272,7 @@
         });
     });
 
-    window.deleteData = async (id) => { if(confirm("Hapus data ini?")) await deleteDoc(doc(db, "players", id)); };
+    window.deleteData = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "players", id)); };
     window.submitBroadcast = async () => {
         await setDoc(doc(db, "config", "broadcastMsg"), { text: document.getElementById('inpBroadcast').value });
         closeModals();
