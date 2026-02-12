@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHESSELOBETH - Main</title>
+    <style>
+        body { background-color: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; }
+        header { background: #2d2d2d; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .brand { font-weight: bold; color: #ffd700; font-size: 1.2rem; }
+        .logout-btn { background: #ff4d4d; border: none; color: white; padding: 5px 15px; border-radius: 5px; cursor: pointer; }
+        .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
+        .welcome { font-size: 1.5rem; margin-bottom: 20px; }
+        .broadcast-box { background: linear-gradient(45deg, #b8860b, #daa520); color: black; padding: 15px; border-radius: 8px; margin-bottom: 30px; font-weight: bold; }
+        .card { background: #333; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 5px solid #ffd700; }
+        .see-more { background: none; border: 1px solid #777; color: #aaa; padding: 5px 10px; margin-top: 10px; cursor: pointer; width: 100%; border-radius: 4px; }
+        .detail-view { display: none; margin-top: 10px; border-top: 1px solid #555; padding-top: 10px; }
+        .rank-gm { color: #00ffcc; font-weight: bold; }
+        .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #ffd700; color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 30px; font-weight: bold; cursor: pointer; z-index: 100; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 200; }
+        .modal { background: #2d2d2d; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; }
+        .modal input, .modal select, .modal textarea { width: 100%; padding: 10px; margin: 5px 0 15px 0; background: #444; border: none; color: white; box-sizing: border-box; }
+        .btn-gold { background: #ffd700; color: black; width: 100%; padding: 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .btn-cancel { background: #555; color: white; width: 100%; padding: 10px; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">CHESSELOBETH</div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </header>
+
+    <div class="container">
+        <div class="welcome" id="welcomeMsg">Welcome...</div>
+        <div class="broadcast-box" id="broadcastDisplay">Broadcast: Loading...</div>
+        <div id="dataFeed"></div>
+    </div>
+
+    <div class="fab" id="ownerFab" onclick="openMenu()">+</div>
+
+    <div class="modal-overlay" id="menuModal">
+        <div class="modal">
+            <h2>Owner Actions</h2>
+            <button class="btn-gold" onclick="openAddData()">[Add Data]</button>
+            <button class="btn-gold" onclick="openBroadcast()">[Make An Broadcast]</button>
+            <button class="btn-cancel" onclick="closeModals()">Cancel</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addDataModal">
+        <div class="modal">
+            <h2>Add Player Data</h2>
+            <input type="text" id="inpName" placeholder="Name">
+            <input type="number" id="inpElo" placeholder="Elo Rating">
+            <select id="inpRank">
+                <option value="None">None</option>
+                <option value="CM">CM</option>
+                <option value="FM">FM</option>
+                <option value="IM">IM</option>
+                <option value="GM">GM</option>
+            </select>
+            <input type="text" id="inpChessCom" placeholder="chess.com Account">
+            <button class="btn-gold" onclick="submitData()">[Create]</button>
+            <button class="btn-cancel" onclick="closeModals()">[Cancel]</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="broadcastModal">
+        <div class="modal">
+            <h2>Make Broadcast</h2>
+            <textarea id="inpBroadcast" placeholder="Broadcast text..."></textarea>
+            <button class="btn-gold" onclick="submitBroadcast()">[Send]</button>
+            <button class="btn-cancel" onclick="closeModals()">[Cancel]</button>
+        </div>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, doc, setDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw",
+      authDomain: "chesselobeth.firebaseapp.com",
+      projectId: "chesselobeth",
+      storageBucket: "chesselobeth.firebasestorage.app",
+      messagingSenderId: "829508204106",
+      appId: "1:829508204106:web:e8952c359f63d49646d8b3",
+      measurementId: "G-7C58TZQ48M"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
+    window.openMenu = () => document.getElementById('menuModal').style.display = 'flex';
+    window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(e => e.style.display = 'none');
+    window.openAddData = () => { closeModals(); document.getElementById('addDataModal').style.display = 'flex'; };
+    window.openBroadcast = () => { closeModals(); document.getElementById('broadcastModal').style.display = 'flex'; };
+
+    window.toggleInfo = (id) => {
+        const d = document.getElementById(`detail-${id}`);
+        const b = document.getElementById(`btn-${id}`);
+        d.style.display = d.style.display === 'block' ? 'none' : 'block';
+        b.innerText = d.style.display === 'block' ? '[Back]' : '[See more Information]';
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user) window.location.href = "index.html";
+        else {
+            document.getElementById('welcomeMsg').innerText = `Welcome ${user.displayName}`;
+            if(user.displayName === "Jovan") document.getElementById('ownerFab').style.display = 'flex';
+        }
+    });
+
+    onSnapshot(doc(db, "config", "broadcastMsg"), (d) => {
+        if(d.exists()) document.getElementById('broadcastDisplay').innerText = `Broadcast: ${d.data().text}`;
+    });
+
+    const q = query(collection(db, "players"), orderBy("timestamp", "desc"));
+    onSnapshot(q, (snap) => {
+        const feed = document.getElementById('dataFeed');
+        feed.innerHTML = "";
+        snap.forEach((doc) => {
+            const data = doc.data();
+            const id = doc.id;
+            const nameDisp = data.rank !== "None" ? `[${data.rank}] ${data.name}` : data.name;
+            feed.innerHTML += `
+                <div class="card">
+                    <h3 class="${data.rank === 'GM' ? 'rank-gm' : ''}">${nameDisp}</h3>
+                    <p>Elo Rating: ${data.elo}</p>
+                    <p>Date: ${data.date}</p>
+                    <button class="see-more" id="btn-${id}" onclick="toggleInfo('${id}')">[See more Information]</button>
+                    <div id="detail-${id}" class="detail-view">
+                        <p>Rank: ${data.rank}</p>
+                        <p>Chess.com: ${data.chessAccount}</p>
+                    </div>
+                </div>`;
+        });
+    });
+
+    window.submitData = async () => {
+        const name = document.getElementById('inpName').value;
+        const elo = document.getElementById('inpElo').value;
+        const rank = document.getElementById('inpRank').value;
+        const acc = document.getElementById('inpChessCom').value;
+        const date = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+        await addDoc(collection(db, "players"), { name, elo, rank, chessAccount: acc, date, timestamp: Date.now() });
+        closeModals();
+    };
+
+    window.submitBroadcast = async () => {
+        const text = document.getElementById('inpBroadcast').value;
+        await setDoc(doc(db, "config", "broadcastMsg"), { text });
+        closeModals();
+    };
+</script>
+</body>
+</html>
