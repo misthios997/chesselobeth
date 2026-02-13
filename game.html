@@ -1,152 +1,197 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>CHESSELOBETH - Match</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHESSELOBETH - Game</title>
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <style>
-        body { background: #262421; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 10px; }
-        .player-info { width: 100%; max-width: 400px; display: flex; align-items: center; padding: 10px; background: #2d2d2d; border-radius: 8px; margin: 5px 0; justify-content: space-between; }
-        .p-avatar { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; border: 1.5px solid #ffd700; }
-        .timer-box { background: #1a1a1a; padding: 6px 12px; border-radius: 4px; color: #ffd700; font-family: monospace; font-size: 1.1rem; min-width: 60px; text-align: center; }
-        #myBoard { width: 95vw; max-width: 400px; margin: 10px 0; }
-        .white-1e1d7 { background-color: #ebecd0 !important; }
-        .black-3c85d { background-color: #779556 !important; }
-        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:none; justify-content:center; align-items:center; z-index:999; }
-        .modal { background:#2d2d2d; padding:30px; border-radius:18px; text-align:center; border:2px solid #ffd700; width:280px; }
-        .btn-back { background:#81b64c; color:white; border:none; padding:15px; border-radius:8px; font-weight:bold; cursor:pointer; width:100%; margin-top:20px; }
+        body { background-color: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .game-container { width: 95%; max-width: 400px; margin-top: 20px; }
+        
+        /* Player Info Styling */
+        .player-info { background: #262421; padding: 12px; display: flex; align-items: center; gap: 12px; border-radius: 4px; margin-bottom: 5px; }
+        .avatar { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; background: #444; }
+        .player-name { font-weight: bold; font-size: 1rem; color: #fff; }
+        .timer { margin-left: auto; background: #312e2b; padding: 5px 10px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 1.4rem; font-weight: bold; color: #fff; border: 1px solid #444; }
+        
+        /* Custom Board Colors - Chess.com Style */
+        .white-1e1d7 { background-color: #ebecd0 !important; color: #779556 !important; }
+        .black-3c85d { background-color: #779556 !important; color: #ebecd0 !important; }
+        
+        #myBoard { width: 100%; box-shadow: 0 8px 25px rgba(0,0,0,0.5); }
+        
+        .controls { width: 100%; display: flex; gap: 10px; margin-top: 20px; }
+        .btn { flex: 1; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; transition: 0.2s; }
+        .btn-resign { background: #312e2b; border: 1px solid #444; }
+        .btn-resign:hover { background: #444; }
+        .btn-lobby { background: #81b64c; display: none; }
+
+        .status-bar { margin: 15px 0; font-weight: bold; color: #aaa; text-align: center; font-size: 0.9rem; }
+        
+        /* Highlight Square */
+        .highlight-white { background-color: #f6f669 !important; }
+        .highlight-black { background-color: #f6f669 !important; }
     </style>
 </head>
 <body>
 
-    <div class="player-info">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <img id="oppAvatar" src="" class="p-avatar">
-            <span id="oppName">Opponent</span>
+    <div class="game-container">
+        <div class="player-info" id="opponentInfo">
+            <img id="oppAvatar" class="avatar" src="">
+            <span class="player-name" id="oppName">Opponent</span>
+            <div class="timer" id="oppTimer">10:00</div>
         </div>
-        <div class="timer-box" id="oppTime">00:00</div>
-    </div>
 
-    <div id="myBoard"></div>
+        <div id="myBoard"></div>
 
-    <div class="player-info">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <img id="myAvatar" src="" class="p-avatar">
-            <span id="myName">You</span>
+        <div class="player-info" id="myInfo" style="margin-top:5px;">
+            <img id="myAvatar" class="avatar" src="">
+            <span class="player-name" id="myName">Me</span>
+            <div class="timer" id="myTimer">10:00</div>
         </div>
-        <div class="timer-box" id="myTime">00:00</div>
-    </div>
 
-    <button onclick="handleResign()" style="width:100%; max-width:400px; padding:10px; color:#ff4d4d; background:none; border:1px solid #ff4d4d; border-radius:5px; margin-top:10px; cursor:pointer;">🏳️ Resign</button>
+        <div class="status-bar" id="gameStatus">LOADING GAME...</div>
 
-    <div class="modal-overlay" id="gameOverModal">
-        <div class="modal">
-            <h1 id="winMsg" style="color:#ffd700; margin:0;">Winner</h1>
-            <p id="winReason" style="color:#aaa;">by Checkmate</p>
-            <button class="btn-back" onclick="window.location.href='main.html'">BACK TO LOBBY</button>
+        <div class="controls">
+            <button class="btn btn-resign" id="resignBtn" onclick="window.resignGame()">RESIGN</button>
+            <button class="btn btn-lobby" id="lobbyBtn" onclick="location.href='main.html'">BACK TO LOBBY</button>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        const firebaseConfig = { apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", authDomain: "chesselobeth.firebaseapp.com", projectId: "chesselobeth", storageBucket: "chesselobeth.firebasestorage.app", messagingSenderId: "829508204106", appId: "1:829508204106:web:e8952c359f63d49646d8b3" };
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    const firebaseConfig = { apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", authDomain: "chesselobeth.firebaseapp.com", projectId: "chesselobeth", storageBucket: "chesselobeth.firebasestorage.app", messagingSenderId: "829508204106", appId: "1:829508204106:web:e8952c359f63d49646d8b3" };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-        const params = new URLSearchParams(window.location.search);
-        const roomId = params.get('id');
-        const mySide = params.get('side');
-        
-        let game = new Chess();
-        let board = null;
-        let whiteSeconds, blackSeconds;
-        let timerInterval;
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('id');
+    const mySide = urlParams.get('side'); 
 
+    let board = null;
+    let game = new Chess();
+    let currentUsername = "";
+    let isGameOver = false;
+
+    // ASET BIDAK CHESS.COM (NEO STYLE)
+    function pieceTheme(piece) {
+        if (piece.search(/w/) !== -1) {
+            return 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150/w' + piece.search(/P/) !== -1 ? 'p' : piece.toLowerCase().charAt(1) + '.png';
+        }
+        // Logic fix for piece naming convention
+        const p = piece.toLowerCase();
+        return 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150/' + p + '.png';
+    }
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user) window.location.href = "index.html";
+        else {
+            currentUsername = user.displayName;
+            initGame();
+        }
+    });
+
+    async function initGame() {
         const roomRef = doc(db, "rooms", roomId);
+        const snap = await getDoc(roomRef);
+        if(!snap.exists()) return;
+        const data = snap.data();
 
-        function formatTime(s) {
-            const min = Math.floor(s / 60);
-            const sec = s % 60;
-            return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        if (mySide === 'white') {
+            document.getElementById('myName').innerText = data.player1.name;
+            document.getElementById('myAvatar').src = data.player1.photo || `https://ui-avatars.com/api/?name=${data.player1.name}`;
+            document.getElementById('oppName').innerText = data.player2.name;
+            document.getElementById('oppAvatar').src = data.player2.photo || `https://ui-avatars.com/api/?name=${data.player2.name}`;
+        } else {
+            document.getElementById('myName').innerText = data.player2.name;
+            document.getElementById('myAvatar').src = data.player2.photo || `https://ui-avatars.com/api/?name=${data.player2.name}`;
+            document.getElementById('oppName').innerText = data.player1.name;
+            document.getElementById('oppAvatar').src = data.player1.photo || `https://ui-avatars.com/api/?name=${data.player1.name}`;
         }
 
-        function startTimerLogic() {
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                if (game.turn() === 'w') whiteSeconds--;
-                else blackSeconds--;
+        board = Chessboard('myBoard', {
+            draggable: true,
+            orientation: mySide,
+            position: 'start',
+            pieceTheme: 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150/{piece}.png',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onSnapEnd: onSnapEnd
+        });
 
-                document.getElementById('myTime').innerText = formatTime(mySide === 'white' ? whiteSeconds : blackSeconds);
-                document.getElementById('oppTime').innerText = formatTime(mySide === 'white' ? blackSeconds : whiteSeconds);
+        onSnapshot(roomRef, (snapshot) => {
+            const roomData = snapshot.data();
+            if (!roomData) return;
 
-                if(whiteSeconds <= 0 || blackSeconds <= 0) {
-                    clearInterval(timerInterval);
-                    const winner = whiteSeconds <= 0 ? "Black" : "White";
-                    showGameOver(winner, "Time Out");
+            if (roomData.fen !== game.fen()) {
+                game.load(roomData.fen);
+                board.position(roomData.fen);
+                updateStatusBar();
+            }
+
+            if (roomData.status === "resigned") {
+                if (!isGameOver) {
+                    isGameOver = true;
+                    alert(`Game Over! ${roomData.winner === currentUsername ? "Lawan Menyerah!" : "Kamu Menyerah!"}`);
+                    document.getElementById('gameStatus').innerText = "GAME OVER - RESIGNED";
+                    showLobbyBtn();
                 }
-            }, 1000);
-        }
-
-        function onDrop(source, target) {
-            if (game.turn() !== (mySide === 'white' ? 'w' : 'b')) return 'snapback';
-            let move = game.move({ from: source, to: target, promotion: 'q' });
-            if (!move) return 'snapback';
-            updateDoc(roomRef, { fen: game.fen(), wTime: whiteSeconds, bTime: blackSeconds });
-        }
-
-        board = Chessboard('myBoard', { 
-            draggable: true, position: 'start', orientation: mySide, onDrop: onDrop,
-            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
-        });
-
-        onSnapshot(roomRef, (s) => {
-            if(!s.exists()) { showGameOver("Opponent", "Resignation"); return; }
-            const d = s.data();
-            
-            // Sync Time
-            if(!whiteSeconds) {
-                whiteSeconds = d.wTime || d.timer * 60;
-                blackSeconds = d.bTime || d.timer * 60;
-            } else {
-                whiteSeconds = d.wTime;
-                blackSeconds = d.bTime;
-            }
-
-            game.load(d.fen);
-            board.position(d.fen);
-
-            if(d.status === "playing") startTimerLogic();
-
-            const me = mySide === 'white' ? d.player1 : d.player2;
-            const opp = mySide === 'white' ? d.player2 : d.player1;
-            
-            document.getElementById('myName').innerText = me.name;
-            document.getElementById('myAvatar').src = me.photo;
-            if(opp) {
-                document.getElementById('oppName').innerText = opp.name;
-                document.getElementById('oppAvatar').src = opp.photo;
-            }
-
-            if(game.game_over()) {
-                const winner = game.turn() === 'w' ? d.player2.name : d.player1.name;
-                showGameOver(winner, "Checkmate");
             }
         });
+    }
 
-        function showGameOver(name, reason) {
-            clearInterval(timerInterval);
-            document.getElementById('winMsg').innerText = name + " Win";
-            document.getElementById('winReason').innerText = "by " + reason;
-            document.getElementById('gameOverModal').style.display = 'flex';
+    function onDragStart(source, piece) {
+        if (isGameOver) return false;
+        if ((mySide === 'white' && piece.search(/^b/) !== -1) ||
+            (mySide === 'black' && piece.search(/^w/) !== -1)) return false;
+        if ((game.turn() === 'w' && mySide === 'black') ||
+            (game.turn() === 'b' && mySide === 'white')) return false;
+    }
+
+    async function onDrop(source, target) {
+        let move = game.move({ from: source, to: target, promotion: 'q' });
+        if (move === null) return 'snapback';
+
+        await updateDoc(doc(db, "rooms", roomId), {
+            fen: game.fen(),
+            lastMove: Date.now()
+        });
+        updateStatusBar();
+    }
+
+    function onSnapEnd() { board.position(game.fen()); }
+
+    function updateStatusBar() {
+        let status = (game.turn() === 'w') ? "White's Turn" : "Black's Turn";
+        if (game.in_checkmate()) status = "Checkmate!";
+        else if (game.in_draw()) status = "Draw!";
+        else if (game.in_check()) status += " (Check!)";
+        document.getElementById('gameStatus').innerText = status;
+    }
+
+    window.resignGame = async () => {
+        if (confirm("Resign?")) {
+            const roomRef = doc(db, "rooms", roomId);
+            const snap = await getDoc(roomRef);
+            const data = snap.data();
+            const winner = (mySide === 'white') ? data.player2.name : data.player1.name;
+            await updateDoc(roomRef, { status: "resigned", winner: winner });
         }
+    };
 
-        window.handleResign = async () => { if(confirm("Resign?")) await deleteDoc(roomRef); };
-    </script>
+    function showLobbyBtn() {
+        document.getElementById('resignBtn').style.display = 'none';
+        document.getElementById('lobbyBtn').style.display = 'block';
+    }
+</script>
 </body>
 </html>
