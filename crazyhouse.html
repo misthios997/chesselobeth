@@ -27,6 +27,15 @@
         /* Controls */
         .controls { margin-top: 10px; width: 350px; display: flex; justify-content: space-between; }
         .btn-resign { background: none; border: 1px solid #ff4d4d; color: #ff4d4d; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+        /* Game Over Modal UI */
+        .game-over-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .game-over-box { background: #2d2d2d; padding: 25px; border-radius: 12px; width: 80%; max-width: 320px; text-align: center; border: 2px solid #ffd700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); }
+        .game-over-title { font-size: 2rem; font-weight: 900; margin: 0; text-transform: uppercase; }
+        .win-text { color: #ffd700; }
+        .lose-text { color: #ff4d4d; }
+        .game-over-sub { color: #ccc; margin: 10px 0 20px 0; font-size: 0.9rem; }
+        .btn-home { background: #81b64c; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1rem; }
     </style>
 </head>
 <body>
@@ -53,6 +62,14 @@
         <button class="btn-resign" onclick="resignGame()">RESIGN</button>
     </div>
 
+    <div class="game-over-overlay" id="gameOverModal">
+        <div class="game-over-box">
+            <h1 class="game-over-title" id="goTitle">YOU WON</h1>
+            <p class="game-over-sub" id="goReason">by Checkmate</p>
+            <button class="btn-home" onclick="window.location.href='main.html'">BACK TO LOBBY</button>
+        </div>
+    </div>
+
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
@@ -69,24 +86,21 @@
 
     const params = new URLSearchParams(window.location.search);
     const roomId = params.get('id');
-    const mySide = params.get('side'); // 'white' or 'black'
+    const mySide = params.get('side'); 
     
     let board, game = new Chess();
     let isGameOver = false;
     let selectedDropPiece = null; 
-    let pockets = { w: "", b: "" }; // String of pieces like "PPNQR"
+    let pockets = { w: "", b: "" }; 
     let timers = { w: 600, b: 600 };
     
-    // Init Logic
     onAuthStateChanged(auth, async (user) => {
         if (!user || !roomId) return;
         
-        // Load Initial Data
         const roomRef = doc(db, "rooms", roomId);
         const snap = await getDoc(roomRef);
         const data = snap.data();
         
-        // Setup UI Names/Avatars
         const p1 = data.player1; const p2 = data.player2;
         if(mySide === 'white') {
             document.getElementById('myName').innerText = p1.name; document.getElementById('myPic').src = p1.photo || "https://via.placeholder.com/30";
@@ -96,87 +110,117 @@
             document.getElementById('oppName').innerText = p1.name; document.getElementById('oppPic').src = p1.photo || "https://via.placeholder.com/30";
         }
 
-        // Init Board
         board = Chessboard('myBoard', {
             draggable: true,
             orientation: mySide,
             position: data.fen,
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png', // FIXED IMAGE PATH
             onDragStart: onDragStart,
             onDrop: onDrop,
             onSnapEnd: () => board.position(game.fen())
         });
         
-        // Handle Clicks for Dropping (Mobile/Web Friendly)
         $('#myBoard').on('click', '.square-55d63', handleSquareClick);
 
-        // Firestore Listener
         onSnapshot(roomRef, (s) => {
             const d = s.data();
-            if (d.status === 'resigned') { alert('Game Over: Opponent Resigned'); location.href = 'main.html'; }
+
+            // SYNC GAME OVER
+            if (d.status === 'gameover' || d.status === 'resigned') {
+                showGameOver(d);
+            }
             
-            // Sync Board
             if (d.fen !== game.fen()) {
                 game.load(d.fen);
                 board.position(d.fen);
             }
-            
-            // Sync Pockets
             pockets = d.pockets || { w: "", b: "" };
             updatePocketsUI();
-
-            // Sync Timers
-            // (In real app, calculate diff with server time, here simplistic sync)
             timers = d.timers || { w: 600, b: 600 };
             updateTimerUI();
         });
 
-        // Local Timer Tick
         setInterval(() => {
             if(!isGameOver && game.turn() === (mySide === 'white' ? 'w' : 'b')) {
-                // Only decrement locally for visual smoothness, rely on snapshot for actual sync in this simple version
-                // Or implementing a simple decrementer:
                 if(game.turn() === 'w') timers.w--; else timers.b--;
                 updateTimerUI();
             }
         }, 1000);
     });
 
+    function showGameOver(data) {
+        isGameOver = true;
+        const modal = document.getElementById('gameOverModal');
+        const title = document.getElementById('goTitle');
+        const reason = document.getElementById('goReason');
+        
+        modal.style.display = 'flex';
+        
+        let amIWinner = false;
+        
+        if (data.status === 'resigned') {
+            // Check who resigned. If opponent resigned, I win.
+            // Simplified: If status is resigned, assume the other person resigned for now OR check data.winner if implemented
+            // Let's assume the person who clicked resign triggered the update.
+            // Better: we need a winner field.
+            if (data.winner === mySide) amIWinner = true;
+            reason.innerText = amIWinner ? "Opponent Resigned" : "You Resigned";
+        } else {
+            // Checkmate
+            if (data.winner === mySide) amIWinner = true;
+            reason.innerText = "by Checkmate";
+        }
+
+        if (amIWinner) {
+            title.innerText = "YOU WON";
+            title.className = "game-over-title win-text";
+        } else {
+            title.innerText = "YOU LOST";
+            title.className = "game-over-title lose-text";
+        }
+    }
+
     function onDragStart(source, piece) {
         if (isGameOver) return false;
         if (game.turn() !== mySide.charAt(0)) return false;
         if (piece.search(mySide.charAt(0)) === -1) return false;
-        
-        // Clear Drop Selection if dragging
         selectedDropPiece = null;
         updatePocketsUI();
     }
 
     function onDrop(source, target) {
-        // Standard Move Logic
         const move = game.move({ from: source, to: target, promotion: 'q' });
         if (move === null) return 'snapback';
 
-        // Crazyhouse Logic: Capture -> Pocket
         if (move.captured) {
-            const capturedPiece = move.captured.toUpperCase(); // p -> P
-            const capturerColor = game.turn() === 'w' ? 'b' : 'w'; // Turn flipped after move, so use previous turn logic... 
-            // Wait, game.move() already flipped the turn. 
-            // If White moved and captured Black, it's now Black's turn. 
-            // The piece goes to White's pocket.
+            const capturedPiece = move.captured.toUpperCase();
             const pocketOwner = game.turn() === 'w' ? 'b' : 'w'; 
-            
-            // Add to pocket string
             pockets[pocketOwner] += capturedPiece;
         }
 
+        checkWinCondition();
         saveGameState();
     }
 
-    // --- DROP LOGIC ---
+    function checkWinCondition() {
+        if (game.in_checkmate()) {
+            // The person who just moved (game.turn() has flipped) delivered mate? 
+            // Wait, chess.js flips turn after move.
+            // If White moves and mates Black, turn is now Black, and in_checkmate() is true for Black.
+            // So the winner is the side that is NOT game.turn().
+            const winner = game.turn() === 'w' ? 'black' : 'white';
+            updateDoc(doc(db, "rooms", roomId), { 
+                status: 'gameover', 
+                winner: winner, 
+                fen: game.fen() 
+            });
+        }
+    }
+
     function selectPieceFromPocket(pieceType) {
         if (game.turn() !== mySide.charAt(0)) return;
         selectedDropPiece = pieceType;
-        updatePocketsUI(); // Highlights selection
+        updatePocketsUI();
     }
 
     function handleSquareClick(e) {
@@ -185,39 +229,36 @@
 
         const square = $(this).data('square');
         const piece = game.get(square);
-
-        // Can only drop on empty square
         if (piece) return;
 
-        // Validation: No Pawn drop on 1st or 8th rank
         if (selectedDropPiece === 'P' && (square.endsWith('1') || square.endsWith('8'))) {
             alert("Can't drop pawns on 1st or 8th rank!");
             return;
         }
 
-        // Execute Drop using chess.js .put() and manual turn switch
         const success = game.put({ type: selectedDropPiece.toLowerCase(), color: mySide.charAt(0) }, square);
         if (success) {
-            // Remove from pocket string (remove first occurrence)
             pockets[mySide.charAt(0)] = pockets[mySide.charAt(0)].replace(selectedDropPiece, "");
             
-            // Switch Turn manually because .put() doesn't switch turn in chess.js
             const fenParts = game.fen().split(' ');
-            fenParts[1] = fenParts[1] === 'w' ? 'b' : 'w'; // Switch w <-> b
-            fenParts[3] = '-'; // En passant reset
+            fenParts[1] = fenParts[1] === 'w' ? 'b' : 'w'; 
+            fenParts[3] = '-'; 
             game.load(fenParts.join(' ')); 
 
             board.position(game.fen());
             selectedDropPiece = null;
+            
+            checkWinCondition();
             saveGameState();
         }
     }
 
     function saveGameState() {
+        if (isGameOver) return; // Don't overwrite if game ended
         updateDoc(doc(db, "rooms", roomId), {
             fen: game.fen(),
             pockets: pockets,
-            timers: timers // Save current time snapshot
+            timers: timers
         });
         updatePocketsUI();
     }
@@ -226,12 +267,12 @@
         const renderPocket = (containerId, pieceString, isMine) => {
             const container = document.getElementById(containerId);
             container.innerHTML = "";
-            // Convert "PPN" to array
             const pieces = pieceString.split('').sort();
             
             pieces.forEach(p => {
                 const img = document.createElement('img');
                 const color = isMine ? mySide.charAt(0) : (mySide === 'white' ? 'b' : 'w');
+                // FIXED IMAGE PATH
                 img.src = `https://chessboardjs.com/img/chesspieces/wikipedia/${color}${p}.png`;
                 
                 if (isMine) {
@@ -261,7 +302,11 @@
     }
 
     window.resignGame = () => {
-        if(confirm("Are you sure?")) updateDoc(doc(db, "rooms", roomId), { status: 'resigned' });
+        if(confirm("Are you sure?")) {
+             // Winner is the opponent
+             const winner = mySide === 'white' ? 'black' : 'white';
+             updateDoc(doc(db, "rooms", roomId), { status: 'resigned', winner: winner });
+        }
     }
 </script>
 </body>
