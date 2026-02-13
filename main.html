@@ -5,164 +5,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHESSELOBETH - Lobby</title>
     <style>
-        body { background-color: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; }
-        header { background: #2d2d2d; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.5); position: sticky; top: 0; z-index: 100; }
-        .brand { font-weight: bold; color: #ffd700; font-size: 1.2rem; }
-        .nav-btns { display: flex; gap: 10px; align-items: center; }
-        .icon-btn { background: #333; border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; border: 1px solid #444; overflow: hidden; }
-        .profile-img-nav { width: 100%; height: 100%; object-fit: cover; }
-        
-        .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
-        .welcome { font-size: 1.5rem; margin-bottom: 15px; color: #ffd700; }
-
-        .lobby-card { background: #2d2d2d; padding: 20px; border-radius: 12px; border-left: 5px solid #81b64c; margin-bottom: 20px; }
-        label { font-size: 0.75rem; color: #aaa; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 8px; margin-top: 15px; }
-        .selector-group { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-        .sel-btn { flex: 1; min-width: 90px; padding: 12px; background: #333; border: 1px solid #444; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 0.85rem; }
-        .sel-btn.active { border-color: #81b64c; background: rgba(129, 182, 76, 0.2); color: #81b64c; }
-        
-        .btn-search { background: #81b64c; color: white; width: 100%; padding: 18px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 20px; box-shadow: 0 4px 15px rgba(129, 182, 76, 0.3); }
-
-        .broadcast-box { background: linear-gradient(45deg, #b8860b, #daa520); color: black; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; }
-        
-        /* Chat & Modal Overlay */
-        .chat-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; display: none; flex-direction: column; z-index: 1100; }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; text-align: center; }
-        .btn-gold { background: #ffd700; color: black; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        
-        #searchTimer { font-size: 2.5rem; font-weight: bold; margin: 20px 0; color: #ffd700; }
+        body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; }
+        .header { background: #2d2d2d; width: 100%; padding: 20px; text-align: center; border-bottom: 2px solid #81b64c; }
+        .container { width: 90%; max-width: 500px; margin-top: 20px; }
+        .user-card { background: #2d2d2d; padding: 15px; border-radius: 10px; display: flex; align-items: center; gap: 15px; margin-bottom: 20px; border: 1px solid #444; }
+        .user-card img { width: 50px; border-radius: 50%; border: 2px solid #81b64c; }
+        .create-box { background: #2d2d2d; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #444; }
+        select, input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: none; font-weight: bold; }
+        .btn-create { background: #81b64c; color: white; cursor: pointer; }
+        .room-item { background: #333; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #ffd700; }
+        .btn-join { background: #ffd700; color: black; padding: 8px 15px; width: auto; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="brand">CHESSELOBETH</div>
-        <div class="nav-btns">
-            <button class="icon-btn" onclick="window.toggleChat(true)">💬</button>
-            <button class="icon-btn" onclick="window.openProfileModal()" id="profileBtn">U</button>
-        </div>
-    </header>
+    <div class="header"><h1>CHESSELOBETH</h1></div>
 
     <div class="container">
-        <div class="welcome" id="welcomeMsg">Welcome...</div>
-        
-        <div class="lobby-card">
-            <label>Timer:</label>
-            <div class="selector-group">
-                <button class="sel-btn" id="t3" onclick="window.setTimer(3, 't3')">3Min</button>
-                <button class="sel-btn" id="t5" onclick="window.setTimer(5, 't5')">5Min</button>
-                <button class="sel-btn active" id="t10" onclick="window.setTimer(10, 't10')">10Min</button>
-            </div>
-
-            <label>Variant:</label>
-            <div class="selector-group">
-                <button class="sel-btn active" id="vStd" onclick="window.setVariant('standard', 'vStd')">Standard</button>
-                <button class="sel-btn" id="vCh" onclick="window.setVariant('crazyhouse', 'vCh')">Crazyhouse</button>
-                <button class="sel-btn" style="opacity:0.5" disabled>All Rook (On Working)</button>
-            </div>
-
-            <button class="btn-search" onclick="window.startMatchmaking()">[ 🔍 PLAY ONLINE ]</button>
+        <div class="user-card" id="userProfile">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Jovan" id="userAvatar">
+            <div><b id="userName">Loading...</b><br><small>Ready to Play</small></div>
         </div>
 
-        <div class="broadcast-box" id="broadcastDisplay">Broadcast: Loading...</div>
-        <div id="dataFeed"></div>
-    </div>
-
-    <div class="modal-overlay" id="searchModal">
-        <div class="modal">
-            <h2 style="margin:0; color:#ffd700;">Searching Opponent...</h2>
-            <div id="searchTimer">00:00</div>
-            <p id="searchStatus" style="font-size:0.8rem; color:#aaa;">Waiting for someone with same variant</p>
-            <button class="btn-gold" style="background:#ff4d4d; color:white" onclick="window.cancelSearch()">CANCEL</button>
+        <div class="create-box">
+            <h3>CREATE NEW ROOM</h3>
+            <select id="gameMode">
+                <option value="standard">Standard Chess</option>
+                <option value="crazyhouse">Crazyhouse</option>
+            </select>
+            <select id="gameTime">
+                <option value="10">10 Minutes</option>
+                <option value="5">5 Minutes</option>
+                <option value="3">3 Minutes</option>
+            </select>
+            <button class="btn-create" id="createRoomBtn">CREATE ROOM</button>
         </div>
+
+        <h3>ACTIVE ROOMS</h3>
+        <div id="roomList"></div>
     </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, where, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, getDocs, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", authDomain: "chesselobeth.firebaseapp.com", projectId: "chesselobeth", storageBucket: "chesselobeth.firebasestorage.app", messagingSenderId: "829508204106", appId: "1:829508204106:web:e8952c359f63d49646d8b3" };
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    let currentUsername = "";
-    let selectedTimer = 10;
-    let selectedVariant = "standard";
-    let searchInterval, currentRoomId, unsubRoom;
+    let currentUser = null;
 
     onAuthStateChanged(auth, (user) => {
-        if (!user) window.location.href = "index.html";
-        else {
-            currentUsername = user.displayName;
-            document.getElementById('welcomeMsg').innerText = `Welcome ${currentUsername}`;
-            const upic = user.photoURL || `https://ui-avatars.com/api/?name=${currentUsername}`;
-            document.getElementById('profileBtn').innerHTML = `<img src="${upic}" class="profile-img-nav">`;
-        }
+        if (!user) return location.href = 'index.html';
+        currentUser = user;
+        document.getElementById('userName').innerText = user.displayName || "User";
+        document.getElementById('userAvatar').src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`;
     });
 
-    window.setTimer = (val, id) => {
-        selectedTimer = val;
-        document.querySelectorAll('[id^="t"]').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-    };
-
-    window.setVariant = (val, id) => {
-        selectedVariant = val;
-        document.querySelectorAll('[id^="v"]').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-    };
-
-    window.startMatchmaking = async () => {
-        document.getElementById('searchModal').style.display = 'flex';
-        let sec = 0;
-        searchInterval = setInterval(() => {
-            sec++;
-            document.getElementById('searchTimer').innerText = `${Math.floor(sec/60).toString().padStart(2,'0')}:${(sec%60).toString().padStart(2,'0')}`;
-        }, 1000);
-
-        const q = query(collection(db, "rooms"), 
-            where("status", "==", "waiting"), 
-            where("timer", "==", selectedTimer), 
-            where("variant", "==", selectedVariant));
+    document.getElementById('createRoomBtn').onclick = async () => {
+        const mode = document.getElementById('gameMode').value;
+        const time = parseInt(document.getElementById('gameTime').value);
         
-        const snap = await getDocs(q);
-        
-        if (!snap.empty) {
-            currentRoomId = snap.docs[0].id;
-            await updateDoc(doc(db, "rooms", currentRoomId), {
-                player2: { name: currentUsername, photo: auth.currentUser.photoURL || "" },
-                status: "playing"
-            });
-            goToGame(selectedVariant, currentRoomId, 'black');
-        } else {
-            const newRoom = await addDoc(collection(db, "rooms"), {
-                player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" },
-                status: "waiting",
-                timer: selectedTimer,
-                variant: selectedVariant,
-                fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-                createdAt: Date.now()
-            });
-            currentRoomId = newRoom.id;
-            unsubRoom = onSnapshot(doc(db, "rooms", currentRoomId), (s) => {
-                if (s.data()?.status === "playing") goToGame(selectedVariant, currentRoomId, 'white');
-            });
-        }
+        const docRef = await addDoc(collection(db, "rooms"), {
+            mode: mode,
+            timer: time,
+            status: "waiting",
+            player1: { uid: currentUser.uid, name: currentUser.displayName || "Player 1" },
+            player2: null,
+            fen: "start",
+            pockets: { w: [], b: [] },
+            timers: { w: time * 60, b: time * 60 },
+            createdAt: Date.now()
+        });
+        location.href = `${mode}.html?id=${docRef.id}&side=white`;
     };
 
-    function goToGame(variant, id, side) {
-        clearInterval(searchInterval);
-        const file = variant === "crazyhouse" ? "crazyhouse.html" : "game.html";
-        window.location.href = `${file}?id=${id}&side=${side}`;
-    }
+    onSnapshot(query(collection(db, "rooms"), where("status", "==", "waiting")), (snap) => {
+        const list = document.getElementById('roomList');
+        list.innerHTML = '';
+        snap.forEach(d => {
+            const data = d.data();
+            if (data.player1.uid === currentUser?.uid) return;
+            const item = document.createElement('div');
+            item.className = 'room-item';
+            item.innerHTML = `
+                <div><b>${data.player1.name}</b><br><small>${data.mode.toUpperCase()} - ${data.timer}m</small></div>
+                <button class="btn-join" onclick="joinRoom('${d.id}')">JOIN</button>
+            `;
+            list.appendChild(item);
+        });
+    });
 
-    window.cancelSearch = async () => {
-        clearInterval(searchInterval);
-        if (currentRoomId) await deleteDoc(doc(db, "rooms", currentRoomId));
-        document.getElementById('searchModal').style.display = 'none';
+    window.joinRoom = async (id) => {
+        const roomRef = doc(db, "rooms", id);
+        const snap = await getDoc(roomRef);
+        const data = snap.data();
+        await updateDoc(roomRef, {
+            player2: { uid: currentUser.uid, name: currentUser.displayName || "Player 2" },
+            status: "playing"
+        });
+        location.href = `${data.mode}.html?id=${id}&side=black`;
     };
 </script>
 </body>
