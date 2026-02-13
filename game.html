@@ -3,100 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CHESSELOBETH - Game</title>
+    <title>CHESSELOBETH - Standard</title>
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <style>
-        html, body { 
-            overflow: hidden; 
-            position: fixed; 
-            width: 100%; 
-            height: 100%; 
-            background-color: #1a1a1a; 
-            color: white; 
-            font-family: 'Segoe UI', sans-serif; 
-            margin: 0; 
-            touch-action: none; 
-        }
-
-        body { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-
+        html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; background: #1a1a1a; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; }
         .game-container { width: 95%; max-width: 400px; }
-        
-        .player-info { background: #262421; padding: 10px; display: flex; align-items: center; gap: 12px; border-radius: 4px; margin-bottom: 5px; }
-        .avatar { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; background: #444; }
-        .player-name { font-weight: bold; font-size: 0.9rem; color: #fff; }
-        
-        .timer { 
-            margin-left: auto; 
-            background: #312e2b; 
-            padding: 5px 10px; 
-            border-radius: 4px; 
-            font-family: monospace; 
-            font-size: 1.5rem; 
-            font-weight: bold; 
-            color: #fff; 
-            border: 1px solid #444;
-            min-width: 80px;
-            text-align: center;
-        }
-        .timer.active { background: #fff; color: #000; }
+        .player-info { background: #2d2d2d; padding: 10px; display: flex; align-items: center; border-radius: 8px; margin: 5px 0; border: 1px solid #444; }
+        .timer { margin-left: auto; font-family: monospace; font-size: 1.4rem; background: #1a1a1a; padding: 5px 10px; border-radius: 4px; color: #ffd700; }
+        .timer.active { background: #ffd700; color: #000; }
+        #myBoard { width: 100%; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
 
-        /* CHESS.COM THEME */
-        .white-1e1d7 { background-color: #ebecd0 !important; }
-        .black-3c85d { background-color: #779556 !important; }
-        
-        #myBoard { width: 100%; box-shadow: 0 8px 25px rgba(0,0,0,0.5); }
-        
-        .status-bar { margin: 10px 0; font-weight: bold; color: #aaa; text-align: center; font-size: 0.8rem; height: 20px; }
+        /* Promotion Modal */
+        .promo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .promo-box { background: #2d2d2d; padding: 20px; border-radius: 12px; display: flex; gap: 10px; border: 2px solid #ffd700; }
+        .promo-box img { width: 60px; height: 60px; cursor: pointer; background: #444; border-radius: 8px; transition: 0.2s; }
+        .promo-box img:hover { background: #81b64c; }
 
-        /* GAME OVER SCREEN */
-        .modal-overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); display: none; 
-            justify-content: center; align-items: center; z-index: 9999; 
-        }
-        .modal { 
-            background: #2d2d2d; padding: 30px; border-radius: 15px; 
-            text-align: center; width: 80%; max-width: 300px;
-            border: 2px solid #ffd700;
-        }
-        .btn-lobby { 
-            background: #81b64c; color: white; width: 100%; padding: 12px; 
-            border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 20px;
-        }
-
-        .btn-resign { 
-            background: #312e2b; color: #aaa; border: 1px solid #444; padding: 10px 20px; 
-            border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px;
-        }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; text-align: center; width: 280px; border: 2px solid #ffd700; }
     </style>
 </head>
 <body>
 
     <div class="game-container">
         <div class="player-info">
-            <img id="oppAvatar" class="avatar" src="">
-            <span class="player-name" id="oppName">Opponent</span>
-            <div class="timer" id="oppTimer">00:00</div>
+            <b id="oppName">Opponent</b>
+            <div class="timer" id="oppTimer">--:--</div>
         </div>
-
         <div id="myBoard"></div>
-
-        <div class="player-info" style="margin-top:5px;">
-            <img id="myAvatar" class="avatar" src="">
-            <span class="player-name" id="myName">Me</span>
-            <div class="timer" id="myTimer">00:00</div>
+        <div class="player-info">
+            <b id="myName">Me</b>
+            <div class="timer" id="myTimer">--:--</div>
         </div>
+    </div>
 
-        <div class="status-bar" id="gameStatus">CONNECTING...</div>
-        <center><button class="btn-resign" id="resignBtn" onclick="window.resignGame()">RESIGN</button></center>
+    <div class="promo-overlay" id="promoModal">
+        <div class="promo-box" id="promoOptions"></div>
     </div>
 
     <div class="modal-overlay" id="gameOverModal">
         <div class="modal">
-            <h1 id="winStatus" style="color:#ffd700; margin:0;">YOU WIN!</h1>
-            <p id="winReason" style="color:#aaa; margin:10px 0;">By Resignation</p>
-            <button class="btn-lobby" onclick="location.href='main.html'">BACK TO LOBBY</button>
+            <h2 id="winStatus">GAME OVER</h2>
+            <button onclick="location.href='main.html'" style="padding:10px 20px; background:#81b64c; color:white; border:none; border-radius:5px; cursor:pointer; width:100%;">BACK TO LOBBY</button>
         </div>
     </div>
 
@@ -114,172 +62,70 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const roomId = urlParams.get('id');
-    const mySide = urlParams.get('side'); 
+    const params = new URLSearchParams(window.location.search);
+    const roomId = params.get('id');
+    const mySide = params.get('side');
 
-    let board = null;
-    let game = new Chess();
-    let currentUsername = "";
-    let isGameOver = false;
-    let timers = { w: 0, b: 0 };
-    let timerInterval;
+    let board, game = new Chess(), isGameOver = false, pendingMove = null;
 
-    onAuthStateChanged(auth, (user) => {
-        if (!user) window.location.href = "index.html";
-        else {
-            currentUsername = user.displayName;
-            initGame();
-        }
-    });
-
-    async function initGame() {
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) return;
         const roomRef = doc(db, "rooms", roomId);
         const snap = await getDoc(roomRef);
-        if(!snap.exists()) return;
         const data = snap.data();
-
-        const startTime = (data.timer || 10) * 60;
-        timers = data.timers || { w: startTime, b: startTime };
-
-        if (mySide === 'white') {
-            document.getElementById('myName').innerText = data.player1.name;
-            document.getElementById('myAvatar').src = data.player1.photo || `https://ui-avatars.com/api/?name=${data.player1.name}`;
-            document.getElementById('oppName').innerText = data.player2.name;
-            document.getElementById('oppAvatar').src = data.player2.photo || `https://ui-avatars.com/api/?name=${data.player2.name}`;
-        } else {
-            document.getElementById('myName').innerText = data.player2.name;
-            document.getElementById('myAvatar').src = data.player2.photo || `https://ui-avatars.com/api/?name=${data.player2.name}`;
-            document.getElementById('oppName').innerText = data.player1.name;
-            document.getElementById('oppAvatar').src = data.player1.photo || `https://ui-avatars.com/api/?name=${data.player1.name}`;
-        }
 
         board = Chessboard('myBoard', {
             draggable: true,
             orientation: mySide,
             position: data.fen || 'start',
-            // STABLE PIECE THEME (Wikipedia Assets)
-            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-            onDragStart: onDragStart,
-            onDrop: onDrop,
-            onSnapEnd: onSnapEnd
-        });
+            onDragStart: (s, p) => !isGameOver && p.startsWith(mySide.charAt(0)) && game.turn() === mySide.charAt(0),
+            onDrop: (source, target) => {
+                let moveData = { from: source, to: target };
+                
+                // Cek Promotion
+                const piece = game.get(source);
+                if (piece && piece.type === 'p' && (target.endsWith('8') || target.endsWith('1'))) {
+                    showPromo(moveData);
+                    return 'snapback';
+                }
 
-        startLocalTimer();
-
-        onSnapshot(roomRef, (snapshot) => {
-            const roomData = snapshot.data();
-            if (!roomData) return;
-
-            if (roomData.fen !== game.fen()) {
-                game.load(roomData.fen);
-                board.position(roomData.fen);
-            }
-            
-            timers = roomData.timers || timers;
-            updateTimerDisplay();
-
-            if (roomData.status !== "playing") {
-                handleGameOver(roomData);
+                const move = game.move(moveData);
+                if (!move) return 'snapback';
+                updateDoc(roomRef, { fen: game.fen() });
             }
         });
-    }
 
-    function startLocalTimer() {
-        if(timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            if (isGameOver) return;
-            const turn = game.turn();
-            if (timers[turn] > 0) {
-                timers[turn]--;
-                updateTimerDisplay();
-                if (timers[turn] <= 0) checkTimeout(turn);
+        onSnapshot(roomRef, (s) => {
+            const d = s.data();
+            if (d.fen !== game.fen()) {
+                game.load(d.fen);
+                board.position(d.fen);
             }
-        }, 1000);
+            if (d.status !== "playing") {
+                isGameOver = true;
+                document.getElementById('gameOverModal').style.display = 'flex';
+                document.getElementById('winStatus').innerText = d.winnerSide === mySide ? "YOU WIN!" : "YOU LOST";
+            }
+        });
+    });
+
+    function showPromo(moveData) {
+        pendingMove = moveData;
+        const pieces = ['q', 'r', 'b', 'n'];
+        const container = document.getElementById('promoOptions');
+        container.innerHTML = '';
+        pieces.forEach(p => {
+            const img = document.createElement('img');
+            img.src = `https://chessboardjs.com/img/chesspieces/wikipedia/${mySide.charAt(0)}${p.toUpperCase()}.png`;
+            img.onclick = () => {
+                game.move({ ...pendingMove, promotion: p });
+                updateDoc(doc(db, "rooms", roomId), { fen: game.fen() });
+                document.getElementById('promoModal').style.display = 'none';
+            };
+            container.appendChild(img);
+        });
+        document.getElementById('promoModal').style.display = 'flex';
     }
-
-    function updateTimerDisplay() {
-        const format = (s) => {
-            let min = Math.floor(s/60);
-            let sec = s%60;
-            return `${min}:${sec.toString().padStart(2,'0')}`;
-        };
-        
-        if (mySide === 'white') {
-            document.getElementById('myTimer').innerText = format(timers.w);
-            document.getElementById('oppTimer').innerText = format(timers.b);
-            document.getElementById('myTimer').className = game.turn() === 'w' ? 'timer active' : 'timer';
-            document.getElementById('oppTimer').className = game.turn() === 'b' ? 'timer active' : 'timer';
-        } else {
-            document.getElementById('myTimer').innerText = format(timers.b);
-            document.getElementById('oppTimer').innerText = format(timers.w);
-            document.getElementById('myTimer').className = game.turn() === 'b' ? 'timer active' : 'timer';
-            document.getElementById('oppTimer').className = game.turn() === 'w' ? 'timer active' : 'timer';
-        }
-    }
-
-    async function checkTimeout(turn) {
-        if (isGameOver) return;
-        const roomRef = doc(db, "rooms", roomId);
-        const winSide = (turn === 'w' ? 'black' : 'white');
-        await updateDoc(roomRef, { status: "timeout", winnerSide: winSide });
-    }
-
-    function onDragStart(source, piece) {
-        if (isGameOver) return false;
-        if ((mySide === 'white' && piece.search(/^b/) !== -1) ||
-            (mySide === 'black' && piece.search(/^w/) !== -1)) return false;
-        if ((game.turn() === 'w' && mySide === 'black') ||
-            (game.turn() === 'b' && mySide === 'white')) return false;
-    }
-
-    async function onDrop(source, target) {
-        let move = game.move({ from: source, to: target, promotion: 'q' });
-        if (move === null) return 'snapback';
-
-        const roomRef = doc(db, "rooms", roomId);
-        let updateData = { fen: game.fen(), timers: timers };
-        
-        if (game.in_checkmate()) {
-            updateData.status = "checkmate";
-            updateData.winnerSide = mySide;
-        }
-
-        await updateDoc(roomRef, updateData);
-    }
-
-    function onSnapEnd() { board.position(game.fen()); }
-
-    function handleGameOver(data) {
-        isGameOver = true;
-        clearInterval(timerInterval);
-        document.getElementById('gameOverModal').style.display = 'flex';
-        
-        const winStatus = document.getElementById('winStatus');
-        const winReason = document.getElementById('winReason');
-        
-        // Pengecekan Menang/Kalah
-        if (data.winnerSide === mySide) {
-            winStatus.innerText = "YOU WIN!";
-            winStatus.style.color = "#81b64c";
-        } else {
-            winStatus.innerText = "YOU LOST";
-            winStatus.style.color = "#ff4d4d";
-        }
-
-        // Teks Reason Sesuai Request
-        if (data.status === "resigned") winReason.innerText = "By Resignation";
-        else if (data.status === "timeout") winReason.innerText = "By Timeout";
-        else if (data.status === "checkmate") winReason.innerText = "By Checkmate";
-    }
-
-    window.resignGame = async () => {
-        if (confirm("Resign?")) {
-            const roomRef = doc(db, "rooms", roomId);
-            const opponentSide = (mySide === 'white' ? 'black' : 'white');
-            await updateDoc(roomRef, { status: "resigned", winnerSide: opponentSide });
-        }
-    };
 </script>
 </body>
 </html>
