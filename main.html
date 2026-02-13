@@ -151,6 +151,8 @@
     let searchInterval;
     let currentRoomId = null;
     let unsubRoom = null;
+    let unsubLobby = null;
+
     const avatars = [
         "https://i.ibb.co.com/TqcHLPCX/54b19ada-d53e-4ee9-8882-9dfed1bf1396.jpg",
         "https://i.ibb.co.com/twDJFWvC/68f9ebed-9db3-458f-aa15-b5b6dfc8566c.jpg"
@@ -253,6 +255,7 @@
         document.getElementById(id).classList.add('active');
     };
 
+    // --- NEW MATCHMAKING LOGIC ---
     window.startMatchmaking = async () => {
         document.getElementById('searchModal').style.display = 'flex';
         let seconds = 0;
@@ -263,68 +266,72 @@
             document.getElementById('searchTimer').innerText = `${mins}:${secs}`;
         }, 1000);
 
-        // Cari room lawan dengan timer yang sama
+        // 1. Monitor Lobby: Cari room waiting yang bukan milik kita
         const q = query(collection(db, "rooms"), 
             where("status", "==", "waiting"), 
             where("timer", "==", selectedTimer),
-            orderBy("createdAt", "asc"),
-            limit(5)
+            orderBy("createdAt", "asc")
         );
-        
-        const snap = await getDocs(q);
-        let foundRoomId = null;
-        
-        snap.forEach(d => {
-            if (d.data().player1.name !== currentUsername && !foundRoomId) {
-                foundRoomId = d.id;
+
+        unsubLobby = onSnapshot(q, async (snap) => {
+            let targetRoomId = null;
+            snap.forEach(d => {
+                if (d.data().player1.name !== currentUsername && !targetRoomId) {
+                    targetRoomId = d.id;
+                }
+            });
+
+            // 2. Jika ketemu room orang lain, segera join
+            if (targetRoomId && !currentRoomId) {
+                if (unsubLobby) unsubLobby();
+                currentRoomId = targetRoomId;
+                await updateDoc(doc(db, "rooms", targetRoomId), { 
+                    player2: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
+                    status: "playing" 
+                });
+                clearInterval(searchInterval);
+                window.location.href = `game.html?id=${targetRoomId}&side=black`;
             }
         });
 
-        if (foundRoomId) {
-            currentRoomId = foundRoomId;
-            // Join sebagai player 2
-            await updateDoc(doc(db, "rooms", foundRoomId), { 
-                player2: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
-                status: "playing" 
-            });
-            clearInterval(searchInterval);
-            window.location.href = `game.html?id=${foundRoomId}&side=black`;
-        } else {
-            // Buat room baru sebagai player 1
-            const roomData = { 
-                player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
-                player2: null, 
-                status: "waiting", 
-                timer: selectedTimer, 
-                fen: "start", 
-                createdAt: Date.now() 
-            };
-            const newRoomRef = await addDoc(collection(db, "rooms"), roomData);
-            currentRoomId = newRoomRef.id;
-            
-            // Player 1 Mendengarkan Perubahan
-            unsubRoom = onSnapshot(doc(db, "rooms", currentRoomId), (snapshot) => {
-                const data = snapshot.data();
-                if (data && data.status === "playing") {
-                    if (unsubRoom) unsubRoom();
-                    clearInterval(searchInterval);
-                    window.location.href = `game.html?id=${currentRoomId}&side=white`;
-                }
-            }, (error) => {
-                console.error("Listener error:", error);
-            });
-        }
+        // 3. Jika dalam 2 detik belum join room manapun, buat room sendiri
+        setTimeout(async () => {
+            if (!currentRoomId) {
+                const roomData = { 
+                    player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
+                    player2: null, 
+                    status: "waiting", 
+                    timer: selectedTimer, 
+                    fen: "start", 
+                    createdAt: Date.now() 
+                };
+                const newRoomRef = await addDoc(collection(db, "rooms"), roomData);
+                currentRoomId = newRoomRef.id;
+
+                // Monitor room sendiri sampai ada yang join
+                unsubRoom = onSnapshot(doc(db, "rooms", currentRoomId), (snapshot) => {
+                    const data = snapshot.data();
+                    if (data && data.status === "playing") {
+                        if (unsubRoom) unsubRoom();
+                        if (unsubLobby) unsubLobby();
+                        clearInterval(searchInterval);
+                        window.location.href = `game.html?id=${currentRoomId}&side=white`;
+                    }
+                });
+            }
+        }, 2000);
     };
 
     window.cancelSearch = async () => {
         clearInterval(searchInterval);
         if (unsubRoom) unsubRoom();
+        if (unsubLobby) unsubLobby();
         
         if (currentRoomId) {
             const roomRef = doc(db, "rooms", currentRoomId);
             const roomSnap = await getDoc(roomRef);
-            
-            if (roomSnap.exists() && roomSnap.data().status === "waiting") {
+            // Hapus hanya jika kita adalah Player 1 dan status masih waiting
+            if (roomSnap.exists() && roomSnap.data().status === "waiting" && roomSnap.data().player1.name === currentUsername) {
                 await deleteDoc(roomRef);
             }
         }
