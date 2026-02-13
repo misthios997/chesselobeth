@@ -6,15 +6,19 @@
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <style>
         body { background: #262421; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 10px; }
-        .player-info { width: 100%; max-width: 400px; display: flex; align-items: center; padding: 10px; background: #2d2d2d; border-radius: 5px; margin: 5px 0; justify-content: space-between; border: 1px solid #3d3d3d; }
-        .p-avatar { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; border: 1px solid #ffd700; }
-        #myBoard { width: 95vw; max-width: 400px; margin: 10px 0; }
+        .player-info { width: 100%; max-width: 400px; display: flex; align-items: center; padding: 10px; background: #2d2d2d; border-radius: 8px; margin: 5px 0; justify-content: space-between; border: 1px solid #3d3d3d; }
+        .p-avatar { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; border: 1.5px solid #ffd700; }
+        .timer-box { background: #1a1a1a; padding: 6px 12px; border-radius: 4px; color: #ffd700; font-family: monospace; font-size: 1.1rem; }
+        
+        #myBoard { width: 95vw; max-width: 400px; margin: 10px 0; border: 2px solid #333; }
+        /* Neo Theme */
         .white-1e1d7 { background-color: #ebecd0 !important; }
         .black-3c85d { background-color: #779556 !important; }
+
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:none; justify-content:center; align-items:center; z-index:999; }
-        .modal { background:#2d2d2d; padding:30px; border-radius:15px; text-align:center; border:2px solid #ffd700; }
-        .btn-back { background:#81b64c; color:white; border:none; padding:12px 25px; border-radius:8px; font-weight:bold; cursor:pointer; width:100%; margin-top:20px; }
-        .btn-resign { width:100%; max-width:400px; padding:10px; background:#333; color:#ff4d4d; border:1px solid #ff4d4d; border-radius:5px; cursor:pointer; }
+        .modal { background:#2d2d2d; padding:35px; border-radius:18px; text-align:center; border:2px solid #ffd700; width:80%; max-width:300px; }
+        .btn-back { background:#81b64c; color:white; border:none; padding:15px; border-radius:8px; font-weight:bold; cursor:pointer; width:100%; margin-top:20px; }
+        .btn-resign { width:100%; max-width:400px; padding:12px; background:rgba(255,77,77,0.1); color:#ff4d4d; border:1px solid #ff4d4d; border-radius:6px; cursor:pointer; font-weight:bold; }
     </style>
 </head>
 <body>
@@ -22,9 +26,9 @@
     <div class="player-info">
         <div style="display:flex; align-items:center; gap:10px;">
             <img id="oppAvatar" src="" class="p-avatar">
-            <span id="oppName">Opponent</span>
+            <span id="oppName" style="font-weight:bold">Opponent</span>
         </div>
-        <div style="background:#1a1a1a; padding:5px 10px; border-radius:4px; color:#ffd700;">10:00</div>
+        <div class="timer-box" id="oppTime">--:--</div>
     </div>
 
     <div id="myBoard"></div>
@@ -32,18 +36,18 @@
     <div class="player-info">
         <div style="display:flex; align-items:center; gap:10px;">
             <img id="myAvatar" src="" class="p-avatar">
-            <span id="myName">You</span>
+            <span id="myName" style="font-weight:bold">You</span>
         </div>
-        <div style="background:#1a1a1a; padding:5px 10px; border-radius:4px; color:#ffd700;">10:00</div>
+        <div class="timer-box" id="myTime">--:--</div>
     </div>
 
     <button class="btn-resign" onclick="handleResign()">🏳️ Resign</button>
 
     <div class="modal-overlay" id="gameOverModal">
         <div class="modal">
-            <h1 id="winMsg" style="color:#ffd700; margin:0;">White Win</h1>
-            <p id="winReason" style="color:#aaa;">by Checkmate</p>
-            <button class="btn-back" onclick="window.location.href='main.html'">BACK TO LOBBY</button>
+            <h1 id="winMsg" style="color:#ffd700; margin:0; font-size:1.8rem;">White Win</h1>
+            <p id="winReason" style="color:#aaa; margin-top:5px;">by Checkmate</p>
+            <button class="btn-back" onclick="window.location.href='Main.html'">BACK TO LOBBY</button>
         </div>
     </div>
 
@@ -67,19 +71,26 @@
         let board = null;
         const roomRef = doc(db, "rooms", roomId);
 
+        // FIX BIDAK PECAH: Menggunakan pieceTheme HD
+        function pieceTheme (piece) {
+            return 'https://chessboardjs.com/img/chesspieces/wikipedia/' + piece + '.png';
+        }
+
         function onDrop(source, target) {
             if (game.turn() !== (mySide === 'white' ? 'w' : 'b')) return 'snapback';
             let move = game.move({ from: source, to: target, promotion: 'q' });
             if (move === null) return 'snapback';
             
-            updateDoc(roomRef, { 
-                fen: game.fen(), 
-                gameOver: game.game_over(),
-                reason: game.in_checkmate() ? "Checkmate" : "Draw"
-            });
+            updateDoc(roomRef, { fen: game.fen() });
         }
 
-        board = Chessboard('myBoard', { draggable: true, position: 'start', orientation: mySide, onDrop: onDrop });
+        board = Chessboard('myBoard', { 
+            draggable: true, 
+            position: 'start', 
+            orientation: mySide, 
+            onDrop: onDrop,
+            pieceTheme: pieceTheme 
+        });
 
         onSnapshot(roomRef, (s) => {
             if(!s.exists()) { showGameOver("Opponent", "Resignation"); return; }
@@ -87,30 +98,55 @@
             game.load(d.fen);
             board.position(d.fen);
 
+            // Update Name & Avatar
             if(mySide === 'white') {
                 document.getElementById('myName').innerText = d.player1.name;
                 document.getElementById('myAvatar').src = d.player1.photo;
-                if(d.player2) { document.getElementById('oppName').innerText = d.player2.name; document.getElementById('oppAvatar').src = d.player2.photo; }
+                document.getElementById('myTime').innerText = d.timer + ":00";
+                if(d.player2) { 
+                    document.getElementById('oppName').innerText = d.player2.name; 
+                    document.getElementById('oppAvatar').src = d.player2.photo;
+                    document.getElementById('oppTime').innerText = d.timer + ":00";
+                }
             } else {
                 document.getElementById('myName').innerText = d.player2.name;
                 document.getElementById('myAvatar').src = d.player2.photo;
                 document.getElementById('oppName').innerText = d.player1.name;
                 document.getElementById('oppAvatar').src = d.player1.photo;
+                document.getElementById('myTime').innerText = d.timer + ":00";
+                document.getElementById('oppTime').innerText = d.timer + ":00";
             }
 
-            if(d.gameOver) {
-                let winner = d.reason === "Draw" ? "Draw" : (game.turn() === 'w' ? "Black" : "White");
-                showGameOver(winner, d.reason);
+            // CHECKMATE LOGIC (ACCURATE NAME)
+            if(game.game_over()) {
+                let winName = "Draw";
+                let reason = "Stalemate";
+                if(game.in_checkmate()) {
+                    winName = game.turn() === 'w' ? (d.player2.name) : (d.player1.name);
+                    reason = "Checkmate";
+                }
+                showGameOver(winName, reason);
+            }
+            
+            if(d.status === "resigned") {
+                showGameOver(d.winner, "Resignation");
             }
         });
 
-        function showGameOver(w, r) {
-            document.getElementById('winMsg').innerText = w === "Draw" ? "Draw Game" : w + " Win";
-            document.getElementById('winReason').innerText = "by " + r;
+        function showGameOver(name, reason) {
+            document.getElementById('winMsg').innerText = name === "Draw" ? "Draw Game" : name + " Win";
+            document.getElementById('winReason').innerText = "by " + reason;
             document.getElementById('gameOverModal').style.display = 'flex';
         }
 
-        window.handleResign = async () => { if(confirm("Resign?")) await deleteDoc(roomRef); };
+        window.handleResign = async () => { 
+            if(confirm("Are you sure you want to resign?")) {
+                const s = await (await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js")).getDoc(roomRef);
+                const d = s.data();
+                const winnerName = mySide === 'white' ? d.player2.name : d.player1.name;
+                await updateDoc(roomRef, { status: "resigned", winner: winnerName });
+            }
+        };
     </script>
 </body>
 </html>
