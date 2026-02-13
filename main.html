@@ -15,7 +15,6 @@
         .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
         .welcome { font-size: 1.5rem; margin-bottom: 15px; color: #ffd700; }
 
-        /* Lobby Card */
         .lobby-card { background: #2d2d2d; padding: 20px; border-radius: 12px; border-left: 5px solid #81b64c; margin-bottom: 20px; }
         label { font-size: 0.75rem; color: #aaa; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 8px; }
         .selector-group { display: flex; gap: 8px; margin-bottom: 15px; }
@@ -23,13 +22,11 @@
         .sel-btn.active { border-color: #81b64c; background: rgba(129, 182, 76, 0.2); color: #81b64c; }
         .btn-search { background: #81b64c; color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
 
-        /* Broadcast & Cards */
         .broadcast-box { background: linear-gradient(45deg, #b8860b, #daa520); color: black; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; }
         .card { background: #333; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 5px solid #ffd700; cursor: pointer; }
         .detail-info { display: none; margin-top: 10px; color: #ccc; font-size: 0.9rem; border-top: 1px solid #444; padding-top: 10px; }
         .card.active .detail-info { display: block; }
 
-        /* Chat Overlay */
         .chat-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; display: none; flex-direction: column; z-index: 1100; }
         .chat-header { padding: 15px; background: #2d2d2d; display: flex; justify-content: space-between; border-bottom: 1px solid #ffd700; align-items: center; }
         .chat-content { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
@@ -39,7 +36,6 @@
         .msg-body { background: #333; padding: 8px 12px; border-radius: 10px; }
         .msg-right .msg-body { background: #ffd700; color: black; }
 
-        /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; box-sizing: border-box; }
         .btn-gold { background: #ffd700; color: black; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
@@ -47,8 +43,7 @@
         
         .avatar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .avatar-opt { width: 100%; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 3px solid transparent; }
-        .avatar-opt:hover { border-color: #ffd700; }
-
+        
         .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #ffd700; color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 30px; cursor: pointer; z-index: 99; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     </style>
 </head>
@@ -124,7 +119,7 @@
     <div class="modal-overlay" id="broadcastModal">
         <div class="modal">
             <h2>Broadcast</h2>
-            <textarea id="inpBroadcast" rows="3" placeholder="Tulis pengumuman..."></textarea>
+            <textarea id="inpBroadcast" rows="3"></textarea>
             <button class="btn-gold" onclick="window.saveBroadcast()">Update</button>
             <button class="btn-gold" style="background:#555; color:white" onclick="window.closeModals()">Cancel</button>
         </div>
@@ -154,16 +149,12 @@
             document.getElementById('welcomeMsg').innerText = `Welcome ${currentUsername}`;
             const upic = user.photoURL || `https://ui-avatars.com/api/?name=${currentUsername}`;
             document.getElementById('profileBtn').innerHTML = `<img src="${upic}" class="profile-img-nav">`;
-            
-            // Render Avatar Picker
             const picker = document.getElementById('avatarPicker');
             picker.innerHTML = avatars.map(url => `<img src="${url}" class="avatar-opt" onclick="window.selectAvatar('${url}')">`).join('');
-
             if(currentUsername === "Jovan") document.getElementById('ownerFab').style.display = 'flex';
         }
     });
 
-    // SISTEM MODAL & PROFILE
     window.openProfileModal = () => document.getElementById('profileModal').style.display = 'flex';
     window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(e => e.style.display = 'none');
     window.selectAvatar = async (url) => {
@@ -173,7 +164,6 @@
     };
     window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
 
-    // SISTEM CHAT
     window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
     window.sendChat = async () => {
         const inp = document.getElementById('chatInput');
@@ -193,7 +183,6 @@
         box.scrollTop = box.scrollHeight;
     });
 
-    // SISTEM DATA & BROADCAST
     window.toggleCard = (el) => el.classList.toggle('active');
     onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (snap) => {
         const feed = document.getElementById('dataFeed'); feed.innerHTML = "";
@@ -202,11 +191,8 @@
             feed.innerHTML += `<div class="card" onclick="window.toggleCard(this)"><h3>${data.name}</h3><p>Elo: ${data.elo}</p><div class="detail-info"><strong>Info:</strong><br>${data.info || 'No Info'}</div></div>`;
         });
     });
-    onSnapshot(doc(db, "config", "broadcastMsg"), (d) => {
-        if(d.exists()) document.getElementById('broadcastDisplay').innerText = d.data().text;
-    });
+    onSnapshot(doc(db, "config", "broadcastMsg"), (d) => { if(d.exists()) document.getElementById('broadcastDisplay').innerText = d.data().text; });
 
-    // OWNER ACTION
     window.openOwnerMenu = () => document.getElementById('ownerModal').style.display = 'flex';
     window.openAddPlayer = () => { window.closeModals(); document.getElementById('addPlayerModal').style.display = 'flex'; };
     window.openBroadcast = () => { window.closeModals(); document.getElementById('broadcastModal').style.display = 'flex'; };
@@ -231,24 +217,30 @@
         }
     };
 
-    // TIMER & MATCHMAKING
     window.setTimer = (val, id) => {
         selectedTimer = val;
         document.querySelectorAll('.sel-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(id).classList.add('active');
     };
+
     window.startMatchmaking = async () => {
         document.getElementById('matchStatus').style.display = 'block';
-        const q = query(collection(db, "rooms"), where("status", "==", "waiting"), where("timer", "==", selectedTimer), limit(1));
+        const q = query(collection(db, "rooms"), where("status", "==", "waiting"), where("timer", "==", selectedTimer));
         const snap = await getDocs(q);
         let roomId = "";
-        snap.forEach(d => roomId = d.id);
+        snap.forEach(d => { if (d.data().player1.name !== currentUsername) roomId = d.id; });
 
         if(roomId) {
-            await updateDoc(doc(db, "rooms", roomId), { player2: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, status: "playing" });
+            await updateDoc(doc(db, "rooms", roomId), { 
+                player2: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
+                status: "playing" 
+            });
             window.location.href = `game.html?id=${roomId}&side=black`;
         } else {
-            const newRoom = await addDoc(collection(db, "rooms"), { player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, status: "waiting", timer: selectedTimer, createdAt: Date.now() });
+            const newRoom = await addDoc(collection(db, "rooms"), { 
+                player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
+                player2: null, status: "waiting", timer: selectedTimer, fen: "start", createdAt: Date.now() 
+            });
             onSnapshot(doc(db, "rooms", newRoom.id), (d) => {
                 if(d.data()?.status === "playing") window.location.href = `game.html?id=${newRoom.id}&side=white`;
             });
