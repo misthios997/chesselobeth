@@ -5,44 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHESSELOBETH - Lobby</title>
     <style>
-        body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; }
-        .header { background: #2d2d2d; width: 100%; padding: 20px; text-align: center; border-bottom: 2px solid #81b64c; }
-        .container { width: 90%; max-width: 500px; margin-top: 20px; }
-        .user-card { background: #2d2d2d; padding: 15px; border-radius: 10px; display: flex; align-items: center; gap: 15px; margin-bottom: 20px; border: 1px solid #444; }
-        .user-card img { width: 50px; border-radius: 50%; border: 2px solid #81b64c; }
-        .create-box { background: #2d2d2d; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #444; }
-        select, input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: none; font-weight: bold; }
-        .btn-create { background: #81b64c; color: white; cursor: pointer; }
-        .room-item { background: #333; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #ffd700; }
-        .btn-join { background: #ffd700; color: black; padding: 8px 15px; width: auto; cursor: pointer; }
+        body { background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; }
+        .container { padding: 20px; }
+        .btn { padding: 15px; margin: 10px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; width: 200px; }
+        .btn-create { background: #81b64c; color: white; }
+        .btn-join { background: #ffd700; color: black; padding: 10px; width: 80px; }
+        .room-list { margin-top: 30px; display: flex; flex-direction: column; align-items: center; }
+        .room-item { background: #333; padding: 10px; margin: 5px; border-radius: 5px; display: flex; gap: 20px; align-items: center; }
+        select { padding: 10px; border-radius: 5px; }
     </style>
 </head>
 <body>
-
-    <div class="header"><h1>CHESSELOBETH</h1></div>
-
     <div class="container">
-        <div class="user-card" id="userProfile">
-            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Jovan" id="userAvatar">
-            <div><b id="userName">Loading...</b><br><small>Ready to Play</small></div>
-        </div>
+        <h1>CHESSELOBETH</h1>
+        <p id="userDisplay">Loading...</p>
 
-        <div class="create-box">
-            <h3>CREATE NEW ROOM</h3>
+        <div style="margin: 20px 0;">
             <select id="gameMode">
-                <option value="standard">Standard Chess</option>
+                <option value="game">Standard</option>
                 <option value="crazyhouse">Crazyhouse</option>
             </select>
             <select id="gameTime">
-                <option value="10">10 Minutes</option>
-                <option value="5">5 Minutes</option>
-                <option value="3">3 Minutes</option>
+                <option value="10">10m</option>
+                <option value="5">5m</option>
             </select>
-            <button class="btn-create" id="createRoomBtn">CREATE ROOM</button>
+            <br>
+            <button class="btn btn-create" id="createBtn">CREATE ROOM</button>
         </div>
 
-        <h3>ACTIVE ROOMS</h3>
-        <div id="roomList"></div>
+        <h3>Active Rooms</h3>
+        <div id="roomList" class="room-list"></div>
     </div>
 
 <script type="module">
@@ -55,31 +47,24 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    let currentUser = null;
+    let user = null;
 
-    onAuthStateChanged(auth, (user) => {
-        if (!user) return location.href = 'index.html';
-        currentUser = user;
-        document.getElementById('userName').innerText = user.displayName || "User";
-        document.getElementById('userAvatar').src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`;
+    onAuthStateChanged(auth, (u) => {
+        if (!u) return location.href = 'index.html';
+        user = u;
+        document.getElementById('userDisplay').innerText = `Hello, ${u.displayName || "Player"}`;
     });
 
-    document.getElementById('createRoomBtn').onclick = async () => {
+    document.getElementById('createBtn').onclick = async () => {
         const mode = document.getElementById('gameMode').value;
         const time = parseInt(document.getElementById('gameTime').value);
-        
-        const docRef = await addDoc(collection(db, "rooms"), {
-            mode: mode,
-            timer: time,
-            status: "waiting",
-            player1: { uid: currentUser.uid, name: currentUser.displayName || "Player 1" },
-            player2: null,
-            fen: "start",
-            pockets: { w: [], b: [] },
-            timers: { w: time * 60, b: time * 60 },
-            createdAt: Date.now()
+        const ref = await addDoc(collection(db, "rooms"), {
+            mode: mode, timer: time, status: "waiting",
+            player1: { uid: user.uid, name: user.displayName || "Player 1" },
+            player2: null, fen: "start", pockets: { w: [], b: [] },
+            timers: { w: time * 60, b: time * 60 }, createdAt: Date.now()
         });
-        location.href = `${mode}.html?id=${docRef.id}&side=white`;
+        location.href = `${mode}.html?id=${ref.id}&side=white`;
     };
 
     onSnapshot(query(collection(db, "rooms"), where("status", "==", "waiting")), (snap) => {
@@ -87,26 +72,20 @@
         list.innerHTML = '';
         snap.forEach(d => {
             const data = d.data();
-            if (data.player1.uid === currentUser?.uid) return;
+            if (data.player1.uid === user?.uid) return;
             const item = document.createElement('div');
             item.className = 'room-item';
-            item.innerHTML = `
-                <div><b>${data.player1.name}</b><br><small>${data.mode.toUpperCase()} - ${data.timer}m</small></div>
-                <button class="btn-join" onclick="joinRoom('${d.id}')">JOIN</button>
-            `;
+            item.innerHTML = `<span>${data.player1.name} (${data.mode})</span> <button class="btn-join" onclick="joinRoom('${d.id}', '${data.mode}')">JOIN</button>`;
             list.appendChild(item);
         });
     });
 
-    window.joinRoom = async (id) => {
-        const roomRef = doc(db, "rooms", id);
-        const snap = await getDoc(roomRef);
-        const data = snap.data();
-        await updateDoc(roomRef, {
-            player2: { uid: currentUser.uid, name: currentUser.displayName || "Player 2" },
+    window.joinRoom = async (id, mode) => {
+        await updateDoc(doc(db, "rooms", id), {
+            player2: { uid: user.uid, name: user.displayName || "Player 2" },
             status: "playing"
         });
-        location.href = `${data.mode}.html?id=${id}&side=black`;
+        location.href = `${mode}.html?id=${id}&side=black`;
     };
 </script>
 </body>
