@@ -39,7 +39,7 @@
         .msg-right .msg-body { background: #ffd700; color: black; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; box-sizing: border-box; }
+        .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; box-sizing: border-box; text-align: center; }
         .btn-gold { background: #ffd700; color: black; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         input, textarea { width: 100%; padding: 12px; margin-top: 10px; background: #333; color: white; border: 1px solid #444; border-radius: 5px; box-sizing: border-box; }
         
@@ -48,7 +48,7 @@
         
         .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #ffd700; color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 30px; cursor: pointer; z-index: 99; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     
-        #searchTimer { font-size: 2rem; font-weight: bold; margin: 20px 0; color: #ffd700; }
+        #searchTimer { font-size: 2.5rem; font-weight: bold; margin: 20px 0; color: #ffd700; font-family: monospace; }
     </style>
 </head>
 <body>
@@ -80,9 +80,10 @@
 
     <div class="modal-overlay" id="searchModal">
         <div class="modal">
-            <h2>Searching For Player</h2>
+            <h2 style="margin:0; color:#ffd700;">Searching Player...</h2>
             <div id="searchTimer">00:00</div>
-            <button class="btn-gold" style="background:#ff4d4d; color:white" onclick="window.cancelSearch()">Cancel</button>
+            <p id="searchStatus" style="font-size:0.8rem; color:#aaa; margin-bottom:15px;">Looking for opponent with same timer</p>
+            <button class="btn-gold" style="background:#ff4d4d; color:white" onclick="window.cancelSearch()">CANCEL</button>
         </div>
     </div>
 
@@ -139,7 +140,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy, limit, getDocs, where, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy, limit, getDocs, where, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", authDomain: "chesselobeth.firebaseapp.com", projectId: "chesselobeth", storageBucket: "chesselobeth.firebasestorage.app", messagingSenderId: "829508204106", appId: "1:829508204106:web:e8952c359f63d49646d8b3" };
     const app = initializeApp(firebaseConfig);
@@ -152,11 +153,6 @@
     let currentRoomId = null;
     let unsubRoom = null;
 
-    const avatars = [
-        "https://i.ibb.co.com/TqcHLPCX/54b19ada-d53e-4ee9-8882-9dfed1bf1396.jpg",
-        "https://i.ibb.co.com/twDJFWvC/68f9ebed-9db3-458f-aa15-b5b6dfc8566c.jpg"
-    ];
-
     onAuthStateChanged(auth, (user) => {
         if (!user) window.location.href = "index.html";
         else {
@@ -165,20 +161,92 @@
             const upic = user.photoURL || `https://ui-avatars.com/api/?name=${currentUsername}`;
             document.getElementById('profileBtn').innerHTML = `<img src="${upic}" class="profile-img-nav">`;
             const picker = document.getElementById('avatarPicker');
+            const avatars = ["https://i.ibb.co.com/TqcHLPCX/54b19ada-d53e-4ee9-8882-9dfed1bf1396.jpg", "https://i.ibb.co.com/twDJFWvC/68f9ebed-9db3-458f-aa15-b5b6dfc8566c.jpg"];
             picker.innerHTML = avatars.map(url => `<img src="${url}" class="avatar-opt" onclick="window.selectAvatar('${url}')">`).join('');
             if(currentUsername === "Jovan") document.getElementById('ownerFab').style.display = 'flex';
         }
     });
 
-    window.openProfileModal = () => document.getElementById('profileModal').style.display = 'flex';
     window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(e => e.style.display = 'none');
-    window.selectAvatar = async (url) => {
-        await updateProfile(auth.currentUser, { photoURL: url });
-        alert("Avatar Updated!");
-        location.reload();
-    };
+    window.openProfileModal = () => document.getElementById('profileModal').style.display = 'flex';
+    window.selectAvatar = async (url) => { await updateProfile(auth.currentUser, { photoURL: url }); location.reload(); };
     window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
 
+    window.setTimer = (val, id) => {
+        selectedTimer = val;
+        document.querySelectorAll('.sel-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    };
+
+    // --- MATCHMAKING SISTEM ---
+    window.startMatchmaking = async () => {
+        // TAMPILKAN MODAL DULU
+        document.getElementById('searchModal').style.display = 'flex';
+        document.getElementById('searchTimer').innerText = "00:00";
+        
+        let sec = 0;
+        searchInterval = setInterval(() => {
+            sec++;
+            let m = Math.floor(sec/60).toString().padStart(2,'0');
+            let s = (sec%60).toString().padStart(2,'0');
+            document.getElementById('searchTimer').innerText = `${m}:${s}`;
+        }, 1000);
+
+        // CARI ROOM
+        const q = query(collection(db, "rooms"), where("status", "==", "waiting"), where("timer", "==", selectedTimer), limit(1));
+        const snap = await getDocs(q);
+        
+        if (!snap.empty) {
+            // JOIN ROOM (PLAYER 2)
+            const roomDoc = snap.docs[0];
+            if (roomDoc.data().player1.name !== currentUsername) {
+                currentRoomId = roomDoc.id;
+                await updateDoc(doc(db, "rooms", currentRoomId), {
+                    player2: { name: currentUsername, photo: auth.currentUser.photoURL || "" },
+                    status: "playing"
+                });
+                clearInterval(searchInterval);
+                window.location.href = `game.html?id=${currentRoomId}&side=black`;
+                return;
+            }
+        }
+
+        // BUAT ROOM (PLAYER 1)
+        const newRoom = await addDoc(collection(db, "rooms"), {
+            player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" },
+            player2: null,
+            status: "waiting",
+            timer: selectedTimer,
+            fen: "start",
+            createdAt: Date.now()
+        });
+        currentRoomId = newRoom.id;
+
+        unsubRoom = onSnapshot(doc(db, "rooms", currentRoomId), (snapshot) => {
+            const data = snapshot.data();
+            if (data && data.status === "playing") {
+                if(unsubRoom) unsubRoom();
+                clearInterval(searchInterval);
+                window.location.href = `game.html?id=${currentRoomId}&side=white`;
+            }
+        });
+    };
+
+    window.cancelSearch = async () => {
+        clearInterval(searchInterval);
+        if (unsubRoom) unsubRoom();
+        if (currentRoomId) {
+            const roomRef = doc(db, "rooms", currentRoomId);
+            const check = await getDoc(roomRef);
+            if(check.exists() && check.data().status === "waiting") {
+                await deleteDoc(roomRef);
+            }
+        }
+        currentRoomId = null;
+        window.closeModals();
+    };
+
+    // --- SISANYA ---
     window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
     window.sendChat = async () => {
         const inp = document.getElementById('chatInput');
@@ -193,136 +261,32 @@
             const data = d.data();
             const side = data.name === currentUsername ? 'msg-right' : '';
             const pic = data.photo || `https://ui-avatars.com/api/?name=${data.name}`;
-            box.innerHTML += `<div class="msg ${side}"><img src="${pic}" class="msg-avatar"><div class="msg-body"><div style="font-size:0.6rem; font-weight:bold; margin-bottom:2px">${data.name}</div>${data.text}</div></div>`;
+            box.innerHTML += `<div class="msg ${side}"><img src="${pic}" class="msg-avatar"><div class="msg-body"><b>${data.name}</b><br>${data.text}</div></div>`;
         });
         box.scrollTop = box.scrollHeight;
     });
-
-    window.toggleCard = (el) => el.classList.toggle('active');
-    
-    window.deletePlayerData = async (id, event) => {
-        event.stopPropagation();
-        if(confirm("Hapus data player ini?")) {
-            await deleteDoc(doc(db, "players", id));
-        }
-    };
 
     onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (snap) => {
         const feed = document.getElementById('dataFeed'); feed.innerHTML = "";
         snap.forEach(d => {
             const data = d.data();
-            const isOwner = currentUsername === "Jovan" ? 'block' : 'none';
-            feed.innerHTML += `
-                <div class="card" onclick="window.toggleCard(this)">
-                    <button class="delete-btn" style="display:${isOwner}" onclick="window.deletePlayerData('${d.id}', event)">Delete</button>
-                    <h3>${data.name}</h3>
-                    <p>Elo: ${data.elo}</p>
-                    <div class="detail-info"><strong>Info:</strong><br>${data.info || 'No Info'}</div>
-                </div>`;
+            feed.innerHTML += `<div class="card" onclick="this.classList.toggle('active')">
+                <h3>${data.name}</h3><p>Elo: ${data.elo}</p>
+                <div class="detail-info">${data.info || 'No Info'}</div>
+            </div>`;
         });
     });
 
     onSnapshot(doc(db, "config", "broadcastMsg"), (d) => { if(d.exists()) document.getElementById('broadcastDisplay').innerText = d.data().text; });
-
     window.openOwnerMenu = () => document.getElementById('ownerModal').style.display = 'flex';
     window.openAddPlayer = () => { window.closeModals(); document.getElementById('addPlayerModal').style.display = 'flex'; };
     window.openBroadcast = () => { window.closeModals(); document.getElementById('broadcastModal').style.display = 'flex'; };
     window.savePlayerData = async () => {
-        const name = document.getElementById('addName').value;
-        const elo = document.getElementById('addElo').value;
-        const info = document.getElementById('addInfo').value;
-        if(name && elo) {
-            await addDoc(collection(db, "players"), { name, elo, info, timestamp: Date.now() });
-            window.closeModals();
-        }
-    };
-    window.saveBroadcast = async () => {
-        const txt = document.getElementById('inpBroadcast').value;
-        await updateDoc(doc(db, "config", "broadcastMsg"), { text: txt });
+        await addDoc(collection(db, "players"), { name: document.getElementById('addName').value, elo: document.getElementById('addElo').value, info: document.getElementById('addInfo').value, timestamp: Date.now() });
         window.closeModals();
     };
-    window.clearAllChat = async () => {
-        if(confirm("Delete all chats?")) {
-            const q = await getDocs(collection(db, "chats"));
-            q.forEach(async (d) => await deleteDoc(doc(db, "chats", d.id)));
-        }
-    };
-
-    window.setTimer = (val, id) => {
-        selectedTimer = val;
-        document.querySelectorAll('.sel-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-    };
-
-    // --- LOGIKA MATCHMAKING FIX ---
-    window.startMatchmaking = async () => {
-        document.getElementById('searchModal').style.display = 'flex';
-        let seconds = 0;
-        searchInterval = setInterval(() => {
-            seconds++;
-            let mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-            let secs = (seconds % 60).toString().padStart(2, '0');
-            document.getElementById('searchTimer').innerText = `${mins}:${secs}`;
-        }, 1000);
-
-        // Cari room waiting yang sudah ada
-        const q = query(collection(db, "rooms"), 
-            where("status", "==", "waiting"), 
-            where("timer", "==", selectedTimer),
-            orderBy("createdAt", "asc"),
-            limit(1)
-        );
-
-        const snap = await getDocs(q);
-        let targetId = null;
-        snap.forEach(d => { if(d.data().player1.name !== currentUsername) targetId = d.id; });
-
-        if (targetId) {
-            // Player 2: Masuk ke room yang sudah ada
-            currentRoomId = targetId;
-            await updateDoc(doc(db, "rooms", targetId), { 
-                player2: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
-                status: "playing" 
-            });
-            clearInterval(searchInterval);
-            window.location.href = `game.html?id=${targetId}&side=black`;
-        } else {
-            // Player 1: Buat room baru
-            const newRoom = await addDoc(collection(db, "rooms"), { 
-                player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
-                player2: null, 
-                status: "waiting", 
-                timer: selectedTimer, 
-                fen: "start", 
-                createdAt: Date.now() 
-            });
-            currentRoomId = newRoom.id;
-
-            // Langsung dengerin status room sendiri
-            unsubRoom = onSnapshot(doc(db, "rooms", currentRoomId), (snapshot) => {
-                const data = snapshot.data();
-                if (data && data.status === "playing") {
-                    if (unsubRoom) unsubRoom();
-                    clearInterval(searchInterval);
-                    window.location.href = `game.html?id=${currentRoomId}&side=white`;
-                }
-            });
-        }
-    };
-
-    window.cancelSearch = async () => {
-        clearInterval(searchInterval);
-        if (unsubRoom) unsubRoom();
-        
-        if (currentRoomId) {
-            const roomRef = doc(db, "rooms", currentRoomId);
-            const snap = await getDoc(roomRef);
-            if(snap.exists() && snap.data().status === "waiting") {
-                await deleteDoc(roomRef);
-            }
-        }
-        currentRoomId = null;
-        document.getElementById('searchTimer').innerText = "00:00";
+    window.saveBroadcast = async () => {
+        await updateDoc(doc(db, "config", "broadcastMsg"), { text: document.getElementById('inpBroadcast').value });
         window.closeModals();
     };
 </script>
