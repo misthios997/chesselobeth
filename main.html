@@ -10,18 +10,22 @@
         .brand { font-weight: bold; color: #ffd700; font-size: 1.2rem; }
         .nav-btns { display: flex; gap: 10px; align-items: center; }
         .icon-btn { background: #333; border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; border: 1px solid #444; overflow: hidden; }
-        .profile-img-nav { width: 100%; height: 100%; object-fit: cover; }
+        .profile-img-nav { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
         
         .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
         .welcome { font-size: 1.5rem; margin-bottom: 15px; color: #ffd700; }
 
-        /* Lobby Selector */
-        .lobby-card { background: #2d2d2d; padding: 20px; border-radius: 12px; border-left: 5px solid #81b64c; margin-bottom: 20px; }
+        /* Lobby Card */
+        .lobby-card { background: #2d2d2d; padding: 20px; border-radius: 12px; border-left: 5px solid #81b64c; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         label { font-size: 0.75rem; color: #aaa; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 8px; }
         .selector-group { display: flex; gap: 8px; margin-bottom: 15px; }
         .sel-btn { flex: 1; padding: 12px; background: #333; border: 1px solid #444; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .sel-btn.active { border-color: #81b64c; background: rgba(129, 182, 76, 0.15); color: #81b64c; }
-        .btn-search { background: #81b64c; color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
+        .btn-search { background: #81b64c; color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 10px; }
+
+        /* Broadcast & Data */
+        .broadcast-box { background: linear-gradient(45deg, #b8860b, #daa520); color: black; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; }
+        .card { background: #333; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 5px solid #ffd700; }
 
         /* Chat UI */
         .chat-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; display: none; flex-direction: column; z-index: 1100; }
@@ -32,17 +36,19 @@
         .msg-avatar { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #ffd700; }
         .msg-body { background: #333; padding: 10px; border-radius: 10px; }
         .msg-right .msg-body { background: #ffd700; color: black; }
+        .msg-name { font-size: 0.7rem; font-weight: bold; margin-bottom: 2px; color: #ffd700; }
         .chat-input-area { padding: 15px; background: #2d2d2d; display: flex; gap: 10px; }
         .chat-input-area input { flex: 1; padding: 12px; border-radius: 5px; border: none; background: #444; color: white; }
 
-        .broadcast-box { background: linear-gradient(45deg, #b8860b, #daa520); color: black; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; }
-        .card { background: #333; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 5px solid #ffd700; }
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 1200; }
+        .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; text-align: center; }
+        .avatar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .avatar-opt { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 3px solid transparent; }
+        .avatar-opt.active { border-color: #ffd700; }
         
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; width: 85%; max-width: 350px; text-align: center; }
-        .modal input { width: 100%; padding: 12px; margin: 8px 0; background: #444; border: none; color: white; border-radius: 6px; box-sizing: border-box; }
-        .btn-gold { background: #ffd700; color: black; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin: 5px 0; }
-        .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #ffd700; color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 30px; cursor: pointer; z-index: 99; box-shadow: 0 4px 10px black; }
+        .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #ffd700; color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 30px; font-weight: bold; cursor: pointer; z-index: 99; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .btn-gold { background: #ffd700; color: black; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -68,7 +74,7 @@
             <label>Variant</label>
             <div class="selector-group"><button class="sel-btn active">Standard</button></div>
             <button class="btn-search" id="playBtn" onclick="startMatchmaking()">[ 🔍 SEARCH GAME ]</button>
-            <div id="matchStatus" style="display:none; text-align:center; color:#ffd700; margin-top:10px;">Searching... ⌛</div>
+            <div id="matchStatus" style="display:none; text-align:center; color:#ffd700; margin-top:15px;">Searching for opponent... ⌛</div>
         </div>
 
         <div class="broadcast-box" id="broadcastDisplay">Broadcast: Loading...</div>
@@ -76,90 +82,123 @@
     </div>
 
     <div class="chat-overlay" id="chatOverlay">
-        <div class="chat-header"><span>LIVE CHAT</span><button onclick="toggleChat(false)" style="background:none; border:none; color:white; font-size:2rem;">&times;</button></div>
+        <div class="chat-header">
+            <span>LIVE CHAT</span>
+            <button onclick="toggleChat(false)" style="background:none; border:none; color:white; font-size:1.5rem;">&times;</button>
+        </div>
         <div class="chat-content" id="chatBox"></div>
         <div class="chat-input-area">
-            <input type="text" id="chatInput" placeholder="Ketik pesan..." onkeypress="if(event.key==='Enter')sendChat()">
-            <button onclick="sendChat()" style="background:#ffd700; border:none; padding:10px 15px; border-radius:5px;">➤</button>
+            <input type="text" id="chatInput" placeholder="Tulis pesan..." onkeypress="if(event.key==='Enter')sendChat()">
+            <button onclick="sendChat()" style="background:#ffd700; border:none; padding:10px 15px; border-radius:5px; font-weight:bold;">➤</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal">
+            <h2>Select Avatar</h2>
+            <div class="avatar-grid" id="avatarPicker"></div>
+            <button class="btn-gold" style="background:#ff4d4d; color:white; margin-top:20px;" onclick="logout()">LOGOUT</button>
+            <button class="btn-gold" style="background:#555; color:white;" onclick="closeModals()">CLOSE</button>
         </div>
     </div>
 
     <div class="fab" id="ownerFab" onclick="openOwnerMenu()">+</div>
-
+    
     <div class="modal-overlay" id="ownerModal">
         <div class="modal">
-            <h2>Owner Menu</h2>
-            <button class="btn-gold" onclick="showAddPlayer()">Add Player Data</button>
-            <button class="btn-gold" onclick="showAddBroadcast()">Update Broadcast</button>
-            <button class="btn-gold" style="background:#ff4d4d; color:white" onclick="resetChat()">Clear Chat</button>
+            <h2>Owner Actions</h2>
+            <button class="btn-gold" onclick="openBroadcastInput()">Update Broadcast</button>
+            <button class="btn-gold" onclick="openAddPlayerInput()">Add Data Player</button>
+            <button class="btn-gold" style="background:#ff4d4d; color:white" onclick="clearAllChat()">Clear All Chat</button>
             <button class="btn-gold" style="background:#555; color:white" onclick="closeModals()">Cancel</button>
         </div>
     </div>
 
-    <div class="modal-overlay" id="addPlayerModal">
+    <div class="modal-overlay" id="broadcastModal">
         <div class="modal">
-            <h2>New Player</h2>
-            <input type="text" id="inpName" placeholder="Name">
-            <input type="number" id="inpElo" placeholder="Elo">
-            <button class="btn-gold" onclick="submitPlayer()">Save</button>
-            <button class="btn-gold" style="background:#555; color:white" onclick="closeModals()">Cancel</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="addBroadcastModal">
-        <div class="modal">
-            <h2>Update Broadcast</h2>
-            <input type="text" id="inpBc" placeholder="Message...">
-            <button class="btn-gold" onclick="submitBroadcast()">Update</button>
+            <h2>New Broadcast</h2>
+            <textarea id="inpBroadcast" rows="3" style="width:100%; background:#333; color:white; border:none; border-radius:5px; padding:10px;"></textarea>
+            <button class="btn-gold" onclick="saveBroadcast()">Save</button>
             <button class="btn-gold" style="background:#555; color:white" onclick="closeModals()">Cancel</button>
         </div>
     </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy, limit, getDocs, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy, limit, getDocs, where, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    const firebaseConfig = { apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", authDomain: "chesselobeth.firebaseapp.com", projectId: "chesselobeth", storageBucket: "chesselobeth.firebasestorage.app", messagingSenderId: "829508204106", appId: "1:829508204106:web:e8952c359f63d49646d8b3" };
+    const firebaseConfig = { 
+        apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", 
+        authDomain: "chesselobeth.firebaseapp.com", 
+        projectId: "chesselobeth", 
+        storageBucket: "chesselobeth.firebasestorage.app", 
+        messagingSenderId: "829508204106", 
+        appId: "1:829508204106:web:e8952c359f63d49646d8b3" 
+    };
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
     let currentUsername = "";
     let selectedTimer = 10;
+    const avatars = [
+        "https://i.ibb.co.com/TqcHLPCX/54b19ada-d53e-4ee9-8882-9dfed1bf1396.jpg",
+        "https://i.ibb.co.com/twDJFWvC/68f9ebed-9db3-458f-aa15-b5b6dfc8566c.jpg"
+    ];
 
     onAuthStateChanged(auth, (user) => {
         if (!user) window.location.href = "index.html";
         else {
             currentUsername = user.displayName;
             document.getElementById('welcomeMsg').innerText = `Welcome ${currentUsername}`;
-            document.getElementById('profileBtn').innerHTML = `<img src="${user.photoURL || 'https://ui-avatars.com/api/?name='+currentUsername}" class="profile-img-nav">`;
+            
+            const upic = user.photoURL || `https://ui-avatars.com/api/?name=${currentUsername}`;
+            document.getElementById('profileBtn').innerHTML = `<img src="${upic}" class="profile-img-nav">`;
+            
+            // Render Avatar Picker
+            const picker = document.getElementById('avatarPicker');
+            picker.innerHTML = avatars.map(url => `
+                <img src="${url}" class="avatar-opt ${user.photoURL === url ? 'active' : ''}" onclick="selectAvatar('${url}')">
+            `).join('');
+
             if(currentUsername === "Jovan") document.getElementById('ownerFab').style.display = 'flex';
         }
     });
 
-    // --- OWNER ACTIONS ---
-    window.openOwnerMenu = () => document.getElementById('ownerModal').style.display = 'flex';
-    window.showAddPlayer = () => { closeModals(); document.getElementById('addPlayerModal').style.display = 'flex'; };
-    window.showAddBroadcast = () => { closeModals(); document.getElementById('addBroadcastModal').style.display = 'flex'; };
-    window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
-    
-    window.submitPlayer = async () => {
-        await addDoc(collection(db, "players"), { name: document.getElementById('inpName').value, elo: document.getElementById('inpElo').value, timestamp: Date.now() });
-        closeModals();
-    };
-    window.submitBroadcast = async () => {
-        await updateDoc(doc(db, "config", "broadcastMsg"), { text: document.getElementById('inpBc').value });
-        closeModals();
-    };
-    window.resetChat = async () => {
-        if(confirm("Clear all?")) {
-            const q = await getDocs(collection(db, "chats"));
-            q.forEach(d => deleteDoc(doc(db, "chats", d.id)));
-        }
+    // AVATAR SYSTEM
+    window.selectAvatar = async (url) => {
+        await updateProfile(auth.currentUser, { photoURL: url });
+        await setDoc(doc(db, "users", auth.currentUser.uid), { name: currentUsername, photo: url }, { merge: true });
+        alert("Avatar Updated!");
+        location.reload();
     };
 
-    // --- DATA LOADERS ---
+    // CHAT SYSTEM
+    window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
+    window.sendChat = async () => {
+        const inp = document.getElementById('chatInput');
+        if(inp.value.trim()){
+            await addDoc(collection(db, "chats"), {
+                name: currentUsername, text: inp.value,
+                photo: auth.currentUser.photoURL || "", timestamp: Date.now()
+            });
+            inp.value = "";
+        }
+    };
+    onSnapshot(query(collection(db, "chats"), orderBy("timestamp", "asc"), limit(50)), (snap) => {
+        const box = document.getElementById('chatBox'); box.innerHTML = "";
+        snap.forEach(d => {
+            const data = d.data();
+            const side = data.name === currentUsername ? 'msg-right' : '';
+            const pic = data.photo || `https://ui-avatars.com/api/?name=${data.name}`;
+            box.innerHTML += `<div class="msg ${side}"><img src="${pic}" class="msg-avatar"><div class="msg-body"><div class="msg-name">${data.name}</div><div>${data.text}</div></div></div>`;
+        });
+        box.scrollTop = box.scrollHeight;
+    });
+
+    // DATA & BROADCAST
     onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (snap) => {
         const feed = document.getElementById('dataFeed'); feed.innerHTML = "";
         snap.forEach(d => { feed.innerHTML += `<div class="card"><h3>${d.data().name}</h3><p>Elo: ${d.data().elo}</p></div>`; });
@@ -168,27 +207,27 @@
         if(d.exists()) document.getElementById('broadcastDisplay').innerText = `Broadcast: ${d.data().text}`;
     });
 
-    // --- CHAT ---
-    window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
-    window.sendChat = async () => {
-        const i = document.getElementById('chatInput');
-        if(i.value.trim()) {
-            await addDoc(collection(db, "chats"), { name: currentUsername, text: i.value, photo: auth.currentUser.photoURL, timestamp: Date.now() });
-            i.value = "";
+    // OWNER ACTIONS
+    window.openOwnerMenu = () => document.getElementById('ownerModal').style.display = 'flex';
+    window.openBroadcastInput = () => { closeModals(); document.getElementById('broadcastModal').style.display = 'flex'; };
+    window.saveBroadcast = async () => {
+        const txt = document.getElementById('inpBroadcast').value;
+        await updateDoc(doc(db, "config", "broadcastMsg"), { text: txt });
+        closeModals();
+    };
+    window.clearAllChat = async () => {
+        if(confirm("Hapus semua chat?")) {
+            const q = await getDocs(collection(db, "chats"));
+            q.forEach(async (d) => await deleteDoc(doc(db, "chats", d.id)));
         }
     };
-    onSnapshot(query(collection(db, "chats"), orderBy("timestamp", "asc"), limit(50)), (snap) => {
-        const box = document.getElementById('chatBox'); box.innerHTML = "";
-        snap.forEach(d => {
-            const data = d.data();
-            const side = data.name === currentUsername ? 'msg-right' : '';
-            box.innerHTML += `<div class="msg ${side}"><img src="${data.photo || 'https://ui-avatars.com/api/?name='+data.name}" class="msg-avatar"><div class="msg-body"><b>${data.name}</b><div>${data.text}</div></div></div>`;
-        });
-        box.scrollTop = box.scrollHeight;
-    });
 
-    // --- MATCHMAKING ---
-    window.setTimer = (v, b) => { selectedTimer = v; document.querySelectorAll('.sel-btn').forEach(btn => btn.classList.remove('active')); b.classList.add('active'); };
+    // MATCHMAKING
+    window.setTimer = (val, btn) => {
+        selectedTimer = val;
+        document.querySelectorAll('.sel-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    };
     window.startMatchmaking = async () => {
         document.getElementById('matchStatus').style.display = 'block';
         const q = query(collection(db, "rooms"), where("status", "==", "waiting"), where("timer", "==", selectedTimer), limit(1));
@@ -204,7 +243,9 @@
         }
     };
 
-    window.openProfileModal = () => { if(confirm("Logout?")) signOut(auth).then(()=>location.href="index.html"); };
+    window.openProfileModal = () => document.getElementById('profileModal').style.display = 'flex';
+    window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(e => e.style.display = 'none');
+    window.logout = () => signOut(auth).then(()=>window.location.href="index.html");
 </script>
 </body>
 </html>
