@@ -263,16 +263,26 @@
             document.getElementById('searchTimer').innerText = `${mins}:${secs}`;
         }, 1000);
 
-        const q = query(collection(db, "rooms"), where("status", "==", "waiting"), where("timer", "==", selectedTimer));
-        const snap = await getDocs(q);
+        // Cari room lawan dengan timer yang sama
+        const q = query(collection(db, "rooms"), 
+            where("status", "==", "waiting"), 
+            where("timer", "==", selectedTimer),
+            orderBy("createdAt", "asc"),
+            limit(5)
+        );
         
+        const snap = await getDocs(q);
         let foundRoomId = null;
+        
         snap.forEach(d => {
-            if (d.data().player1.name !== currentUsername) foundRoomId = d.id;
+            if (d.data().player1.name !== currentUsername && !foundRoomId) {
+                foundRoomId = d.id;
+            }
         });
 
         if (foundRoomId) {
             currentRoomId = foundRoomId;
+            // Join sebagai player 2
             await updateDoc(doc(db, "rooms", foundRoomId), { 
                 player2: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
                 status: "playing" 
@@ -280,23 +290,28 @@
             clearInterval(searchInterval);
             window.location.href = `game.html?id=${foundRoomId}&side=black`;
         } else {
-            const newRoom = await addDoc(collection(db, "rooms"), { 
+            // Buat room baru sebagai player 1
+            const roomData = { 
                 player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
                 player2: null, 
                 status: "waiting", 
                 timer: selectedTimer, 
                 fen: "start", 
                 createdAt: Date.now() 
-            });
-            currentRoomId = newRoom.id;
+            };
+            const newRoomRef = await addDoc(collection(db, "rooms"), roomData);
+            currentRoomId = newRoomRef.id;
             
-            // Player 1 menunggu perubahan status room
-            unsubRoom = onSnapshot(doc(db, "rooms", newRoom.id), (d) => {
-                if (d.exists() && d.data().status === "playing") {
+            // Player 1 Mendengarkan Perubahan
+            unsubRoom = onSnapshot(doc(db, "rooms", currentRoomId), (snapshot) => {
+                const data = snapshot.data();
+                if (data && data.status === "playing") {
                     if (unsubRoom) unsubRoom();
                     clearInterval(searchInterval);
-                    window.location.href = `game.html?id=${newRoom.id}&side=white`;
+                    window.location.href = `game.html?id=${currentRoomId}&side=white`;
                 }
+            }, (error) => {
+                console.error("Listener error:", error);
             });
         }
     };
@@ -309,7 +324,6 @@
             const roomRef = doc(db, "rooms", currentRoomId);
             const roomSnap = await getDoc(roomRef);
             
-            // Hapus hanya jika room masih dalam status waiting (belum ada lawan masuk)
             if (roomSnap.exists() && roomSnap.data().status === "waiting") {
                 await deleteDoc(roomRef);
             }
