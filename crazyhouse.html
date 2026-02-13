@@ -25,9 +25,6 @@
         .modal { background: #2d2d2d; padding: 30px; border-radius: 15px; text-align: center; border: 2px solid #ffd700; width: 280px; }
         .btn-lobby { background: #81b64c; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 15px; }
         .btn-resign { margin-top: 15px; background: none; border: 1px solid #444; color: #aaa; padding: 8px 20px; border-radius: 5px; cursor: pointer; }
-        
-        /* Highlight kotak saat mau drop */
-        .drop-target { box-shadow: inset 0 0 10px 3px #ffd700 !important; }
     </style>
 </head>
 <body>
@@ -61,7 +58,7 @@
     </div>
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 
 <script type="module">
@@ -105,7 +102,7 @@
                 if (isGameOver) return false;
                 if ((game.turn() === 'w' && mySide === 'black') || (game.turn() === 'b' && mySide === 'white')) return false;
                 if ((mySide === 'white' && piece.search(/^b/) !== -1) || (mySide === 'black' && piece.search(/^w/) !== -1)) return false;
-                selectedDropPiece = null; // Batalkan pilihan drop jika mulai drag bidak papan
+                selectedDropPiece = null;
                 $('.pocket img').removeClass('selected');
             },
             onDrop: async (source, target) => {
@@ -113,7 +110,7 @@
                 if (move === null) return 'snapback';
                 
                 if (move.captured) {
-                    const colorTurn = move.color; // 'w' or 'b'
+                    const colorTurn = move.color;
                     const pieceShort = move.captured.toUpperCase();
                     pockets[colorTurn].push(colorTurn + pieceShort);
                 }
@@ -121,24 +118,22 @@
             }
         });
 
-        // LOGIC CLICK TO DROP
+        // FIX: CLICK TO DROP + INSTANT RENDER
         $('#myBoard').on('click', '.square-55d63', async function() {
             if (!selectedDropPiece || isGameOver) return;
-            if ((game.turn() === 'w' && mySide === 'black') || (game.turn() === 'b' && mySide === 'white')) return;
+            const turn = game.turn();
+            if (turn !== mySide.charAt(0)) return;
 
             const square = $(this).data('square');
-            
-            // Cek apakah kotak kosong
-            if (game.get(square)) return; 
+            if (game.get(square)) return; // Harus kotak kosong
 
-            // Taruh bidak ke papan (Update FEN manual)
             const pieceChar = selectedDropPiece.charAt(1).toLowerCase();
             const colorChar = selectedDropPiece.charAt(0);
             
-            // Masukkan ke logic chess.js (pakai put)
+            // Taruh bidak di mesin game
             game.put({ type: pieceChar, color: colorChar }, square);
             
-            // Ganti giliran manual karena .put() tidak mengganti turn
+            // Paksa ganti giliran
             let fenArr = game.fen().split(' ');
             fenArr[1] = (fenArr[1] === 'w') ? 'b' : 'w';
             game.load(fenArr.join(' '));
@@ -146,6 +141,9 @@
             // Hapus dari pocket
             const idx = pockets[mySide.charAt(0)].indexOf(selectedDropPiece);
             if (idx > -1) pockets[mySide.charAt(0)].splice(idx, 1);
+
+            // Update Tampilan Papan Seketika
+            board.position(game.fen());
 
             selectedDropPiece = null;
             $('.pocket img').removeClass('selected');
@@ -177,6 +175,7 @@
     }
 
     function startTimer() {
+        if(timerInterval) clearInterval(timerInterval);
         timerInterval = setInterval(() => {
             if (isGameOver) return;
             const turn = game.turn();
@@ -211,7 +210,8 @@
                 const img = document.createElement('img');
                 img.src = pieceImg(p);
                 if (side === mySide.charAt(0)) {
-                    img.onclick = () => {
+                    img.onclick = (e) => {
+                        e.stopPropagation(); // Biar gak trigger click board
                         if (game.turn() !== mySide.charAt(0)) return;
                         $('.pocket img').removeClass('selected');
                         img.classList.add('selected');
