@@ -6,19 +6,15 @@
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <style>
         body { background: #262421; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 10px; }
-        .player-info { width: 100%; max-width: 400px; display: flex; align-items: center; padding: 10px; background: #2d2d2d; border-radius: 8px; margin: 5px 0; justify-content: space-between; border: 1px solid #3d3d3d; }
+        .player-info { width: 100%; max-width: 400px; display: flex; align-items: center; padding: 10px; background: #2d2d2d; border-radius: 8px; margin: 5px 0; justify-content: space-between; }
         .p-avatar { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; border: 1.5px solid #ffd700; }
-        .timer-box { background: #1a1a1a; padding: 6px 12px; border-radius: 4px; color: #ffd700; font-family: monospace; font-size: 1.1rem; }
-        
-        #myBoard { width: 95vw; max-width: 400px; margin: 10px 0; border: 2px solid #333; }
-        /* Neo Theme */
+        .timer-box { background: #1a1a1a; padding: 6px 12px; border-radius: 4px; color: #ffd700; font-family: monospace; font-size: 1.1rem; min-width: 60px; text-align: center; }
+        #myBoard { width: 95vw; max-width: 400px; margin: 10px 0; }
         .white-1e1d7 { background-color: #ebecd0 !important; }
         .black-3c85d { background-color: #779556 !important; }
-
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:none; justify-content:center; align-items:center; z-index:999; }
-        .modal { background:#2d2d2d; padding:35px; border-radius:18px; text-align:center; border:2px solid #ffd700; width:80%; max-width:300px; }
+        .modal { background:#2d2d2d; padding:30px; border-radius:18px; text-align:center; border:2px solid #ffd700; width:280px; }
         .btn-back { background:#81b64c; color:white; border:none; padding:15px; border-radius:8px; font-weight:bold; cursor:pointer; width:100%; margin-top:20px; }
-        .btn-resign { width:100%; max-width:400px; padding:12px; background:rgba(255,77,77,0.1); color:#ff4d4d; border:1px solid #ff4d4d; border-radius:6px; cursor:pointer; font-weight:bold; }
     </style>
 </head>
 <body>
@@ -26,9 +22,9 @@
     <div class="player-info">
         <div style="display:flex; align-items:center; gap:10px;">
             <img id="oppAvatar" src="" class="p-avatar">
-            <span id="oppName" style="font-weight:bold">Opponent</span>
+            <span id="oppName">Opponent</span>
         </div>
-        <div class="timer-box" id="oppTime">--:--</div>
+        <div class="timer-box" id="oppTime">00:00</div>
     </div>
 
     <div id="myBoard"></div>
@@ -36,18 +32,18 @@
     <div class="player-info">
         <div style="display:flex; align-items:center; gap:10px;">
             <img id="myAvatar" src="" class="p-avatar">
-            <span id="myName" style="font-weight:bold">You</span>
+            <span id="myName">You</span>
         </div>
-        <div class="timer-box" id="myTime">--:--</div>
+        <div class="timer-box" id="myTime">00:00</div>
     </div>
 
-    <button class="btn-resign" onclick="handleResign()">🏳️ Resign</button>
+    <button onclick="handleResign()" style="width:100%; max-width:400px; padding:10px; color:#ff4d4d; background:none; border:1px solid #ff4d4d; border-radius:5px; margin-top:10px; cursor:pointer;">🏳️ Resign</button>
 
     <div class="modal-overlay" id="gameOverModal">
         <div class="modal">
-            <h1 id="winMsg" style="color:#ffd700; margin:0; font-size:1.8rem;">White Win</h1>
-            <p id="winReason" style="color:#aaa; margin-top:5px;">by Checkmate</p>
-            <button class="btn-back" onclick="window.location.href='Main.html'">BACK TO LOBBY</button>
+            <h1 id="winMsg" style="color:#ffd700; margin:0;">Winner</h1>
+            <p id="winReason" style="color:#aaa;">by Checkmate</p>
+            <button class="btn-back" onclick="window.location.href='main.html'">BACK TO LOBBY</button>
         </div>
     </div>
 
@@ -69,84 +65,88 @@
         
         let game = new Chess();
         let board = null;
+        let whiteSeconds, blackSeconds;
+        let timerInterval;
+
         const roomRef = doc(db, "rooms", roomId);
 
-        // FIX BIDAK PECAH: Menggunakan pieceTheme HD
-        function pieceTheme (piece) {
-            return 'https://chessboardjs.com/img/chesspieces/wikipedia/' + piece + '.png';
+        function formatTime(s) {
+            const min = Math.floor(s / 60);
+            const sec = s % 60;
+            return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        }
+
+        function startTimerLogic() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (game.turn() === 'w') whiteSeconds--;
+                else blackSeconds--;
+
+                document.getElementById('myTime').innerText = formatTime(mySide === 'white' ? whiteSeconds : blackSeconds);
+                document.getElementById('oppTime').innerText = formatTime(mySide === 'white' ? blackSeconds : whiteSeconds);
+
+                if(whiteSeconds <= 0 || blackSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    const winner = whiteSeconds <= 0 ? "Black" : "White";
+                    showGameOver(winner, "Time Out");
+                }
+            }, 1000);
         }
 
         function onDrop(source, target) {
             if (game.turn() !== (mySide === 'white' ? 'w' : 'b')) return 'snapback';
             let move = game.move({ from: source, to: target, promotion: 'q' });
-            if (move === null) return 'snapback';
-            
-            updateDoc(roomRef, { fen: game.fen() });
+            if (!move) return 'snapback';
+            updateDoc(roomRef, { fen: game.fen(), wTime: whiteSeconds, bTime: blackSeconds });
         }
 
         board = Chessboard('myBoard', { 
-            draggable: true, 
-            position: 'start', 
-            orientation: mySide, 
-            onDrop: onDrop,
-            pieceTheme: pieceTheme 
+            draggable: true, position: 'start', orientation: mySide, onDrop: onDrop,
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
         });
 
         onSnapshot(roomRef, (s) => {
             if(!s.exists()) { showGameOver("Opponent", "Resignation"); return; }
             const d = s.data();
+            
+            // Sync Time
+            if(!whiteSeconds) {
+                whiteSeconds = d.wTime || d.timer * 60;
+                blackSeconds = d.bTime || d.timer * 60;
+            } else {
+                whiteSeconds = d.wTime;
+                blackSeconds = d.bTime;
+            }
+
             game.load(d.fen);
             board.position(d.fen);
 
-            // Update Name & Avatar
-            if(mySide === 'white') {
-                document.getElementById('myName').innerText = d.player1.name;
-                document.getElementById('myAvatar').src = d.player1.photo;
-                document.getElementById('myTime').innerText = d.timer + ":00";
-                if(d.player2) { 
-                    document.getElementById('oppName').innerText = d.player2.name; 
-                    document.getElementById('oppAvatar').src = d.player2.photo;
-                    document.getElementById('oppTime').innerText = d.timer + ":00";
-                }
-            } else {
-                document.getElementById('myName').innerText = d.player2.name;
-                document.getElementById('myAvatar').src = d.player2.photo;
-                document.getElementById('oppName').innerText = d.player1.name;
-                document.getElementById('oppAvatar').src = d.player1.photo;
-                document.getElementById('myTime').innerText = d.timer + ":00";
-                document.getElementById('oppTime').innerText = d.timer + ":00";
+            if(d.status === "playing") startTimerLogic();
+
+            const me = mySide === 'white' ? d.player1 : d.player2;
+            const opp = mySide === 'white' ? d.player2 : d.player1;
+            
+            document.getElementById('myName').innerText = me.name;
+            document.getElementById('myAvatar').src = me.photo;
+            if(opp) {
+                document.getElementById('oppName').innerText = opp.name;
+                document.getElementById('oppAvatar').src = opp.photo;
             }
 
-            // CHECKMATE LOGIC (ACCURATE NAME)
             if(game.game_over()) {
-                let winName = "Draw";
-                let reason = "Stalemate";
-                if(game.in_checkmate()) {
-                    winName = game.turn() === 'w' ? (d.player2.name) : (d.player1.name);
-                    reason = "Checkmate";
-                }
-                showGameOver(winName, reason);
-            }
-            
-            if(d.status === "resigned") {
-                showGameOver(d.winner, "Resignation");
+                const winner = game.turn() === 'w' ? d.player2.name : d.player1.name;
+                showGameOver(winner, "Checkmate");
             }
         });
 
         function showGameOver(name, reason) {
-            document.getElementById('winMsg').innerText = name === "Draw" ? "Draw Game" : name + " Win";
+            clearInterval(timerInterval);
+            document.getElementById('winMsg').innerText = name + " Win";
             document.getElementById('winReason').innerText = "by " + reason;
             document.getElementById('gameOverModal').style.display = 'flex';
         }
 
-        window.handleResign = async () => { 
-            if(confirm("Are you sure you want to resign?")) {
-                const s = await (await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js")).getDoc(roomRef);
-                const d = s.data();
-                const winnerName = mySide === 'white' ? d.player2.name : d.player1.name;
-                await updateDoc(roomRef, { status: "resigned", winner: winnerName });
-            }
-        };
+        window.handleResign = async () => { if(confirm("Resign?")) await deleteDoc(roomRef); };
     </script>
 </body>
 </html>
