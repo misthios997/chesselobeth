@@ -24,6 +24,10 @@
 
         .broadcast-box { background: linear-gradient(45deg, #b8860b, #daa520); color: black; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; }
         .card { background: #333; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 5px solid #ffd700; position: relative; }
+        .card h3 { margin: 0 0 5px 0; color: #ffd700; }
+        .card p { margin: 2px 0; font-size: 0.9rem; color: #ccc; }
+        .admin-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; }
+        .btn-small { padding: 5px 10px; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 0.8rem; }
         
         /* Chat Overlay */
         .chat-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; display: none; flex-direction: column; z-index: 1100; }
@@ -40,7 +44,7 @@
 
         /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; text-align: center; }
+        .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; text-align: center; max-height: 90vh; overflow-y: auto; }
         .btn-gold { background: #ffd700; color: black; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         input, select, textarea { width: 100%; padding: 12px; margin-top: 10px; background: #333; color: white; border: 1px solid #444; border-radius: 5px; box-sizing: border-box; }
         
@@ -124,7 +128,36 @@
             <h2>New Player Data</h2>
             <input type="text" id="inpName" placeholder="Full Name">
             <input type="number" id="inpElo" placeholder="Elo Rating">
+            <input type="text" id="inpDate" placeholder="Date (e.g. 12 Feb 2026)">
+            <select id="inpRank">
+                <option value="None">Rank: None</option>
+                <option value="CM">CM</option>
+                <option value="FM">FM</option>
+                <option value="IM">IM</option>
+                <option value="GM">GM</option>
+            </select>
+            <input type="text" id="inpAccount" placeholder="Chess.com Account">
             <button class="btn-gold" onclick="window.submitData()">SAVE PLAYER</button>
+            <button class="btn-gold" style="background:#444; color:white" onclick="window.closeModals()">CANCEL</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="editDataModal">
+        <div class="modal">
+            <h2>Edit Player Data</h2>
+            <input type="hidden" id="editId">
+            <input type="text" id="editName" placeholder="Full Name">
+            <input type="number" id="editElo" placeholder="Elo Rating">
+            <input type="text" id="editDate" placeholder="Date">
+            <select id="editRank">
+                <option value="None">Rank: None</option>
+                <option value="CM">CM</option>
+                <option value="FM">FM</option>
+                <option value="IM">IM</option>
+                <option value="GM">GM</option>
+            </select>
+            <input type="text" id="editAccount" placeholder="Chess.com Account">
+            <button class="btn-gold" onclick="window.saveEditData()">UPDATE PLAYER</button>
             <button class="btn-gold" style="background:#444; color:white" onclick="window.closeModals()">CANCEL</button>
         </div>
     </div>
@@ -190,16 +223,27 @@
             feed.innerHTML = '<label>Recent Players</label>';
             snap.forEach(docSnap => {
                 const data = docSnap.data();
+                const rankDisplay = data.rank && data.rank !== 'None' ? `<span style="color:#ffd700; font-weight:bold">[${data.rank}]</span> ` : '';
+                
+                let adminControls = '';
+                if(currentUsername === "Jovan") {
+                    // Menyimpan data dalam attribute data-json string untuk kemudahan edit
+                    const dataStr = JSON.stringify(data).replace(/"/g, '&quot;');
+                    adminControls = `
+                    <div class="admin-actions">
+                        <button class="btn-small" style="background:#444" onclick="window.openEdit('${docSnap.id}', '${dataStr}')">Edit</button>
+                        <button class="btn-small" style="background:#ff4d4d" onclick="window.deleteData('${docSnap.id}')">Del</button>
+                    </div>`;
+                }
+
                 const card = document.createElement('div');
                 card.className = 'card';
-                card.innerHTML = `<b>${data.name}</b><br><small>Elo: ${data.elo}</small>`;
-                if(currentUsername === "Jovan") {
-                    const delBtn = document.createElement('button');
-                    delBtn.innerText = "Delete";
-                    delBtn.style = "position:absolute; right:10px; top:10px; background:red; color:white; border:none; border-radius:4px; padding:4px 8px; cursor:pointer;";
-                    delBtn.onclick = () => deleteDoc(doc(db, "players", docSnap.id));
-                    card.appendChild(delBtn);
-                }
+                card.innerHTML = `
+                    <h3>${rankDisplay}${data.name}</h3>
+                    <p>Elo: ${data.elo} | Date: ${data.date || '-'}</p>
+                    <p style="font-size:0.8rem; color:#888">${data.chessAccount || 'No Account'}</p>
+                    ${adminControls}
+                `;
                 feed.appendChild(card);
             });
         });
@@ -240,18 +284,58 @@
         location.reload();
     };
 
-    // --- OWNER ACTIONS ---
+    // --- OWNER ACTIONS (ADD, EDIT, DELETE) ---
     window.openOwnerMenu = () => document.getElementById('ownerMenuModal').style.display = 'flex';
     window.openAddData = () => { window.closeModals(); document.getElementById('addDataModal').style.display = 'flex'; };
     window.openBroadcastModal = () => { window.closeModals(); document.getElementById('broadcastModal').style.display = 'flex'; };
     window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
     
+    // Add Data
     window.submitData = async () => {
-        const n = document.getElementById('inpName').value;
-        const e = document.getElementById('inpElo').value;
-        await addDoc(collection(db, "players"), { name: n, elo: e, timestamp: Date.now() });
+        const payload = {
+            name: document.getElementById('inpName').value,
+            elo: document.getElementById('inpElo').value,
+            date: document.getElementById('inpDate').value,
+            rank: document.getElementById('inpRank').value,
+            chessAccount: document.getElementById('inpAccount').value,
+            timestamp: Date.now()
+        };
+        await addDoc(collection(db, "players"), payload);
         window.closeModals();
     };
+
+    // Delete Data
+    window.deleteData = async (id) => {
+        if(confirm("Delete this player data?")) await deleteDoc(doc(db, "players", id));
+    };
+
+    // Edit Data (New Feature)
+    window.openEdit = (id, dataStr) => {
+        const data = JSON.parse(dataStr);
+        document.getElementById('editId').value = id;
+        document.getElementById('editName').value = data.name;
+        document.getElementById('editElo').value = data.elo;
+        document.getElementById('editDate').value = data.date || "";
+        document.getElementById('editRank').value = data.rank || "None";
+        document.getElementById('editAccount').value = data.chessAccount || "";
+        
+        window.closeModals();
+        document.getElementById('editDataModal').style.display = 'flex';
+    };
+
+    window.saveEditData = async () => {
+        const id = document.getElementById('editId').value;
+        const payload = {
+            name: document.getElementById('editName').value,
+            elo: document.getElementById('editElo').value,
+            date: document.getElementById('editDate').value,
+            rank: document.getElementById('editRank').value,
+            chessAccount: document.getElementById('editAccount').value
+        };
+        await updateDoc(doc(db, "players", id), payload);
+        window.closeModals();
+    };
+
     window.submitBroadcast = async () => {
         await setDoc(doc(db, "config", "broadcastMsg"), { text: document.getElementById('inpBroadcast').value });
         window.closeModals();
@@ -279,7 +363,15 @@
             await updateDoc(doc(db, "rooms", currentRoomId), { player2: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, status: "playing" });
             goToGame(selectedVariant, currentRoomId, 'black');
         } else {
-            const newRoom = await addDoc(collection(db, "rooms"), { player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, status: "waiting", timer: selectedTimer, variant: selectedVariant, fen: "start", createdAt: Date.now() });
+            const newRoom = await addDoc(collection(db, "rooms"), { 
+                player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
+                status: "waiting", 
+                timer: selectedTimer, 
+                variant: selectedVariant, 
+                fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 
+                pockets: { w: "", b: "" }, // Crazyhouse Pockets
+                createdAt: Date.now() 
+            });
             currentRoomId = newRoom.id;
             unsubRoom = onSnapshot(doc(db, "rooms", currentRoomId), (s) => { if (s.data()?.status === "playing") goToGame(selectedVariant, currentRoomId, 'white'); });
         }
