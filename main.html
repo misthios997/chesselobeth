@@ -140,7 +140,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy, limit, getDocs, where, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy, limit, getDocs, where, deleteDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", authDomain: "chesselobeth.firebaseapp.com", projectId: "chesselobeth", storageBucket: "chesselobeth.firebasestorage.app", messagingSenderId: "829508204106", appId: "1:829508204106:web:e8952c359f63d49646d8b3" };
     const app = initializeApp(firebaseConfig);
@@ -178,12 +178,9 @@
         document.getElementById(id).classList.add('active');
     };
 
-    // --- MATCHMAKING SISTEM ---
     window.startMatchmaking = async () => {
-        // TAMPILKAN MODAL DULU
         document.getElementById('searchModal').style.display = 'flex';
         document.getElementById('searchTimer').innerText = "00:00";
-        
         let sec = 0;
         searchInterval = setInterval(() => {
             sec++;
@@ -192,12 +189,10 @@
             document.getElementById('searchTimer').innerText = `${m}:${s}`;
         }, 1000);
 
-        // CARI ROOM
         const q = query(collection(db, "rooms"), where("status", "==", "waiting"), where("timer", "==", selectedTimer), limit(1));
         const snap = await getDocs(q);
         
         if (!snap.empty) {
-            // JOIN ROOM (PLAYER 2)
             const roomDoc = snap.docs[0];
             if (roomDoc.data().player1.name !== currentUsername) {
                 currentRoomId = roomDoc.id;
@@ -211,7 +206,6 @@
             }
         }
 
-        // BUAT ROOM (PLAYER 1)
         const newRoom = await addDoc(collection(db, "rooms"), {
             player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" },
             player2: null,
@@ -246,7 +240,6 @@
         window.closeModals();
     };
 
-    // --- SISANYA ---
     window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
     window.sendChat = async () => {
         const inp = document.getElementById('chatInput');
@@ -266,16 +259,45 @@
         box.scrollTop = box.scrollHeight;
     });
 
+    // --- FIX CLEAR ALL CHAT ---
+    window.clearAllChat = async () => {
+        if(confirm("Hapus semua pesan chat? Tindakan ini tidak bisa dibatalkan.")) {
+            try {
+                const q = query(collection(db, "chats"));
+                const snap = await getDocs(q);
+                const batch = writeBatch(db);
+                
+                snap.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+
+                await batch.commit();
+                alert("Semua chat berhasil dihapus!");
+                window.closeModals();
+            } catch (error) {
+                console.error("Error clearing chat: ", error);
+                alert("Gagal menghapus chat.");
+            }
+        }
+    };
+
     onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (snap) => {
         const feed = document.getElementById('dataFeed'); feed.innerHTML = "";
         snap.forEach(d => {
             const data = d.data();
+            const isOwner = currentUsername === "Jovan" ? 'block' : 'none';
             feed.innerHTML += `<div class="card" onclick="this.classList.toggle('active')">
+                <button class="delete-btn" style="display:${isOwner}" onclick="window.deletePlayerData('${d.id}', event)">Delete</button>
                 <h3>${data.name}</h3><p>Elo: ${data.elo}</p>
                 <div class="detail-info">${data.info || 'No Info'}</div>
             </div>`;
         });
     });
+
+    window.deletePlayerData = async (id, event) => {
+        event.stopPropagation();
+        if(confirm("Hapus data player ini?")) { await deleteDoc(doc(db, "players", id)); }
+    };
 
     onSnapshot(doc(db, "config", "broadcastMsg"), (d) => { if(d.exists()) document.getElementById('broadcastDisplay').innerText = d.data().text; });
     window.openOwnerMenu = () => document.getElementById('ownerModal').style.display = 'flex';
