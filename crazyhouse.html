@@ -13,10 +13,9 @@
         .timer { margin-left: auto; font-family: monospace; font-size: 1.4rem; font-weight: bold; background: #312e2b; padding: 5px 10px; border-radius: 4px; border: 1px solid #444; min-width: 70px; text-align: center; }
         .timer.active { background: #fff; color: #000; }
         
-        /* Pocket Area */
-        .pocket { background: #262421; height: 45px; display: flex; align-items: center; padding: 0 10px; gap: 3px; margin: 5px 0; border-radius: 4px; border: 1px dashed #444; overflow-x: auto; }
-        .pocket img { width: 30px; height: 30px; cursor: pointer; transition: 0.1s; opacity: 0.8; }
-        .pocket img:hover { transform: scale(1.1); opacity: 1; }
+        .pocket { background: #262421; height: 50px; display: flex; align-items: center; padding: 0 10px; gap: 5px; margin: 5px 0; border-radius: 4px; border: 1px dashed #444; overflow-x: auto; }
+        .pocket img { width: 35px; height: 35px; cursor: pointer; transition: 0.1s; border-radius: 4px; }
+        .pocket img.selected { background: rgba(255, 215, 0, 0.4); border: 2px solid #ffd700; box-shadow: 0 0 10px #ffd700; }
         
         #myBoard { width: 100%; box-shadow: 0 8px 25px rgba(0,0,0,0.5); }
         .white-1e1d7 { background-color: #ebecd0 !important; }
@@ -25,8 +24,10 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 999; }
         .modal { background: #2d2d2d; padding: 30px; border-radius: 15px; text-align: center; border: 2px solid #ffd700; width: 280px; }
         .btn-lobby { background: #81b64c; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 15px; }
-        
         .btn-resign { margin-top: 15px; background: none; border: 1px solid #444; color: #aaa; padding: 8px 20px; border-radius: 5px; cursor: pointer; }
+        
+        /* Highlight kotak saat mau drop */
+        .drop-target { box-shadow: inset 0 0 10px 3px #ffd700 !important; }
     </style>
 </head>
 <body>
@@ -53,8 +54,8 @@
 
     <div class="modal-overlay" id="gameOverModal">
         <div class="modal">
-            <h1 id="winStatus" style="margin:0; color:#ffd700;">YOU WIN!</h1>
-            <p id="winReason" style="color:#aaa; margin:10px 0;">By Resignation</p>
+            <h1 id="winStatus">YOU WIN!</h1>
+            <p id="winReason">By Resignation</p>
             <button class="btn-lobby" onclick="location.href='main.html'">BACK TO LOBBY</button>
         </div>
     </div>
@@ -79,7 +80,8 @@
 
     let board, game = new Chess(), isGameOver = false;
     let timers = { w: 0, b: 0 }, timerInterval;
-    let pockets = { w: [], b: [] }; // Menyimpan bidak yang dimakan
+    let pockets = { w: [], b: [] };
+    let selectedDropPiece = null;
 
     const pieceImg = (p) => `https://chessboardjs.com/img/chesspieces/wikipedia/${p}.png`;
 
@@ -103,24 +105,51 @@
                 if (isGameOver) return false;
                 if ((game.turn() === 'w' && mySide === 'black') || (game.turn() === 'b' && mySide === 'white')) return false;
                 if ((mySide === 'white' && piece.search(/^b/) !== -1) || (mySide === 'black' && piece.search(/^w/) !== -1)) return false;
+                selectedDropPiece = null; // Batalkan pilihan drop jika mulai drag bidak papan
+                $('.pocket img').removeClass('selected');
             },
             onDrop: async (source, target) => {
                 const move = game.move({ from: source, to: target, promotion: 'q' });
                 if (move === null) return 'snapback';
                 
-                // CRAZYHOUSE LOGIC: Jika makan bidak
                 if (move.captured) {
-                    const capturedColor = move.color === 'w' ? 'b' : 'w';
-                    const newPiece = move.color === 'w' ? 'w' + move.captured.toUpperCase() : 'b' + move.captured.toUpperCase();
-                    pockets[move.color].push(newPiece);
+                    const colorTurn = move.color; // 'w' or 'b'
+                    const pieceShort = move.captured.toUpperCase();
+                    pockets[colorTurn].push(colorTurn + pieceShort);
                 }
-
-                await updateDoc(doc(db, "rooms", roomId), { 
-                    fen: game.fen(), 
-                    timers: timers,
-                    pockets: pockets 
-                });
+                syncMove();
             }
+        });
+
+        // LOGIC CLICK TO DROP
+        $('#myBoard').on('click', '.square-55d63', async function() {
+            if (!selectedDropPiece || isGameOver) return;
+            if ((game.turn() === 'w' && mySide === 'black') || (game.turn() === 'b' && mySide === 'white')) return;
+
+            const square = $(this).data('square');
+            
+            // Cek apakah kotak kosong
+            if (game.get(square)) return; 
+
+            // Taruh bidak ke papan (Update FEN manual)
+            const pieceChar = selectedDropPiece.charAt(1).toLowerCase();
+            const colorChar = selectedDropPiece.charAt(0);
+            
+            // Masukkan ke logic chess.js (pakai put)
+            game.put({ type: pieceChar, color: colorChar }, square);
+            
+            // Ganti giliran manual karena .put() tidak mengganti turn
+            let fenArr = game.fen().split(' ');
+            fenArr[1] = (fenArr[1] === 'w') ? 'b' : 'w';
+            game.load(fenArr.join(' '));
+
+            // Hapus dari pocket
+            const idx = pockets[mySide.charAt(0)].indexOf(selectedDropPiece);
+            if (idx > -1) pockets[mySide.charAt(0)].splice(idx, 1);
+
+            selectedDropPiece = null;
+            $('.pocket img').removeClass('selected');
+            syncMove();
         });
 
         startTimer();
@@ -139,6 +168,14 @@
         });
     });
 
+    async function syncMove() {
+        await updateDoc(doc(db, "rooms", roomId), { 
+            fen: game.fen(), 
+            timers: timers,
+            pockets: pockets 
+        });
+    }
+
     function startTimer() {
         timerInterval = setInterval(() => {
             if (isGameOver) return;
@@ -155,7 +192,6 @@
     function updateUI() {
         const format = (s) => `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
         
-        // Update Timer
         if (mySide === 'white') {
             document.getElementById('myTimer').innerText = format(timers.w);
             document.getElementById('oppTimer').innerText = format(timers.b);
@@ -168,14 +204,20 @@
             document.getElementById('oppTimer').className = game.turn() === 'w' ? 'timer active' : 'timer';
         }
 
-        // Update Pockets
         const renderPocket = (side, elId) => {
             const el = document.getElementById(elId);
             el.innerHTML = '';
-            pockets[side].forEach(p => {
+            pockets[side].forEach((p, i) => {
                 const img = document.createElement('img');
                 img.src = pieceImg(p);
-                // Di sini nanti bisa ditambah logic klik untuk "Drop"
+                if (side === mySide.charAt(0)) {
+                    img.onclick = () => {
+                        if (game.turn() !== mySide.charAt(0)) return;
+                        $('.pocket img').removeClass('selected');
+                        img.classList.add('selected');
+                        selectedDropPiece = p;
+                    };
+                }
                 el.appendChild(img);
             });
         };
