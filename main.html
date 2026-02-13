@@ -227,7 +227,6 @@
                 
                 let adminControls = '';
                 if(currentUsername === "Jovan") {
-                    // Menyimpan data dalam attribute data-json string untuk kemudahan edit
                     const dataStr = JSON.stringify(data).replace(/"/g, '&quot;');
                     adminControls = `
                     <div class="admin-actions">
@@ -284,13 +283,12 @@
         location.reload();
     };
 
-    // --- OWNER ACTIONS (ADD, EDIT, DELETE) ---
+    // --- OWNER ACTIONS ---
     window.openOwnerMenu = () => document.getElementById('ownerMenuModal').style.display = 'flex';
     window.openAddData = () => { window.closeModals(); document.getElementById('addDataModal').style.display = 'flex'; };
     window.openBroadcastModal = () => { window.closeModals(); document.getElementById('broadcastModal').style.display = 'flex'; };
     window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
     
-    // Add Data
     window.submitData = async () => {
         const payload = {
             name: document.getElementById('inpName').value,
@@ -304,12 +302,10 @@
         window.closeModals();
     };
 
-    // Delete Data
     window.deleteData = async (id) => {
         if(confirm("Delete this player data?")) await deleteDoc(doc(db, "players", id));
     };
 
-    // Edit Data (New Feature)
     window.openEdit = (id, dataStr) => {
         const data = JSON.parse(dataStr);
         document.getElementById('editId').value = id;
@@ -318,7 +314,6 @@
         document.getElementById('editDate').value = data.date || "";
         document.getElementById('editRank').value = data.rank || "None";
         document.getElementById('editAccount').value = data.chessAccount || "";
-        
         window.closeModals();
         document.getElementById('editDataModal').style.display = 'flex';
     };
@@ -369,7 +364,7 @@
                 timer: selectedTimer, 
                 variant: selectedVariant, 
                 fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 
-                pockets: { w: "", b: "" }, // Crazyhouse Pockets
+                pockets: { w: "", b: "" },
                 createdAt: Date.now() 
             });
             currentRoomId = newRoom.id;
