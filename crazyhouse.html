@@ -6,24 +6,24 @@
     <title>CHESSELOBETH - Crazyhouse</title>
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <style>
-        html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; background: #1a1a1a; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; touch-action: none; font-family: 'Segoe UI', sans-serif; }
+        html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; background: #1a1a1a; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; }
         .game-container { width: 95%; max-width: 400px; }
+        .player-info { background: #2d2d2d; padding: 10px; display: flex; align-items: center; border-radius: 8px; margin: 5px 0; border: 1px solid #444; }
+        .timer { margin-left: auto; font-family: monospace; font-size: 1.4rem; background: #1a1a1a; padding: 5px 10px; border-radius: 4px; color: #ffd700; }
+        .timer.active { background: #ffd700; color: #000; }
         
-        .player-info { background: #2d2d2d; padding: 12px; display: flex; align-items: center; gap: 10px; border-radius: 8px; border: 1px solid #444; }
-        .timer { margin-left: auto; font-family: monospace; font-size: 1.5rem; font-weight: bold; background: #1a1a1a; padding: 5px 12px; border-radius: 6px; border: 1px solid #555; min-width: 80px; text-align: center; color: #ffd700; }
-        .timer.active { background: #ffd700; color: #000; border-color: #fff; }
-        
-        .pocket { background: #262421; height: 55px; display: flex; align-items: center; padding: 0 10px; gap: 8px; margin: 8px 0; border-radius: 8px; border: 2px dashed #444; overflow-x: auto; min-height: 55px; }
-        .pocket img { width: 38px; height: 38px; cursor: pointer; transition: 0.2s; border-radius: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
-        .pocket img.selected { background: rgba(129, 182, 76, 0.5); border: 2px solid #81b64c; box-shadow: 0 0 15px #81b64c; transform: scale(1.1); }
-        
-        #myBoard { width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.7); border-radius: 4px; overflow: hidden; }
-        
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 9999; }
-        .modal { background: #2d2d2d; padding: 30px; border-radius: 20px; text-align: center; border: 2px solid #ffd700; width: 300px; box-shadow: 0 0 30px rgba(255,215,0,0.2); }
-        .btn-lobby { background: #81b64c; color: white; border: none; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; font-size: 1rem; }
-        .btn-resign { margin-top: 20px; background: #333; border: 1px solid #555; color: #ff4d4d; padding: 10px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-resign:active { background: #ff4d4d; color: white; }
+        .pocket { background: #262421; height: 50px; display: flex; align-items: center; padding: 0 10px; gap: 5px; margin: 5px 0; border-radius: 8px; border: 2px dashed #444; overflow-x: auto; }
+        .pocket img { width: 35px; height: 35px; cursor: pointer; border-radius: 4px; }
+        .pocket img.selected { background: #81b64c; box-shadow: 0 0 10px #81b64c; border: 2px solid white; }
+
+        #myBoard { width: 100%; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+
+        .promo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .promo-box { background: #2d2d2d; padding: 20px; border-radius: 12px; display: flex; gap: 10px; border: 2px solid #ffd700; }
+        .promo-box img { width: 60px; height: 60px; cursor: pointer; background: #444; border-radius: 8px; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 4000; }
+        .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; text-align: center; width: 280px; border: 2px solid #ffd700; }
     </style>
 </head>
 <body>
@@ -33,26 +33,23 @@
             <b id="oppName">Opponent</b>
             <div class="timer" id="oppTimer">--:--</div>
         </div>
-
         <div class="pocket" id="oppPocket"></div>
-
         <div id="myBoard"></div>
-
         <div class="pocket" id="myPocket"></div>
-
         <div class="player-info">
             <b id="myName">Me</b>
             <div class="timer" id="myTimer">--:--</div>
         </div>
+    </div>
 
-        <center><button class="btn-resign" id="resignBtn">RESIGN</button></center>
+    <div class="promo-overlay" id="promoModal">
+        <div class="promo-box" id="promoOptions"></div>
     </div>
 
     <div class="modal-overlay" id="gameOverModal">
         <div class="modal">
-            <h1 id="winStatus" style="margin:0;">GAME OVER</h1>
-            <p id="winReason" style="color:#aaa; margin:10px 0;">Reason...</p>
-            <button class="btn-lobby" onclick="location.href='main.html'">BACK TO LOBBY</button>
+            <h2 id="winStatus">GAME OVER</h2>
+            <button onclick="location.href='main.html'" style="padding:10px 20px; background:#81b64c; color:white; border:none; border-radius:5px; width:100%;">BACK TO LOBBY</button>
         </div>
     </div>
 
@@ -74,198 +71,91 @@
     const roomId = params.get('id');
     const mySide = params.get('side');
 
-    let board = null;
-    let game = new Chess();
-    let isGameOver = false;
-    let timers = { w: 0, b: 0 };
-    let timerInterval = null;
+    let board, game = new Chess(), isGameOver = false, selectedDrop = null, pendingMove = null;
     let pockets = { w: [], b: [] };
-    let selectedDropPiece = null;
-
-    // Gunakan fungsi URL piece yang lebih reliable
-    const getPieceImg = (p) => `https://chessboardjs.com/img/chesspieces/wikipedia/${p}.png`;
 
     onAuthStateChanged(auth, async (user) => {
-        if (!user || !roomId) return;
-        
+        if (!user) return;
         const roomRef = doc(db, "rooms", roomId);
         const snap = await getDoc(roomRef);
-        if(!snap.exists()) return;
         const data = snap.data();
-
-        // Inisialisasi Data
-        timers.w = data.timers?.w || data.timer * 60;
-        timers.b = data.timers?.b || data.timer * 60;
         pockets = data.pockets || { w: [], b: [] };
-        game.load(data.fen || 'start');
 
-        document.getElementById('myName').innerText = mySide === 'white' ? data.player1.name : data.player2.name;
-        document.getElementById('oppName').innerText = mySide === 'white' ? data.player2.name : data.player1.name;
-
-        // Inisialisasi Papan
         board = Chessboard('myBoard', {
             draggable: true,
             orientation: mySide,
             position: data.fen || 'start',
-            pieceTheme: getPieceImg,
-            onDragStart: (src, piece) => {
-                if (isGameOver) return false;
-                if (game.turn() !== mySide.charAt(0)) return false;
-                if (piece.charAt(0) !== mySide.charAt(0)) return false;
-                selectedDropPiece = null;
-                $('.pocket img').removeClass('selected');
-            },
+            onDragStart: (s, p) => !isGameOver && p.startsWith(mySide.charAt(0)) && game.turn() === mySide.charAt(0),
             onDrop: (source, target) => {
-                const move = game.move({ from: source, to: target, promotion: 'q' });
-                if (move === null) return 'snapback';
-                
-                if (move.captured) {
-                    const color = move.color;
-                    const piece = move.captured.toUpperCase();
-                    pockets[color].push(color + piece);
+                const piece = game.get(source);
+                if (piece && piece.type === 'p' && (target.endsWith('8') || target.endsWith('1'))) {
+                    pendingMove = { from: source, to: target };
+                    showPromo();
+                    return 'snapback';
                 }
-                updateFirebase();
+                const move = game.move({ from: source, to: target, promotion: 'q' });
+                if (!move) return 'snapback';
+                if (move.captured) pockets[mySide.charAt(0)].push(mySide.charAt(0) + move.captured.toUpperCase());
+                sync();
             }
         });
 
-        // Event Listener Resign (Fix)
-        document.getElementById('resignBtn').onclick = async () => {
-            if(confirm("Yakin mau menyerah?")) {
-                await updateDoc(roomRef, { 
-                    status: "resigned", 
-                    winnerSide: mySide === 'white' ? 'black' : 'white' 
-                });
-            }
-        };
-
-        // Click to Drop Logic
         $('#myBoard').on('click', '.square-55d63', function() {
-            if (!selectedDropPiece || isGameOver || game.turn() !== mySide.charAt(0)) return;
+            if (!selectedDrop || game.get($(this).data('square'))) return;
+            const sq = $(this).data('square');
+            game.put({ type: selectedDrop.charAt(1).toLowerCase(), color: selectedDrop.charAt(0) }, sq);
             
-            const square = $(this).data('square');
-            if (game.get(square)) return;
+            let f = game.fen().split(' ');
+            f[1] = f[1] === 'w' ? 'b' : 'w';
+            game.load(f.join(' '));
 
-            const pColor = selectedDropPiece.charAt(0);
-            const pType = selectedDropPiece.charAt(1).toLowerCase();
-
-            if(game.put({ type: pType, color: pColor }, square)) {
-                // Ganti turn manual
-                const tokens = game.fen().split(' ');
-                tokens[1] = tokens[1] === 'w' ? 'b' : 'w';
-                game.load(tokens.join(' '));
-
-                // Hapus dari pocket
-                const idx = pockets[mySide.charAt(0)].indexOf(selectedDropPiece);
-                if (idx > -1) pockets[mySide.charAt(0)].splice(idx, 1);
-                
-                selectedDropPiece = null;
-                board.position(game.fen());
-                updateFirebase();
-            }
+            pockets[mySide.charAt(0)].splice(pockets[mySide.charAt(0)].indexOf(selectedDrop), 1);
+            selectedDrop = null;
+            board.position(game.fen());
+            sync();
         });
 
-        // Listen Database
-        onSnapshot(roomRef, (docSnap) => {
-            const d = docSnap.data();
-            if (!d) return;
-
-            if (d.fen !== game.fen()) {
-                game.load(d.fen);
-                board.position(d.fen);
-            }
-            timers = d.timers || timers;
+        onSnapshot(roomRef, (s) => {
+            const d = s.data();
+            if (d.fen !== game.fen()) { game.load(d.fen); board.position(d.fen); }
             pockets = d.pockets || pockets;
-            
-            if (d.status !== "playing" && d.status !== "waiting") {
-                finishGame(d);
-            }
             updateUI();
         });
-
-        startTimer();
     });
 
-    function startTimer() {
-        if(timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            if (isGameOver) return;
-            const turn = game.turn();
-            if (timers[turn] > 0) {
-                timers[turn]--;
-                updateUI();
-            } else {
-                handleTimeout(turn);
-            }
-        }, 1000);
+    function showPromo() {
+        const pieces = ['q', 'r', 'b', 'n'];
+        const container = document.getElementById('promoOptions');
+        container.innerHTML = '';
+        pieces.forEach(p => {
+            const img = document.createElement('img');
+            img.src = `https://chessboardjs.com/img/chesspieces/wikipedia/${mySide.charAt(0)}${p.toUpperCase()}.png`;
+            img.onclick = () => {
+                const move = game.move({ ...pendingMove, promotion: p });
+                if (move && move.captured) pockets[mySide.charAt(0)].push(mySide.charAt(0) + move.captured.toUpperCase());
+                sync();
+                document.getElementById('promoModal').style.display = 'none';
+            };
+            container.appendChild(img);
+        });
+        document.getElementById('promoModal').style.display = 'flex';
     }
 
-    async function updateFirebase() {
-        await updateDoc(doc(db, "rooms", roomId), { 
-            fen: game.fen(), 
-            timers: timers, 
-            pockets: pockets 
-        });
-    }
+    function sync() { updateDoc(doc(db, "rooms", roomId), { fen: game.fen(), pockets: pockets }); }
 
     function updateUI() {
-        const fmt = (s) => {
-            const m = Math.floor(s/60);
-            const sec = s % 60;
-            return `${m}:${sec.toString().padStart(2,'0')}`;
-        };
-
-        const turn = game.turn();
-        if (mySide === 'white') {
-            document.getElementById('myTimer').innerText = fmt(timers.w);
-            document.getElementById('oppTimer').innerText = fmt(timers.b);
-            document.getElementById('myTimer').className = turn === 'w' ? 'timer active' : 'timer';
-            document.getElementById('oppTimer').className = turn === 'b' ? 'timer active' : 'timer';
-        } else {
-            document.getElementById('myTimer').innerText = fmt(timers.b);
-            document.getElementById('oppTimer').innerText = fmt(timers.w);
-            document.getElementById('myTimer').className = turn === 'b' ? 'timer active' : 'timer';
-            document.getElementById('oppTimer').className = turn === 'w' ? 'timer active' : 'timer';
-        }
-
-        // Pocket UI
-        const drawPocket = (side, divId) => {
-            const div = document.getElementById(divId);
-            div.innerHTML = '';
+        const draw = (side, id) => {
+            const el = document.getElementById(id);
+            el.innerHTML = '';
             pockets[side].forEach(p => {
                 const img = document.createElement('img');
-                img.src = getPieceImg(p);
-                if (side === mySide.charAt(0)) {
-                    img.onclick = (e) => {
-                        e.stopPropagation();
-                        if(game.turn() !== side) return;
-                        $('.pocket img').removeClass('selected');
-                        img.classList.add('selected');
-                        selectedDropPiece = p;
-                    };
-                }
-                div.appendChild(img);
+                img.src = `https://chessboardjs.com/img/chesspieces/wikipedia/${p}.png`;
+                if (side === mySide.charAt(0)) img.onclick = () => { $('.pocket img').removeClass('selected'); img.classList.add('selected'); selectedDrop = p; };
+                el.appendChild(img);
             });
         };
-        drawPocket('w', mySide === 'white' ? 'myPocket' : 'oppPocket');
-        drawPocket('b', mySide === 'black' ? 'myPocket' : 'oppPocket');
-    }
-
-    async function handleTimeout(lostColor) {
-        if(isGameOver) return;
-        await updateDoc(doc(db, "rooms", roomId), { 
-            status: "timeout", 
-            winnerSide: lostColor === 'w' ? 'black' : 'white' 
-        });
-    }
-
-    function finishGame(d) {
-        isGameOver = true;
-        clearInterval(timerInterval);
-        document.getElementById('gameOverModal').style.display = 'flex';
-        const win = d.winnerSide === mySide;
-        document.getElementById('winStatus').innerText = win ? "YOU WIN!" : "YOU LOST";
-        document.getElementById('winStatus').style.color = win ? "#81b64c" : "#ff4d4d";
-        document.getElementById('winReason').innerText = `Opponent ${d.status}`;
+        draw('w', mySide === 'white' ? 'myPocket' : 'oppPocket');
+        draw('b', mySide === 'black' ? 'myPocket' : 'oppPocket');
     }
 </script>
 </body>
