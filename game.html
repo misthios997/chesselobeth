@@ -6,7 +6,6 @@
     <title>CHESSELOBETH - Game</title>
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <style>
-        /* 1. ANTI-SCROLL SYSTEM */
         html, body { 
             overflow: hidden; 
             position: fixed; 
@@ -16,7 +15,7 @@
             color: white; 
             font-family: 'Segoe UI', sans-serif; 
             margin: 0; 
-            touch-action: none; /* Mencegah pull-to-refresh dan scroll */
+            touch-action: none; 
         }
 
         body { display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -25,9 +24,8 @@
         
         .player-info { background: #262421; padding: 10px; display: flex; align-items: center; gap: 12px; border-radius: 4px; margin-bottom: 5px; }
         .avatar { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; background: #444; }
-        .player-name { font-weight: bold; font-size: 0.9rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+        .player-name { font-weight: bold; font-size: 0.9rem; color: #fff; }
         
-        /* TIMER STYLING */
         .timer { 
             margin-left: auto; 
             background: #312e2b; 
@@ -41,10 +39,9 @@
             min-width: 80px;
             text-align: center;
         }
-        .timer.low { color: #ff4d4d; border-color: #ff4d4d; }
         .timer.active { background: #fff; color: #000; }
 
-        /* CHESS.COM COLORS */
+        /* CHESS.COM THEME */
         .white-1e1d7 { background-color: #ebecd0 !important; }
         .black-3c85d { background-color: #779556 !important; }
         
@@ -52,7 +49,7 @@
         
         .status-bar { margin: 10px 0; font-weight: bold; color: #aaa; text-align: center; font-size: 0.8rem; height: 20px; }
 
-        /* GAME OVER MODAL */
+        /* GAME OVER SCREEN */
         .modal-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.85); display: none; 
@@ -98,7 +95,7 @@
     <div class="modal-overlay" id="gameOverModal">
         <div class="modal">
             <h1 id="winStatus" style="color:#ffd700; margin:0;">YOU WIN!</h1>
-            <p id="winReason" style="color:#aaa; margin:10px 0;">Checkmate</p>
+            <p id="winReason" style="color:#aaa; margin:10px 0;">By Resignation</p>
             <button class="btn-lobby" onclick="location.href='main.html'">BACK TO LOBBY</button>
         </div>
     </div>
@@ -125,8 +122,6 @@
     let game = new Chess();
     let currentUsername = "";
     let isGameOver = false;
-    
-    // TIMER LOGIC
     let timers = { w: 0, b: 0 };
     let timerInterval;
 
@@ -144,7 +139,6 @@
         if(!snap.exists()) return;
         const data = snap.data();
 
-        // Init Timers from room config
         const startTime = (data.timer || 10) * 60;
         timers = data.timers || { w: startTime, b: startTime };
 
@@ -164,8 +158,8 @@
             draggable: true,
             orientation: mySide,
             position: data.fen || 'start',
-            // FIX BIDAK PECAH (Neo 150px)
-            pieceTheme: 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150/{piece}.png',
+            // STABLE PIECE THEME (Wikipedia Assets)
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
             onDragStart: onDragStart,
             onDrop: onDrop,
             onSnapEnd: onSnapEnd
@@ -185,7 +179,7 @@
             timers = roomData.timers || timers;
             updateTimerDisplay();
 
-            if (roomData.status === "resigned" || roomData.status === "timeout" || game.in_checkmate()) {
+            if (roomData.status !== "playing") {
                 handleGameOver(roomData);
             }
         });
@@ -195,7 +189,7 @@
         if(timerInterval) clearInterval(timerInterval);
         timerInterval = setInterval(() => {
             if (isGameOver) return;
-            const turn = game.turn(); // 'w' or 'b'
+            const turn = game.turn();
             if (timers[turn] > 0) {
                 timers[turn]--;
                 updateTimerDisplay();
@@ -227,7 +221,8 @@
     async function checkTimeout(turn) {
         if (isGameOver) return;
         const roomRef = doc(db, "rooms", roomId);
-        await updateDoc(roomRef, { status: "timeout", winner: (turn === 'w' ? 'Black' : 'White') });
+        const winSide = (turn === 'w' ? 'black' : 'white');
+        await updateDoc(roomRef, { status: "timeout", winnerSide: winSide });
     }
 
     function onDragStart(source, piece) {
@@ -247,7 +242,7 @@
         
         if (game.in_checkmate()) {
             updateData.status = "checkmate";
-            updateData.winner = currentUsername;
+            updateData.winnerSide = mySide;
         }
 
         await updateDoc(roomRef, updateData);
@@ -261,25 +256,28 @@
         document.getElementById('gameOverModal').style.display = 'flex';
         
         const winStatus = document.getElementById('winStatus');
-        if (data.status === "resigned") {
-            winStatus.innerText = data.winner === currentUsername ? "YOU WIN!" : "YOU LOST";
-            document.getElementById('winReason').innerText = "Opponent Resigned";
-        } else if (data.status === "timeout") {
-            winStatus.innerText = data.winner.toLowerCase() === mySide ? "YOU WIN!" : "YOU LOST";
-            document.getElementById('winReason').innerText = "Time Out";
+        const winReason = document.getElementById('winReason');
+        
+        // Pengecekan Menang/Kalah
+        if (data.winnerSide === mySide) {
+            winStatus.innerText = "YOU WIN!";
+            winStatus.style.color = "#81b64c";
         } else {
-            winStatus.innerText = game.in_checkmate() && game.turn() !== mySide.charAt(0) ? "YOU WIN!" : "YOU LOST";
-            document.getElementById('winReason').innerText = "Checkmate";
+            winStatus.innerText = "YOU LOST";
+            winStatus.style.color = "#ff4d4d";
         }
+
+        // Teks Reason Sesuai Request
+        if (data.status === "resigned") winReason.innerText = "By Resignation";
+        else if (data.status === "timeout") winReason.innerText = "By Timeout";
+        else if (data.status === "checkmate") winReason.innerText = "By Checkmate";
     }
 
     window.resignGame = async () => {
         if (confirm("Resign?")) {
             const roomRef = doc(db, "rooms", roomId);
-            const snap = await getDoc(roomRef);
-            const roomData = snap.data();
-            const winnerName = (mySide === 'white') ? roomData.player2.name : roomData.player1.name;
-            await updateDoc(roomRef, { status: "resigned", winner: winnerName });
+            const opponentSide = (mySide === 'white' ? 'black' : 'white');
+            await updateDoc(roomRef, { status: "resigned", winnerSide: opponentSide });
         }
     };
 </script>
