@@ -48,7 +48,6 @@
         
         .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #ffd700; color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 30px; cursor: pointer; z-index: 99; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
     
-        /* Search Modal UI */
         #searchTimer { font-size: 2rem; font-weight: bold; margin: 20px 0; color: #ffd700; }
     </style>
 </head>
@@ -140,7 +139,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy, limit, getDocs, where, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy, limit, getDocs, where, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", authDomain: "chesselobeth.firebaseapp.com", projectId: "chesselobeth", storageBucket: "chesselobeth.firebasestorage.app", messagingSenderId: "829508204106", appId: "1:829508204106:web:e8952c359f63d49646d8b3" };
     const app = initializeApp(firebaseConfig);
@@ -151,6 +150,7 @@
     let selectedTimer = 10;
     let searchInterval;
     let currentRoomId = null;
+    let unsubRoom = null;
     const avatars = [
         "https://i.ibb.co.com/TqcHLPCX/54b19ada-d53e-4ee9-8882-9dfed1bf1396.jpg",
         "https://i.ibb.co.com/twDJFWvC/68f9ebed-9db3-458f-aa15-b5b6dfc8566c.jpg"
@@ -170,9 +170,7 @@
     });
 
     window.openProfileModal = () => document.getElementById('profileModal').style.display = 'flex';
-    window.closeModals = () => {
-        document.querySelectorAll('.modal-overlay').forEach(e => e.style.display = 'none');
-    };
+    window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(e => e.style.display = 'none');
     window.selectAvatar = async (url) => {
         await updateProfile(auth.currentUser, { photoURL: url });
         alert("Avatar Updated!");
@@ -255,9 +253,7 @@
         document.getElementById(id).classList.add('active');
     };
 
-    // MATCHMAKING SYSTEM WITH MODAL & TIMER SINKRON
     window.startMatchmaking = async () => {
-        // Tampilkan Modal Search
         document.getElementById('searchModal').style.display = 'flex';
         let seconds = 0;
         searchInterval = setInterval(() => {
@@ -269,19 +265,20 @@
 
         const q = query(collection(db, "rooms"), where("status", "==", "waiting"), where("timer", "==", selectedTimer));
         const snap = await getDocs(q);
-        let roomId = "";
-        snap.forEach(d => { 
-            if (d.data().player1.name !== currentUsername) roomId = d.id; 
+        
+        let foundRoomId = null;
+        snap.forEach(d => {
+            if (d.data().player1.name !== currentUsername) foundRoomId = d.id;
         });
 
-        if(roomId) {
-            currentRoomId = roomId;
-            await updateDoc(doc(db, "rooms", roomId), { 
+        if (foundRoomId) {
+            currentRoomId = foundRoomId;
+            await updateDoc(doc(db, "rooms", foundRoomId), { 
                 player2: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
                 status: "playing" 
             });
             clearInterval(searchInterval);
-            window.location.href = `game.html?id=${roomId}&side=black`;
+            window.location.href = `game.html?id=${foundRoomId}&side=black`;
         } else {
             const newRoom = await addDoc(collection(db, "rooms"), { 
                 player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
@@ -292,8 +289,11 @@
                 createdAt: Date.now() 
             });
             currentRoomId = newRoom.id;
-            onSnapshot(doc(db, "rooms", newRoom.id), (d) => {
-                if(d.data()?.status === "playing") {
+            
+            // Player 1 menunggu perubahan status room
+            unsubRoom = onSnapshot(doc(db, "rooms", newRoom.id), (d) => {
+                if (d.exists() && d.data().status === "playing") {
+                    if (unsubRoom) unsubRoom();
                     clearInterval(searchInterval);
                     window.location.href = `game.html?id=${newRoom.id}&side=white`;
                 }
@@ -303,15 +303,20 @@
 
     window.cancelSearch = async () => {
         clearInterval(searchInterval);
-        document.getElementById('searchTimer').innerText = "00:00";
-        if(currentRoomId) {
-            // Jika kita host dan masih waiting, hapus roomnya saat cancel
+        if (unsubRoom) unsubRoom();
+        
+        if (currentRoomId) {
             const roomRef = doc(db, "rooms", currentRoomId);
-            const roomSnap = await getDocs(query(collection(db, "rooms"), where("status", "==", "waiting")));
-            // Cek apakah kita memang player1 di room itu
-            await deleteDoc(roomRef);
+            const roomSnap = await getDoc(roomRef);
+            
+            // Hapus hanya jika room masih dalam status waiting (belum ada lawan masuk)
+            if (roomSnap.exists() && roomSnap.data().status === "waiting") {
+                await deleteDoc(roomRef);
+            }
         }
+        
         currentRoomId = null;
+        document.getElementById('searchTimer').innerText = "00:00";
         window.closeModals();
     };
 </script>
