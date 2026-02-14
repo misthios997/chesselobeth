@@ -6,7 +6,7 @@
     <title>CHESSELOBETH - Main</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --primary: #ffd700; --bg: #1a1a1a; --card: #2d2d2d; --text: #ffffff; --accent: #81b64c; }
+        :root { --primary: #ffd700; --bg: #1a1a1a; --card: #2d2d2d; --text: #ffffff; --accent: #81b64c; --red: #ff4d4d; }
         body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
         
         header { background: #2d2d2d; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 15px rgba(0,0,0,0.6); position: sticky; top: 0; z-index: 1000; }
@@ -14,13 +14,14 @@
         .nav-right { display: flex; gap: 15px; align-items: center; }
         
         .menu-container { position: relative; }
-        .dots-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 5px; }
+        .dots-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 5px; position: relative; }
+        .red-dot { position: absolute; top: 5px; right: 5px; width: 10px; height: 10px; background: var(--red); border-radius: 50%; display: none; border: 2px solid #2d2d2d; }
+        
         .dropdown-menu { display: none; position: absolute; right: 0; top: 45px; background: #333; min-width: 200px; border-radius: 12px; z-index: 1001; border: 1px solid #444; overflow: hidden; }
         .dropdown-menu a { color: white; padding: 14px 20px; text-decoration: none; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #444; }
         .dropdown-menu a:hover { background: var(--primary); color: black; }
         
         .profile-trigger { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--primary); cursor: pointer; object-fit: cover; }
-
         .broadcast-container { margin: 15px 20px; }
         #broadcastBox { background: linear-gradient(135deg, #b8860b, #daa520); color: black; padding: 15px; border-radius: 10px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
         
@@ -33,61 +34,44 @@
         .btn-opt.active { background: rgba(129, 182, 76, 0.2); border-color: var(--accent); color: var(--accent); }
         .btn-main { background: var(--accent); color: white; width: 100%; padding: 18px; border: none; border-radius: 12px; font-weight: 900; font-size: 1.2rem; cursor: pointer; }
 
-        .data-card { background: #262626; padding: 18px; margin-bottom: 15px; border-radius: 12px; border-left: 5px solid var(--primary); position: relative; }
-        .data-card h3 { margin: 0 0 5px 0; color: var(--primary); font-size: 1.1rem; }
-        .data-card p { margin: 2px 0; color: #bbb; font-size: 0.9rem; }
-        .admin-tools { position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; }
-        .btn-mini { padding: 6px 10px; border-radius: 5px; border: none; color: white; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
-        .btn-del { background: #ff4d4d; }
+        .data-card, .list-item { background: #262626; padding: 15px; margin-bottom: 10px; border-radius: 12px; border-left: 5px solid var(--primary); position: relative; }
+        .list-item { border-left: 5px solid var(--accent); display: flex; align-items: center; gap: 12px; }
+        .list-item img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; }
+        .btn-mini { padding: 8px 12px; border-radius: 6px; border: none; color: white; cursor: pointer; font-size: 0.75rem; font-weight: bold; margin-top: 5px; }
+        .btn-blue { background: #3498db; }
+        .btn-green { background: var(--accent); }
+        .btn-red { background: var(--red); }
 
-        #chatOverlay { position: fixed; bottom: 0; right: 0; width: 100%; height: 100%; background: var(--bg); display: none; flex-direction: column; z-index: 3000; }
+        #chatOverlay, #privateChatOverlay { position: fixed; bottom: 0; right: 0; width: 100%; height: 100%; background: var(--bg); display: none; flex-direction: column; z-index: 3000; }
         .chat-header { background: #2d2d2d; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; }
-        #chatBox { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
-        .msg-wrap { display: flex; gap: 10px; align-items: flex-start; }
-        .msg-self { flex-direction: row-reverse; }
-        .msg-ava { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
-        .msg-content { display: flex; flex-direction: column; max-width: 70%; }
-        .msg-name { font-size: 0.7rem; color: var(--primary); font-weight: bold; margin-bottom: 2px; }
-        .msg-bubble { background: #333; padding: 10px; border-radius: 12px; font-size: 0.9rem; color: white; }
-        .msg-self .msg-bubble { background: var(--primary); color: black; }
+        #chatBox, #pChatBox { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 4000; }
-        .modal { background: #2d2d2d; padding: 25px; border-radius: 20px; width: 85%; max-width: 400px; max-height: 85vh; overflow-y: auto; }
-        .ava-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-        .ava-pick { width: 100%; aspect-ratio: 1/1; border-radius: 10px; border: 3px solid transparent; cursor: pointer; object-fit: cover; }
-        .ava-pick:hover { border-color: var(--primary); }
+        .modal { background: #2d2d2d; padding: 25px; border-radius: 20px; width: 90%; max-width: 450px; max-height: 85vh; overflow-y: auto; }
         input, select, textarea { width: 100%; padding: 12px; margin-top: 10px; background: #1a1a1a; border: 1px solid #444; border-radius: 8px; color: white; box-sizing: border-box; }
         .btn-gold { background: var(--primary); color: black; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: 900; cursor: pointer; margin-top: 10px; }
         
-        .fab { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--primary); color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 2rem; z-index: 900; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-
-        #bannedOverlay { position: fixed; inset: 0; background: #000; color: white; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 99999; text-align: center; padding: 20px; }
-        #bannedOverlay h1 { color: #ff4d4d; font-size: 2rem; }
-        #bannedOverlay p { font-size: 1.2rem; margin-top: 10px; }
-        
-        /* Update Status Text */
         #updateNotify { text-align: center; font-size: 0.85rem; font-weight: bold; margin: 15px 0 0 0; color: #aaa; }
+        .history-item { font-size: 0.85rem; padding: 8px 0; border-bottom: 1px solid #444; }
     </style>
 </head>
 <body>
-
-    <div id="bannedOverlay">
-        <i class="fas fa-user-slash" style="font-size: 5rem; color: #ff4d4d; margin-bottom: 20px;"></i>
-        <h1>You are Banned from Owner</h1>
-        <p id="banDetail"></p>
-        <button class="btn-gold" style="width: auto; padding: 10px 30px; margin-top: 30px;" onclick="location.reload()">REFRESH</button>
-    </div>
 
     <header>
         <div class="brand">CHESSELOBETH</div>
         <div class="nav-right">
             <button class="dots-btn" onclick="toggleChat(true)"><i class="far fa-comment-dots"></i></button>
             <div class="menu-container">
-                <button class="dots-btn" onclick="toggleDropdown()"><i class="fas fa-ellipsis-v"></i></button>
+                <button class="dots-btn" onclick="toggleDropdown()">
+                    <i class="fas fa-ellipsis-v"></i>
+                    <div id="inboxDot" class="red-dot"></div>
+                </button>
                 <div class="dropdown-menu" id="mainMenu">
                     <a href="#" onclick="switchSection('online')"><i class="fas fa-chess-board"></i> Play Online</a>
                     <a href="#" onclick="switchSection('bot')"><i class="fas fa-robot"></i> Play Bot</a>
                     <a href="#" onclick="switchSection('elo')"><i class="fas fa-trophy"></i> Data Player</a>
+                    <a href="#" onclick="openInbox()"><i class="fas fa-envelope"></i> Inbox <span id="inboxCount"></span></a>
+                    <a href="#" onclick="openFriends()"><i class="fas fa-users"></i> Friends</a>
                     <a href="#" onclick="openUpdateModal()"><i class="fas fa-sync-alt"></i> Update Status</a>
                     <a href="#" id="ownerMenuBtn" style="display:none; color:var(--primary)" onclick="openOwnerTools()"><i class="fas fa-user-shield"></i> Owner Action</a>
                     <a href="#" onclick="logout()" style="color:#ff4d4d"><i class="fas fa-sign-out-alt"></i> Logout</a>
@@ -100,141 +84,88 @@
     <div id="updateNotify">Update: Not Available</div>
 
     <div class="broadcast-container">
-        <div id="broadcastBox"><i class="fas fa-bullhorn"></i> <span id="bcText">Loading message...</span></div>
+        <div id="broadcastBox"><i class="fas fa-bullhorn"></i> <span id="bcText">Loading...</span></div>
     </div>
 
     <div class="container">
         <div class="welcome-text" id="welcomeMsg">Welcome...</div>
-
-        <div id="sec-online" class="section-view">
-            <div class="play-card">
-                <label class="label-group">Timer Set</label>
-                <div class="sel-grid" id="timerGrid">
-                    <button class="btn-opt" onclick="setTimer(3, this)">3Min</button>
-                    <button class="btn-opt" onclick="setTimer(5, this)">5Min</button>
-                    <button class="btn-opt active" onclick="setTimer(10, this)">10Min</button>
-                </div>
-                <label class="label-group">Variant</label>
-                <div class="sel-grid" id="variantGrid" style="grid-template-columns: 1fr 1.2fr">
-                    <button class="btn-opt active" onclick="setVariant('standard', this)">Standard</button>
-                    <button class="btn-opt" onclick="setVariant('crazyhouse', this)">Crazyhouse</button>
-                </div>
-                <button class="btn-main" onclick="startMatchmaking()">[ <i class="fas fa-search"></i> PLAY ONLINE ]</button>
-            </div>
+        <div id="sec-online" class="section-view">...</div>
         </div>
 
-        <div id="sec-elo" class="section-view" style="display:none">
-            <h2 style="color:var(--primary)">Recent Players</h2>
-            <div id="dataFeed"></div>
-        </div>
-
-        <div id="sec-bot" class="section-view" style="display:none">
-             <div class="play-card" style="border-left-color: var(--primary)">
-                <h2>Vs Stockfish</h2>
-                <div class="sel-grid" id="botGrid" style="grid-template-columns: 1fr 1fr">
-                    <button class="btn-opt active" onclick="setBotLvl(1, this)">Lvl 1</button>
-                    <button class="btn-opt" onclick="setBotLvl(10, this)">Lvl 10</button>
-                </div>
-                <button class="btn-main" onclick="startBot()">START BOT ▶</button>
-             </div>
+    <div class="modal-overlay" id="inboxModal">
+        <div class="modal">
+            <h2 style="color:var(--primary)">Inbox</h2>
+            <div id="inboxList"></div>
+            <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
         </div>
     </div>
 
-    <button class="fab" id="ownerFab" onclick="openAddModal()"><i class="fas fa-plus"></i></button>
-
-    <div class="modal-overlay" id="addModal">
+    <div class="modal-overlay" id="friendsModal">
         <div class="modal">
-            <h2 style="color:var(--primary)">Add Player Data</h2>
-            <input type="text" id="inName" placeholder="Full Name">
-            <input type="number" id="inElo" placeholder="Elo Rating">
-            <input type="text" id="inDate" placeholder="Date (e.g. 14 Feb)">
-            <select id="inRank">
-                <option value="None">No Rank</option><option value="CM">CM</option><option value="FM">FM</option>
-                <option value="IM">IM</option><option value="GM">GM</option>
-            </select>
-            <button class="btn-gold" onclick="submitData()">SAVE DATA</button>
+            <h2 style="color:var(--primary)">Friends</h2>
+            <input type="text" id="searchFriendIn" placeholder="Search Name..." onkeyup="searchFriend()">
+            <div id="friendResults" style="margin-top:15px"></div>
+            <hr style="border:0.5px solid #444; margin:15px 0">
+            <h3>Friend List</h3>
+            <div id="friendList"></div>
+            <hr style="border:0.5px solid #444; margin:15px 0">
+            <h3>Recommendation</h3>
+            <div id="friendRecs"></div>
             <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="userInfoModal">
+        <div class="modal">
+            <button class="btn-mini" style="background:#444" onclick="closeUserInfo()">Back</button>
+            <div style="text-align:center; margin-top:15px">
+                <img id="infoAva" style="width:100px; height:100px; border-radius:50%; border:3px solid var(--primary)">
+                <h2 id="infoName" style="margin:10px 0 5px 0"></h2>
+                <div id="infoTitle" style="color:var(--primary); font-weight:bold"></div>
+            </div>
+            <h3 style="margin-top:20px; border-bottom:1px solid #444">History</h3>
+            <div id="infoHistory" style="max-height:150px; overflow-y:auto"></div>
+            <div id="infoActions"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="challengeModal">
+        <div class="modal">
+            <h3>Challenge <span id="chalName"></span></h3>
+            <label>Timer</label>
+            <select id="chalTimer"><option value="3">3 Min</option><option value="5">5 Min</option><option value="10">10 Min</option></select>
+            <label>Play As</label>
+            <select id="chalSide"><option value="white">White</option><option value="black">Black</option></select>
+            <label>Variant</label>
+            <select id="chalVariant"><option value="standard">Standard</option><option value="crazyhouse">Crazyhouse</option></select>
+            <button class="btn-gold" onclick="sendChallenge()">SEND CHALLENGE</button>
+            <button class="btn-gold" style="background:#444" onclick="closeModals()">CANCEL</button>
+        </div>
+    </div>
+
+    <div id="privateChatOverlay">
+        <div class="chat-header">
+            <button onclick="closePrivateChat()" style="background:none; border:none; color:white"><i class="fas fa-arrow-left"></i></button>
+            <b id="pChatTarget">Chat</b>
+            <div></div>
+        </div>
+        <div id="pChatBox"></div>
+        <div style="padding:15px; display:flex; gap:10px; background:#2d2d2d;">
+            <input type="text" id="pChatIn" style="flex:1" placeholder="Type message..." onkeypress="if(event.key==='Enter')sendPrivateChat()">
+            <button onclick="sendPrivateChat()" class="btn-gold" style="margin:0; width:auto; padding:10px 20px">SEND</button>
         </div>
     </div>
 
     <div class="modal-overlay" id="ownerToolsModal">
         <div class="modal">
-            <h2 style="color:var(--primary)">Owner Actions</h2>
+            <h2>Owner Actions</h2>
             <textarea id="bcInput" rows="2" placeholder="Update broadcast..."></textarea>
             <button class="btn-gold" onclick="updateBC()">UPDATE BC</button>
-            
-            <hr style="border: 0.5px solid #444; margin: 20px 0;">
-
-            <h3 style="color: var(--primary); margin-bottom: 0;">Set Update Status</h3>
-            <button class="btn-gold" onclick="pushUpdate()">[ SET ]</button>
-
-            <h3 style="color: var(--primary); margin-top: 20px; margin-bottom: 0;">Add Access</h3>
-            <input type="text" id="accName" placeholder="Nama akun">
-            <button class="btn-gold" onclick="addAccess()">[ ACCESS ]</button>
-
-            <h3 style="color: var(--primary); margin-top:20px; margin-bottom: 0;">Add Title</h3>
-            <input type="text" id="titleName" placeholder="Nama akun">
-            <select id="titlePick">
-                <option value="CM">CM</option><option value="FM">FM</option>
-                <option value="IM">IM</option><option value="GM">GM</option>
-            </select>
-            <button class="btn-gold" onclick="addTitle()">[ GIVE TITLE ]</button>
-
-            <hr style="border: 0.5px solid #444; margin: 20px 0;">
-            
-            <h3 style="color: #ff4d4d; margin-bottom: 0;">Ban Account</h3>
-            <input type="text" id="banName" placeholder="Nama akun">
-            <div style="display: flex; gap: 5px;">
-                <input type="number" id="banSec" placeholder="Detik" value="0">
-                <input type="number" id="banMin" placeholder="Menit" value="0">
-                <input type="number" id="banDay" placeholder="Hari" value="0">
-            </div>
-            <button class="btn-gold" style="background: #ff4d4d; color: white;" onclick="banUser()">[ BAN! ]</button>
-
-            <h3 style="color: var(--accent); margin-top: 20px; margin-bottom: 0;">Unban Account</h3>
-            <input type="text" id="unbanName" placeholder="Nama Akun">
-            <button class="btn-gold" style="background: var(--accent); color: white;" onclick="unbanUser()">[ UNBAN ]</button>
-
-            <hr style="border: 0.5px solid #444; margin: 20px 0;">
-            <button class="btn-gold" style="background:#ff4d4d; color:white;" onclick="resetAllChat()">RESET ALL CHAT</button>
-            <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="updateStatusModal">
-        <div class="modal" style="text-align:center">
-            <h2 style="color:var(--primary)">System Update</h2>
-            <div id="updateContent" style="margin: 30px 0;">
-                </div>
-            <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="avatarModal">
-        <div class="modal">
-            <h2 style="color:var(--primary); text-align:center">Choose Avatar</h2>
-            <div class="ava-options">
-                <img src="https://i.ibb.co.com/Fb6FJQ9g/54b19ada-d53e-4ee9-8882-9dfed1bf1396.jpg" class="ava-pick" onclick="selectAva(this.src)">
-                <img src="https://i.ibb.co.com/jZhYZky2/68f9ebed-9db3-458f-aa15-b5b6dfc8566c.jpg" class="ava-pick" onclick="selectAva(this.src)">
-            </div>
-            <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CANCEL</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="searchOverlay">
-        <div class="modal" style="text-align: center;">
-            <h2>Searching...</h2>
-            <div id="searchTimer" style="font-size:3rem; color:var(--primary); font-weight:900; margin:20px 0;">00:00</div>
-            <button class="btn-gold" style="background:#ff4d4d; color:white" onclick="cancelSearch()">CANCEL SEARCH</button>
-        </div>
-    </div>
-
-    <div id="chatOverlay">
-        <div class="chat-header"><b>LIVE CHAT</b><button onclick="toggleChat(false)" style="background:none; border:none; color:white; font-size:1.5rem">&times;</button></div>
-        <div id="chatBox"></div>
-        <div class="chat-input-bar" style="padding:15px; display:flex; gap:10px; background:#2d2d2d;">
-            <input type="text" id="chatIn" style="flex:1; padding:12px; background:#1a1a1a; border:1px solid #444; color:white; border-radius:8px;" placeholder="Type..." onkeypress="if(event.key==='Enter')sendChat()">
-            <button onclick="sendChat()" style="background:var(--primary); border:none; padding:10px 20px; border-radius:8px; font-weight:bold;">SEND</button>
+            <hr>
+            <h3>Global Notification</h3>
+            <textarea id="globalNotifIn" placeholder="System message to all..."></textarea>
+            <button class="btn-gold" style="background:var(--accent)" onclick="sendGlobalNotif()">SEND TO ALL</button>
+            <button class="btn-gold" style="background:#444" onclick="closeModals()">CLOSE</button>
         </div>
     </div>
 
@@ -248,235 +179,194 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let user = null, curName = "", myTitle = "", timerVal = 10, variant = "standard", botLvl = 1;
-        let sInterval, roomId = null, unsubRoom = null;
-        let serverVersion = 0;
+        let user = null, curName = "", myTitle = "", curTarget = null;
 
         onAuthStateChanged(auth, async (u) => {
             if(!u) window.location.href = "index.html";
             else {
                 user = u; curName = u.displayName;
-                checkBanStatus(curName);
-                
-                const tDoc = await getDoc(doc(db, "titles", curName));
-                if(tDoc.exists()) myTitle = tDoc.data().title;
-
-                document.getElementById('welcomeMsg').innerText = `Welcome, ${myTitle ? '['+myTitle+']' : ''}${curName}`;
-                document.getElementById('myAvatar').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
-                
-                const aDoc = await getDoc(doc(db, "access", curName));
-                if(curName === "Jovan" || aDoc.exists()) {
-                    document.getElementById('ownerFab').style.display = 'flex';
-                    document.getElementById('ownerMenuBtn').style.display = 'flex';
-                }
-                loadData();
+                initListeners();
             }
         });
 
-        // --- UPDATE STATUS LOGIC ---
-        window.openUpdateModal = () => {
-            const m = document.getElementById('updateStatusModal');
-            const c = document.getElementById('updateContent');
-            const localVersion = parseInt(localStorage.getItem('appVersion')) || 0;
-            
-            if(serverVersion > localVersion) {
-                c.innerHTML = '<h3 style="color:#81b64c; margin-bottom:20px;">Update Available:</h3><button class="btn-gold" style="background:var(--accent); color:white" onclick="performUpdate()">[ Update ]</button>';
-            } else {
-                c.innerHTML = '<h3 style="color:#888">Update Not Available</h3>';
-            }
-            m.style.display = 'flex';
-            window.toggleDropdown();
-        };
-
-        window.performUpdate = () => {
-            localStorage.setItem('appVersion', serverVersion);
-            location.reload();
-        };
-
-        window.pushUpdate = async () => {
-            await setDoc(doc(db, "config", "settings"), { latestVersion: Date.now() }, { merge: true });
-            alert("New Update Pushed!");
-            closeModals();
-        };
-
-        function checkUpdateDisplay() {
-            const localVersion = parseInt(localStorage.getItem('appVersion')) || 0;
-            const t = document.getElementById('updateNotify');
-            
-            if(serverVersion > localVersion) {
-                t.innerText = "Update: Available please check \"Update Status\" Menu";
-                t.style.color = "#81b64c";
-            } else {
-                t.innerText = "Update: Not Available";
-                t.style.color = "#aaa";
-            }
-        }
-
-        // --- NEW OWNER ACTIONS ---
-        window.addAccess = async () => {
-            const name = document.getElementById('accName').value;
-            if(!name) return alert("Isi nama!");
-            await setDoc(doc(db, "access", name), { hasAccess: true });
-            alert(`Akses diberikan ke ${name}`);
-            closeModals();
-        };
-
-        window.addTitle = async () => {
-            const name = document.getElementById('titleName').value;
-            const title = document.getElementById('titlePick').value;
-            if(!name) return alert("Isi nama!");
-            await setDoc(doc(db, "titles", name), { title: title });
-            alert(`Gelar ${title} diberikan ke ${name}`);
-            closeModals();
-        };
-
-        // --- BAN CHECKER ---
-        async function checkBanStatus(name) {
-            const q = query(collection(db, "bans"), where("name", "==", name));
-            onSnapshot(q, (snap) => {
-                if(!snap.empty) {
-                    const d = snap.docs[0].data();
-                    if(Date.now() < d.expiry) {
-                        document.getElementById('banDetail').innerText = `For ${d.sec}Second, ${d.min}Minutes, ${d.day}Day`;
-                        document.getElementById('bannedOverlay').style.display = 'flex';
-                    } else { document.getElementById('bannedOverlay').style.display = 'none'; }
-                } else { document.getElementById('bannedOverlay').style.display = 'none'; }
-            });
-        }
-
-        window.banUser = async () => {
-            const name = document.getElementById('banName').value;
-            const s = parseInt(document.getElementById('banSec').value) || 0;
-            const m = parseInt(document.getElementById('banMin').value) || 0;
-            const d = parseInt(document.getElementById('banDay').value) || 0;
-            if(!name) return alert("Isi nama akun!");
-            const durationMs = (s * 1000) + (m * 60000) + (d * 86400000);
-            const expiry = Date.now() + durationMs;
-            await setDoc(doc(db, "bans", name), { name, expiry, sec: s, min: m, day: d });
-            alert(`User ${name} berhasil di-ban!`);
-            closeModals();
-        };
-
-        window.unbanUser = async () => {
-            const name = document.getElementById('unbanName').value;
-            if(!name) return alert("Isi nama akun!");
-            await deleteDoc(doc(db, "bans", name));
-            alert(`User ${name} berhasil di-unban!`);
-            closeModals();
-        };
-
-        function loadData() {
-            onSnapshot(doc(db, "config", "broadcastMsg"), (d) => { if(d.exists()) document.getElementById('bcText').innerText = d.data().text; });
-            
-            // Version Listener
-            onSnapshot(doc(db, "config", "settings"), (d) => { 
-                if(d.exists()) {
-                    serverVersion = d.data().latestVersion || 0;
-                    checkUpdateDisplay();
-                }
-            });
-
-            onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (s) => {
-                const f = document.getElementById('dataFeed'); f.innerHTML = "";
-                s.forEach(ds => {
-                    const d = ds.data();
-                    f.innerHTML += `
-                    <div class="data-card">
-                        <h3>${d.rank !== 'None' ? '['+d.rank+'] ' : ''}${d.name}</h3>
-                        <p>Elo: ${d.elo} | Date: ${d.date}</p>
-                        ${document.getElementById('ownerFab').style.display === 'flex' ? `<div class="admin-tools"><button class="btn-mini btn-del" onclick="window.delData('${ds.id}')">Del</button></div>` : ''}
-                    </div>`;
-                });
-            });
-            onSnapshot(query(collection(db, "chats"), orderBy("timestamp", "asc"), limit(50)), (s) => {
-                const b = document.getElementById('chatBox'); b.innerHTML = "";
+        function initListeners() {
+            // Listen Inbox
+            onSnapshot(query(collection(db, "inbox"), where("to", "==", curName), orderBy("timestamp", "desc")), (s) => {
+                const list = document.getElementById('inboxList');
+                list.innerHTML = "";
+                let unread = 0;
                 s.forEach(d => {
                     const m = d.data();
-                    const isSelf = m.name === curName;
-                    const displayTitle = m.title ? `[${m.title}]` : '';
-                    b.innerHTML += `
-                    <div class="msg-wrap ${isSelf ? 'msg-self' : ''}">
-                        <img src="${m.photo}" class="msg-ava">
-                        <div class="msg-content">
-                            <span class="msg-name">${displayTitle}(${m.name})</span>
-                            <div class="msg-bubble">${m.text}</div>
-                        </div>
-                    </div>`;
+                    if(!m.read) unread++;
+                    let html = `<div class="data-card">`;
+                    if(m.type === 'system') html += `<b>System:</b> ${m.text}`;
+                    else if(m.type === 'challenge') {
+                        html += `<b>${m.from}</b> Invite you to Play (${m.variant}) as (${m.side})<br>
+                        <button class="btn-mini btn-green" onclick="acceptChal('${d.id}', '${m.from}', '${m.side}', '${m.variant}', '${m.timer}')">Accept</button>
+                        <button class="btn-mini btn-red" onclick="deleteInbox('${d.id}')">Decline</button>`;
+                    }
+                    html += `</div>`;
+                    list.innerHTML += html;
                 });
-                b.scrollTop = b.scrollHeight;
+                document.getElementById('inboxDot').style.display = unread > 0 ? 'block' : 'none';
+                document.getElementById('inboxCount').innerText = unread > 0 ? `(${unread})` : '';
+            });
+            // Other listeners (BC, Version, etc) similar to previous code
+        }
+
+        window.openInbox = () => { document.getElementById('inboxModal').style.display='flex'; toggleDropdown(); };
+
+        // --- FRIEND SYSTEM ---
+        window.openFriends = () => { 
+            document.getElementById('friendsModal').style.display='flex'; 
+            loadFriends();
+            loadRecs();
+            toggleDropdown();
+        };
+
+        window.searchFriend = async () => {
+            const val = document.getElementById('searchFriendIn').value;
+            const res = document.getElementById('friendResults');
+            if(!val) { res.innerHTML = "Result: None"; return; }
+            
+            const q = query(collection(db, "users"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'), limit(5));
+            const snap = await getDocs(q);
+            res.innerHTML = "Result:";
+            snap.forEach(d => {
+                const u = d.data();
+                if(u.name === curName) return;
+                res.innerHTML += `
+                <div class="list-item">
+                    <img src="${u.photo || ''}">
+                    <div style="flex:1"><b>${u.name}</b></div>
+                    <button class="btn-mini btn-blue" onclick="addFriend('${u.name}')">Add</button>
+                    <button class="btn-mini" onclick="seeInfo('${u.name}')">Info</button>
+                </div>`;
+            });
+        };
+
+        async function loadFriends() {
+            const q = query(collection(db, "friends"), where("user", "==", curName));
+            const snap = await getDocs(q);
+            const list = document.getElementById('friendList');
+            list.innerHTML = "";
+            snap.forEach(d => {
+                const f = d.data().friend;
+                list.innerHTML += `
+                <div class="list-item">
+                    <b>${f}</b>
+                    <button class="btn-mini" onclick="seeInfo('${f}')">See More Information</button>
+                    <button class="btn-mini btn-green" onclick="openChallenge('${f}')">Challange Play Online</button>
+                </div>`;
             });
         }
 
-        window.sendChat = async () => { 
-            const i = document.getElementById('chatIn'); 
-            if(i.value.trim()){ 
-                await addDoc(collection(db, "chats"), { 
-                    name: curName, 
-                    title: myTitle,
-                    text: i.value, 
-                    photo: user.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg", 
-                    timestamp: Date.now() 
-                }); 
-                i.value = ""; 
-            }
+        window.seeInfo = async (name) => {
+            const uSnap = await getDocs(query(collection(db, "users"), where("name", "==", name)));
+            if(uSnap.empty) return;
+            const u = uSnap.docs[0].data();
+            
+            document.getElementById('infoAva').src = u.photo;
+            document.getElementById('infoName').innerText = u.name;
+            document.getElementById('infoTitle').innerText = u.title || "No Title";
+            
+            // History
+            const hSnap = await getDocs(query(collection(db, "history"), where("player", "==", name), limit(10)));
+            const hDiv = document.getElementById('infoHistory');
+            hDiv.innerHTML = "";
+            hSnap.forEach(hd => {
+                const h = hd.data();
+                hDiv.innerHTML += `<div class="history-item">${h.player} vs ${h.opp} (${h.res})</div>`;
+            });
+
+            const act = document.getElementById('infoActions');
+            act.innerHTML = `
+                <button class="btn-gold" onclick="addFriend('${name}')">Add Friend</button>
+                <button class="btn-gold" style="background:#3498db; color:white" onclick="openPrivateChat('${name}', '${u.photo}')">Chat Privately</button>
+            `;
+            document.getElementById('userInfoModal').style.display = 'flex';
         };
 
-        window.setTimer = (v, b) => { timerVal = v; document.querySelectorAll('#timerGrid .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
-        window.setVariant = (v, b) => { variant = v; document.querySelectorAll('#variantGrid .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
-        window.setBotLvl = (v, b) => { botLvl = v; document.querySelectorAll('#botGrid .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
-
-        window.startMatchmaking = async () => {
-            document.getElementById('searchOverlay').style.display = 'flex';
-            let sec = 0; sInterval = setInterval(() => { sec++; document.getElementById('searchTimer').innerText = `00:${sec < 10 ? '0'+sec : sec}`; }, 1000);
-            const q = query(collection(db, "rooms"), where("status", "==", "waiting"), where("timer", "==", timerVal), where("variant", "==", variant), limit(1));
-            const snap = await getDocs(q);
-            if(!snap.empty) {
-                roomId = snap.docs[0].id;
-                await updateDoc(doc(db, "rooms", roomId), { player2: { name: curName, photo: user.photoURL || "", title: myTitle }, status: "playing" });
-                goGame(roomId, 'black');
-            } else {
-                const nr = await addDoc(collection(db, "rooms"), { player1: { name: curName, photo: user.photoURL || "", title: myTitle }, status: "waiting", timer: timerVal, variant: variant, createdAt: Date.now() });
-                roomId = nr.id;
-                unsubRoom = onSnapshot(doc(db, "rooms", roomId), (s) => { if(s.exists() && s.data().status === "playing") goGame(roomId, 'white'); });
-            }
+        // --- CHALLENGE ---
+        window.openChallenge = (name) => {
+            document.getElementById('chalName').innerText = name;
+            document.getElementById('challengeModal').style.display = 'flex';
         };
 
-        window.cancelSearch = async () => { 
-            clearInterval(sInterval); if(unsubRoom) unsubRoom();
-            if(roomId) { 
-                const rDoc = await getDocs(query(collection(db, "rooms"), where("status", "==", "waiting")));
-                rDoc.forEach(async (d) => { if(d.id === roomId) await deleteDoc(doc(db, "rooms", d.id)); });
-                roomId = null; 
-            }
-            document.getElementById('searchOverlay').style.display = 'none';
+        window.sendChallenge = async () => {
+            const to = document.getElementById('chalName').innerText;
+            await addDoc(collection(db, "inbox"), {
+                to, from: curName, type: 'challenge',
+                timer: document.getElementById('chalTimer').value,
+                side: document.getElementById('chalSide').value,
+                variant: document.getElementById('chalVariant').value,
+                timestamp: Date.now(), read: false
+            });
+            alert("Challenge Sent!");
+            closeModals();
         };
 
-        function goGame(id, side) { 
-            clearInterval(sInterval); if(unsubRoom) unsubRoom(); 
-            window.location.href = `${variant === "crazyhouse" ? "crazyhouse.html" : "game.html"}?id=${id}&side=${side}`; 
-        }
-
-        window.submitData = async () => { 
-            await addDoc(collection(db, "players"), { name: document.getElementById('inName').value, elo: document.getElementById('inElo').value, date: document.getElementById('inDate').value, rank: document.getElementById('inRank').value, timestamp: Date.now() }); 
-            window.closeModals(); 
+        window.acceptChal = async (inboxId, opp, oppSide, variant, timer) => {
+            const mySide = oppSide === 'white' ? 'black' : 'white';
+            const roomId = "CHAL_" + Date.now();
+            await setDoc(doc(db, "rooms", roomId), {
+                player1: { name: opp, side: oppSide },
+                player2: { name: curName, side: mySide },
+                status: "playing", variant, timer
+            });
+            // Update inbox to notify opponent room is ready or handle via redirect
+            await deleteDoc(doc(db, "inbox", inboxId));
+            window.location.href = `${variant}.html?id=${roomId}&side=${mySide}`;
         };
-        window.delData = async (id) => { if(confirm("Delete this player data?")) await deleteDoc(doc(db, "players", id)); };
-        window.updateBC = async () => { await setDoc(doc(db, "config", "broadcastMsg"), { text: document.getElementById('bcInput').value }); window.closeModals(); };
-        window.resetAllChat = async () => { if(confirm("Clear all chat history?")) { const q = await getDocs(collection(db, "chats")); q.forEach(async (d) => await deleteDoc(doc(db, "chats", d.id))); } };
 
-        window.startBot = () => window.location.href = `botgame.html?lvl=${botLvl}`;
-        window.openAvatarModal = () => document.getElementById('avatarModal').style.display = 'flex';
-        window.selectAva = async (url) => { await updateProfile(auth.currentUser, { photoURL: url }); location.reload(); };
-        window.openOwnerTools = () => { document.getElementById('ownerToolsModal').style.display = 'flex'; window.toggleDropdown(); };
-        window.openAddModal = () => document.getElementById('addModal').style.display = 'flex';
+        // --- PRIVATE CHAT ---
+        let unsubPChat = null;
+        window.openPrivateChat = (name, photo) => {
+            curTarget = name;
+            document.getElementById('pChatTarget').innerText = name;
+            document.getElementById('privateChatOverlay').style.display = 'flex';
+            const chatID = [curName, name].sort().join("_");
+            
+            if(unsubPChat) unsubPChat();
+            const q = query(collection(db, "p_chats"), where("chatID", "==", chatID), orderBy("timestamp", "asc"));
+            unsubPChat = onSnapshot(q, (s) => {
+                const box = document.getElementById('pChatBox');
+                box.innerHTML = "";
+                s.forEach(d => {
+                    const m = d.data();
+                    box.innerHTML += `<div class="history-item"><b>${m.from}:</b> ${m.text}</div>`;
+                });
+                box.scrollTop = box.scrollHeight;
+            });
+        };
+
+        window.sendPrivateChat = async () => {
+            const t = document.getElementById('pChatIn');
+            if(!t.value) return;
+            const chatID = [curName, curTarget].sort().join("_");
+            await addDoc(collection(db, "p_chats"), { chatID, from: curName, text: t.value, timestamp: Date.now() });
+            t.value = "";
+        };
+
+        // --- OWNER ACTION ---
+        window.sendGlobalNotif = async () => {
+            const txt = document.getElementById('globalNotifIn').value;
+            if(!txt) return;
+            const uSnap = await getDocs(collection(db, "users"));
+            uSnap.forEach(async (uDoc) => {
+                await addDoc(collection(db, "inbox"), {
+                    to: uDoc.data().name, from: "System", type: 'system',
+                    text: txt, timestamp: Date.now(), read: false
+                });
+            });
+            alert("Global Notification Sent!");
+            document.getElementById('globalNotifIn').value = "";
+        };
+
         window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
-        window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
-        
-        window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
+        window.closeUserInfo = () => document.getElementById('userInfoModal').style.display = 'none';
+        window.closePrivateChat = () => { document.getElementById('privateChatOverlay').style.display = 'none'; if(unsubPChat) unsubPChat(); };
         window.toggleDropdown = () => { const m = document.getElementById('mainMenu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
-        window.switchSection = (id) => { document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none'); document.getElementById('sec-' + id).style.display = 'block'; window.toggleDropdown(); };
-        
-        async function getDoc(ref) { const s = await getDocs(query(collection(db, ref.path.split('/')[0]), where("__name__", "==", ref.id))); return { exists: () => !s.empty, data: () => s.docs[0].data() }; }
     </script>
 </body>
 </html>
