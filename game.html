@@ -3,53 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CHESSELOBETH - Standard</title>
+    <title>CHESSELOBETH - Live Match</title>
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <style>
-        html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; background: #1a1a1a; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Segoe UI', sans-serif; }
-        .game-container { width: 95%; max-width: 400px; }
-        .player-info { background: #2d2d2d; padding: 12px; display: flex; align-items: center; border-radius: 8px; margin: 8px 0; border: 1px solid #444; }
-        .timer { margin-left: auto; font-family: monospace; font-size: 1.5rem; font-weight: bold; background: #1a1a1a; padding: 5px 12px; border-radius: 6px; border: 1px solid #555; min-width: 80px; text-align: center; color: #ffd700; }
-        .timer.active { background: #ffd700; color: #000; border-color: #fff; }
-        #myBoard { width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; }
+        :root { --primary: #ffd700; --bg: #1a1a1a; --card: #262421; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
         
-        /* Promotion UI */
-        .promo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; }
-        .promo-box { background: #2d2d2d; padding: 20px; border-radius: 15px; display: flex; gap: 15px; border: 2px solid #ffd700; }
-        .promo-box img { width: 60px; height: 60px; cursor: pointer; background: #3d3d3d; border-radius: 8px; transition: 0.2s; padding: 5px; }
-        .promo-box img:hover { background: #81b64c; transform: scale(1.1); }
+        .info-bar { width: 90vw; max-width: 400px; display: flex; align-items: center; justify-content: space-between; padding: 10px; background: var(--card); border-radius: 8px; margin: 5px 0; }
+        .player-info { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 45px; height: 45px; border-radius: 4px; border: 2px solid #333; object-fit: cover; }
+        .name-tag { font-weight: bold; font-size: 1rem; }
+        
+        #board { width: 90vw; max-width: 400px; margin: 10px 0; border: 2px solid #333; }
+        
+        .controls { width: 90vw; max-width: 400px; display: flex; gap: 10px; margin-top: 10px; }
+        .btn { flex: 1; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; transition: 0.2s; }
+        .btn-resign { background: #b33939; }
+        .btn-resign:active { background: #ff4d4d; transform: scale(0.95); }
 
-        .btn-resign { margin-top: 15px; background: #333; border: 1px solid #555; color: #ff4d4d; padding: 10px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-resign:active { background: #ff4d4d; color: white; }
-
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal { background: #2d2d2d; padding: 30px; border-radius: 20px; text-align: center; width: 280px; border: 2px solid #ffd700; }
+        .game-over-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 9999; }
+        .game-over-box { background: #2d2d2d; padding: 30px; border-radius: 15px; text-align: center; border: 2px solid var(--primary); width: 80%; max-width: 300px; }
+        .btn-home { background: #81b64c; color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <div class="game-container">
+    <div class="info-bar">
         <div class="player-info">
-            <b id="oppName">Opponent</b>
-            <div class="timer" id="oppTimer">10:00</div>
+            <img src="" id="oppPic" class="avatar">
+            <div class="name-tag" id="oppName">Opponent...</div>
         </div>
-        <div id="myBoard"></div>
-        <div class="player-info">
-            <b id="myName">Me</b>
-            <div class="timer" id="myTimer">10:00</div>
-        </div>
-        <center><button class="btn-resign" id="resignBtn">RESIGN</button></center>
     </div>
 
-    <div class="promo-overlay" id="promoModal">
-        <div class="promo-box" id="promoOptions"></div>
+    <div id="board"></div>
+
+    <div class="info-bar">
+        <div class="player-info">
+            <img src="" id="myPic" class="avatar">
+            <div class="name-tag" id="myName">You</div>
+        </div>
     </div>
 
-    <div class="modal-overlay" id="gameOverModal">
-        <div class="modal">
-            <h1 id="winStatus" style="margin:0;">GAME OVER</h1>
-            <p id="winReason" style="color:#aaa; margin:10px 0;">Reason...</p>
-            <button onclick="location.href='main.html'" style="padding:15px; background:#81b64c; color:white; border:none; border-radius:10px; cursor:pointer; width:100%; font-weight:bold;">BACK TO LOBBY</button>
+    <div class="controls">
+        <button class="btn btn-resign" onclick="confirmResign()">RESIGN</button>
+    </div>
+
+    <div class="game-over-overlay" id="gameOverModal">
+        <div class="game-over-box">
+            <h1 id="goTitle" style="margin:0; color:var(--primary);">MATCH ENDED</h1>
+            <p id="goReason" style="color:#ccc; margin: 10px 0;"></p>
+            <button class="btn-home" onclick="window.location.href='main.html'">BACK TO LOBBY</button>
         </div>
     </div>
 
@@ -67,103 +70,98 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    const params = new URLSearchParams(window.location.search);
-    const roomId = params.get('id');
-    const mySide = params.get('side');
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('id');
+    const mySide = urlParams.get('side'); // 'white' or 'black'
 
-    let board, game = new Chess(), isGameOver = false, pendingMove = null;
-    let timers = { w: 600, b: 600 }, timerInterval = null;
+    let game = new Chess();
+    let board = null;
+    let user = null;
 
-    const getImg = (p) => `https://chessboardjs.com/img/chesspieces/wikipedia/${p}.png`;
+    onAuthStateChanged(auth, (u) => {
+        if (!u) window.location.href = "index.html";
+        user = u;
+        document.getElementById('myName').innerText = u.displayName;
+        document.getElementById('myPic').src = u.photoURL || "https://via.placeholder.com/150";
+        initMatch();
+    });
 
-    onAuthStateChanged(auth, async (user) => {
-        if (!user || !roomId) return;
+    async function initMatch() {
+        if (!roomId) return;
+
         const roomRef = doc(db, "rooms", roomId);
-        const snap = await getDoc(roomRef);
-        const data = snap.data();
+        
+        // Listen perubahan board & status
+        onSnapshot(roomRef, (snapshot) => {
+            const data = snapshot.data();
+            if (!data) return;
 
-        timers = data.timers || { w: data.timer * 60, b: data.timer * 60 };
-        document.getElementById('myName').innerText = mySide === 'white' ? data.player1.name : data.player2.name;
-        document.getElementById('oppName').innerText = mySide === 'white' ? data.player2.name : data.player1.name;
+            // Update info lawan
+            if (mySide === 'white' && data.player2) {
+                document.getElementById('oppName').innerText = data.player2.name;
+                document.getElementById('oppPic').src = data.player2.photo;
+            } else if (mySide === 'black' && data.player1) {
+                document.getElementById('oppName').innerText = data.player1.name;
+                document.getElementById('oppPic').src = data.player1.photo;
+            }
 
-        board = Chessboard('myBoard', {
-            draggable: true,
-            orientation: mySide,
-            position: data.fen || 'start',
-            pieceTheme: getImg,
-            onDragStart: (s, p) => !isGameOver && p.startsWith(mySide.charAt(0)) && game.turn() === mySide.charAt(0),
-            onDrop: (source, target) => {
-                const piece = game.get(source);
-                if (piece && piece.type === 'p' && (target.endsWith('8') || target.endsWith('1'))) {
-                    pendingMove = { from: source, to: target };
-                    showPromo();
-                    return 'snapback';
-                }
-                const move = game.move({ from: source, to: target, promotion: 'q' });
-                if (!move) return 'snapback';
-                updateDoc(roomRef, { fen: game.fen(), timers: timers });
+            // Update posisi papan
+            if (data.lastFen && data.lastFen !== game.fen()) {
+                game.load(data.lastFen);
+                board.position(data.lastFen);
+            }
+
+            // CEK STATUS RESIGN / GAME OVER
+            if (data.status === "resigned") {
+                const loser = data.resignedBy;
+                const title = (loser === user.displayName) ? "YOU RESIGNED" : "OPPONENT RESIGNED";
+                const reason = (loser === user.displayName) ? "You gave up the match." : "Opponent left the battlefield.";
+                showGameOver(title, reason);
+            } else if (game.game_over()) {
+                showGameOver("GAME OVER", "Checkmate or Draw");
             }
         });
 
-        document.getElementById('resignBtn').onclick = async () => {
-            if(confirm("Resign?")) await updateDoc(roomRef, { status: "resigned", winnerSide: mySide === 'white' ? 'black' : 'white' });
+        const config = {
+            draggable: true,
+            position: 'start',
+            orientation: mySide,
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+            onDragStart: (source, piece) => {
+                if (game.game_over()) return false;
+                if ((mySide === 'white' && piece.search(/^b/) !== -1) ||
+                    (mySide === 'black' && piece.search(/^w/) !== -1)) return false;
+                if ((game.turn() === 'w' && mySide !== 'white') ||
+                    (game.turn() === 'b' && mySide !== 'black')) return false;
+            },
+            onDrop: async (source, target) => {
+                let move = game.move({ from: source, to: target, promotion: 'q' });
+                if (move === null) return 'snapback';
+                
+                await updateDoc(roomRef, {
+                    lastFen: game.fen(),
+                    lastMove: Date.now()
+                });
+            }
         };
-
-        onSnapshot(roomRef, (s) => {
-            const d = s.data();
-            if (!d) return;
-            if (d.fen !== game.fen()) { game.load(d.fen); board.position(d.fen); }
-            timers = d.timers || timers;
-            if (d.status !== "playing" && d.status !== "waiting") finishGame(d);
-            updateUI();
-        });
-        startTimer();
-    });
-
-    function showPromo() {
-        const pieces = ['q', 'r', 'b', 'n'];
-        const container = document.getElementById('promoOptions');
-        container.innerHTML = '';
-        pieces.forEach(p => {
-            const img = document.createElement('img');
-            img.src = getImg(mySide.charAt(0) + p.toUpperCase());
-            img.onclick = () => {
-                game.move({ ...pendingMove, promotion: p });
-                updateDoc(doc(db, "rooms", roomId), { fen: game.fen(), timers: timers });
-                document.getElementById('promoModal').style.display = 'none';
-            };
-            container.appendChild(img);
-        });
-        document.getElementById('promoModal').style.display = 'flex';
+        board = Chessboard('board', config);
     }
 
-    function startTimer() {
-        timerInterval = setInterval(() => {
-            if (isGameOver) return;
-            timers[game.turn()]--;
-            if (timers[game.turn()] <= 0) handleTimeout(game.turn());
-            updateUI();
-        }, 1000);
-    }
+    // FIX RESIGN FUNCTION
+    window.confirmResign = async () => {
+        if (confirm("Are you sure you want to resign?")) {
+            const roomRef = doc(db, "rooms", roomId);
+            await updateDoc(roomRef, {
+                status: "resigned",
+                resignedBy: user.displayName
+            });
+        }
+    };
 
-    function updateUI() {
-        const fmt = (s) => `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
-        document.getElementById('myTimer').innerText = fmt(mySide === 'white' ? timers.w : timers.b);
-        document.getElementById('oppTimer').innerText = fmt(mySide === 'white' ? timers.b : timers.w);
-        document.getElementById('myTimer').className = game.turn() === mySide.charAt(0) ? 'timer active' : 'timer';
-        document.getElementById('oppTimer').className = game.turn() !== mySide.charAt(0) ? 'timer active' : 'timer';
-    }
-
-    function finishGame(d) {
-        isGameOver = true;
-        clearInterval(timerInterval);
+    function showGameOver(title, reason) {
+        document.getElementById('goTitle').innerText = title;
+        document.getElementById('goReason').innerText = reason;
         document.getElementById('gameOverModal').style.display = 'flex';
-        document.getElementById('winStatus').innerText = d.winnerSide === mySide ? "YOU WIN!" : "YOU LOST";
-        document.getElementById('winReason').innerText = `By ${d.status}`;
-    }
-
-    async function handleTimeout(lostColor) {
-        await updateDoc(doc(db, "rooms", roomId), { status: "timeout", winnerSide: lostColor === 'w' ? 'black' : 'white' });
     }
 </script>
 </body>
