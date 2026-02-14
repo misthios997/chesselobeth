@@ -11,14 +11,14 @@
         body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; height: 100vh; }
         
         header { width: 100%; background: #2d2d2d; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
-        .pocket { background: #262626; width: 100%; padding: 5px; display: flex; justify-content: center; gap: 10px; min-height: 40px; }
+        .pocket { background: #262626; width: 100%; padding: 5px; display: flex; justify-content: center; gap: 10px; min-height: 45px; overflow-x:auto; }
         
-        #board { width: 90vw; max-width: 380px; margin-top: 5px; }
+        #board { width: 95vw; max-width: 380px; margin-top: 5px; }
         
-        .controls { width: 95vw; max-width: 400px; margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .btn { padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .controls { width: 95vw; max-width: 400px; margin-top: 10px; display: flex; gap: 8px; }
+        .btn { padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1; }
         .btn-resign { background: var(--red); color: white; }
-        .btn-chat { background: var(--primary); color: black; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; position: relative; }
+        .btn-chat { background: var(--primary); color: black; display: flex; align-items: center; justify-content: center; position: relative; }
         .chat-notif { position: absolute; top: -5px; right: -5px; background: white; border: 2px solid var(--red); width: 12px; height: 12px; border-radius: 50%; display: none; }
 
         #gameChatOverlay { position: fixed; inset: 0; background: var(--bg); display: none; flex-direction: column; z-index: 5000; }
@@ -29,18 +29,29 @@
         .msg-them { align-self: flex-start; background: #333; color: white; }
         .chat-input { padding: 15px; background: #2d2d2d; display: flex; gap: 10px; }
         .chat-input input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #1a1a1a; color: white; }
+        
+        .timer-display { background: #000; padding: 5px 12px; border-radius: 6px; font-family: monospace; font-size: 1.2rem; font-weight: bold; border: 1px solid #444; }
+        .reserve-piece { width: 35px; height: 35px; cursor: pointer; }
+        .reserve-piece.selected { background: rgba(255,215,0,0.4); border-radius: 5px; box-shadow: 0 0 10px var(--primary); }
+        
+        .game-over-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+        .go-box { background: #2d2d2d; padding: 30px; border-radius: 20px; text-align: center; border: 2px solid var(--primary); width: 80%; max-width: 300px; }
+        .go-btn { background: var(--primary); border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; color: #000; font-size: 1rem; margin-top:15px; }
     </style>
 </head>
 <body>
 
     <header>
         <div style="color:var(--accent); font-weight:900;">CRAZYHOUSE</div>
-        <div id="gameTimer">10:00</div>
+        <div style="display:flex; gap:10px;">
+            <div id="oppTimer" class="timer-display">10:00</div>
+            <div id="myTimer" class="timer-display">10:00</div>
+        </div>
     </header>
 
-    <div class="pocket" id="pocketTop"></div>
+    <div class="pocket" id="oppPocket"></div>
     <div id="board"></div>
-    <div class="pocket" id="pocketBottom"></div>
+    <div class="pocket" id="myPocket"></div>
 
     <div class="controls">
         <button class="btn btn-resign" onclick="resignGame()">RESIGN</button>
@@ -55,7 +66,7 @@
             <button onclick="toggleGameChat(false)" style="background:none; border:none; color:white; font-size:1.2rem;">
                 <i class="fas fa-arrow-left"></i>
             </button>
-            <b>Crazyhouse Chat</b>
+            <b id="chatWith">Game Chat</b>
         </div>
         <div id="chatBox"></div>
         <div class="chat-input">
@@ -64,8 +75,13 @@
         </div>
     </div>
 
+    <div class="game-over-overlay" id="gameOverModal">
+        <div class="go-box"><h1 id="goTitle"></h1><p id="goReason"></p><button class="go-btn" onclick="window.location.href='main.html'">LOBBY</button></div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -79,37 +95,169 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const roomId = urlParams.get('id');
-        let curName = "";
-        let isChatOpen = false;
+        const mySide = urlParams.get('side');
+        const myColor = mySide.charAt(0);
+        const pieceTheme = 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png';
+
+        let game = new Chess();
+        let board = null, curName = "", isChatOpen = false, isMoving = false, gameEnded = false;
+        let pocket = { w: [], b: [] };
+        let timeLeft = { w: 600, b: 600 };
+        let selectedPocketIdx = null;
 
         onAuthStateChanged(auth, (u) => {
             if(!u) window.location.href = "index.html";
             curName = u.displayName;
             listenChat();
+            initMatch();
         });
+
+        function initMatch() {
+            board = Chessboard('board', {
+                draggable: true, position: 'start', orientation: mySide, pieceTheme: pieceTheme,
+                onDragStart: (s, p) => !gameEnded && !isMoving && game.turn() === myColor && p.charAt(0) === myColor,
+                onDrop: (source, target) => {
+                    const move = game.move({ from: source, to: target, promotion: 'q' });
+                    if (!move) return 'snapback';
+                    if (move.captured) {
+                        const capturer = game.turn() === 'b' ? 'w' : 'b'; 
+                        pocket[capturer].push(move.captured);
+                    }
+                    board.position(game.fen());
+                    sync();
+                }
+            });
+
+            $('#board').on('click', '.square-55d63', function() { handlePocketDrop($(this).attr('data-square')); });
+
+            onSnapshot(doc(db, "rooms", roomId), (s) => {
+                const d = s.data(); if (!d) return;
+                
+                if (d.lastFen && d.lastFen !== game.fen()) {
+                    game.load(d.lastFen);
+                    board.position(d.lastFen);
+                }
+                if (d.pocket) pocket = d.pocket;
+                if (d.timeLeft) timeLeft = d.timeLeft;
+                renderPocket();
+                updateUI();
+                checkGameOver(d);
+            });
+        }
+
+        function renderPocket() {
+            const myRes = document.getElementById('myPocket');
+            const oppRes = document.getElementById('oppPocket');
+            myRes.innerHTML = ""; oppRes.innerHTML = "";
+            
+            pocket[myColor].forEach((p, idx) => {
+                const img = document.createElement('img');
+                img.src = pieceTheme.replace('{piece}', myColor + p.toUpperCase());
+                img.className = 'reserve-piece' + (selectedPocketIdx === idx ? ' selected' : '');
+                img.onclick = () => { 
+                    if(game.turn() === myColor) { selectedPocketIdx = (selectedPocketIdx===idx?null:idx); renderPocket(); }
+                };
+                myRes.appendChild(img);
+            });
+
+            const oppC = myColor === 'w' ? 'b' : 'w';
+            pocket[oppC].forEach(p => {
+                const img = document.createElement('img');
+                img.src = pieceTheme.replace('{piece}', oppC + p.toUpperCase());
+                img.className = 'reserve-piece';
+                oppRes.appendChild(img);
+            });
+        }
+
+        async function handlePocketDrop(square) {
+            if (isMoving || selectedPocketIdx === null || game.turn() !== myColor) return;
+            if (game.get(square)) return; // Must be empty
+
+            const type = pocket[myColor][selectedPocketIdx];
+            
+            // Validate Check
+            const test = new Chess(game.fen());
+            test.put({ type: type, color: myColor }, square);
+            const fenParts = test.fen().split(' '); fenParts[1] = (myColor==='w'?'b':'w');
+            const val = new Chess(fenParts.join(' '));
+            if(val.in_check()) { alert("Cannot drop: King in check!"); return; }
+
+            // Apply Move
+            isMoving = true;
+            game.put({ type: type, color: myColor }, square);
+            pocket[myColor].splice(selectedPocketIdx, 1);
+            selectedPocketIdx = null;
+            
+            let t = game.fen().split(' '); t[1] = (myColor==='w'?'b':'w');
+            game.load(t.join(' '));
+            board.position(game.fen());
+            await sync();
+            isMoving = false;
+        }
+
+        async function sync() {
+            isMoving = true;
+            await updateDoc(doc(db, "rooms", roomId), { 
+                lastFen: game.fen(), pocket: pocket, timeLeft: timeLeft, lastMove: Date.now() 
+            });
+            isMoving = false;
+        }
+
+        function updateUI() {
+            const f = (t) => `${Math.floor(t/60)}:${(t%60).toString().padStart(2,'0')}`;
+            document.getElementById('myTimer').innerText = f(mySide==='white'?timeLeft.w:timeLeft.b);
+            document.getElementById('oppTimer').innerText = f(mySide==='white'?timeLeft.b:timeLeft.w);
+        }
+
+        setInterval(() => {
+            if(!gameEnded && !isMoving && game.fen() !== 'start') {
+                timeLeft[game.turn()]--;
+                updateUI();
+                if (timeLeft.w <= 0 || timeLeft.b <= 0 && game.turn() === myColor) {
+                    updateDoc(doc(db, "rooms", roomId), { status: 'timeout', loser: myColor });
+                }
+            }
+        }, 1000);
+
+        function checkGameOver(d) {
+            let t = "", r = "";
+            if (d.status === 'resigned') { t = "GAME OVER"; r = d.resignedBy + " Resigned"; }
+            else if (d.status === 'timeout') { t = "TIME OUT"; r = (d.loser === 'w' ? 'White' : 'Black') + " Lost"; }
+            else if (game.in_checkmate()) { t = "CHECKMATE"; r = (game.turn() === 'w' ? 'Black' : 'White') + " Wins!"; }
+            
+            if (t) {
+                gameEnded = true;
+                document.getElementById('goTitle').innerText = t;
+                document.getElementById('goReason').innerText = r;
+                document.getElementById('gameOverModal').style.display = 'flex';
+                // Record History Only Once
+                if(d.status !== 'recorded' && game.turn() === myColor) {
+                    addDoc(collection(db, "history"), { 
+                        player: curName, 
+                        opp: (mySide === 'white' ? d.player2?.name : d.player1?.name) || "Opponent", 
+                        res: t, 
+                        timestamp: Date.now() 
+                    });
+                    updateDoc(doc(db, "rooms", roomId), { status: 'recorded' });
+                }
+            }
+        }
 
         window.toggleGameChat = (show) => {
             isChatOpen = show;
             document.getElementById('gameChatOverlay').style.display = show ? 'flex' : 'none';
-            if(show) {
-                document.getElementById('chatNotif').style.display = 'none';
-                const box = document.getElementById('chatBox');
-                box.scrollTop = box.scrollHeight;
-            }
+            if(show) { document.getElementById('chatNotif').style.display = 'none'; document.getElementById('chatBox').scrollTop = 99999; }
         };
 
         function listenChat() {
-            const q = query(collection(db, "rooms", roomId, "chats"), orderBy("timestamp", "asc"));
-            onSnapshot(q, (snap) => {
-                const box = document.getElementById('chatBox');
-                box.innerHTML = "";
-                snap.forEach(d => {
+            onSnapshot(query(collection(db, "rooms", roomId, "chats"), orderBy("timestamp", "asc")), (s) => {
+                const box = document.getElementById('chatBox'); box.innerHTML = "";
+                s.forEach(d => {
                     const m = d.data();
-                    const isMe = m.sender === curName;
-                    box.innerHTML += `<div class="msg ${isMe ? 'msg-me' : 'msg-them'}">${m.text}</div>`;
+                    box.innerHTML += `<div class="msg ${m.sender === curName ? 'msg-me' : 'msg-them'}">${m.text}</div>`;
                 });
                 box.scrollTop = box.scrollHeight;
-                if(!isChatOpen && !snap.empty) document.getElementById('chatNotif').style.display = 'block';
+                if(!isChatOpen && !s.empty) document.getElementById('chatNotif').style.display = 'block';
             });
         }
 
@@ -120,7 +268,11 @@
             input.value = "";
         };
 
-        window.resignGame = () => { if(confirm("Resign?")) window.location.href = "main.html"; };
+        window.resignGame = async () => {
+            if(confirm("Resign?")) {
+                await updateDoc(doc(db, "rooms", roomId), { status: "resigned", resignedBy: curName });
+            }
+        };
     </script>
 </body>
 </html>
