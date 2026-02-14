@@ -3,110 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bot Game</title>
+    <title>CHESSELOBETH - Bot Game</title>
     
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     
     <style>
-        /* SETUP LAYAR (Anti-Scroll & Full Fix) */
+        /* CSS RESET & ANTI-SCROLL */
         html, body {
-            height: 100%;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            background-color: #161512; /* Warna background Chess.com gelap */
-            color: white;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            overflow: hidden; /* Matikan scroll */
-            touch-action: none; /* Matikan zoom */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            height: 100%; width: 100%; margin: 0; padding: 0;
+            background-color: #161512; color: white;
+            font-family: sans-serif; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
 
         .game-container {
-            width: 100%;
-            max-width: 450px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px; /* Jarak antar elemen */
-            align-items: center;
+            width: 92%; max-width: 400px;
+            display: flex; flex-direction: column; gap: 12px;
         }
 
-        /* KOTAK PLAYER (Bot & User) */
+        /* BOX PLAYER (Bot & You) */
         .player-box {
-            width: 90vw; /* Lebar mengikuti layar HP */
-            max-width: 400px;
-            background: #262421;
-            padding: 10px;
-            border-radius: 5px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            box-sizing: border-box; /* Agar padding tidak merusak lebar */
+            background: #262421; padding: 10px; border-radius: 8px;
+            display: flex; align-items: center; gap: 12px;
+            border: 1px solid #333;
         }
 
-        .avatar {
-            width: 45px; 
-            height: 45px; 
-            border-radius: 5px;
-            background-color: #444; /* Warna placeholder kalau gambar loading */
-            object-fit: cover;
-        }
+        .avatar { width: 45px; height: 45px; border-radius: 4px; background: #444; }
+        .name-area { display: flex; flex-direction: column; }
+        .name-tag { font-weight: bold; font-size: 1rem; }
 
-        .user-info {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .name-text {
-            font-weight: bold;
-            font-size: 1rem;
-            color: #fff;
-        }
-
-        /* PAPAN CATUR (Wajib Persegi) */
+        /* AREA PAPAN (DENGAN BACKGROUND CADANGAN) */
         #myBoard {
-            width: 90vw;      /* 90% Lebar Layar */
-            height: 90vw;     /* 90% Lebar Layar (Supaya Persegi) */
-            max-width: 400px; /* Batas Maksimum di Tablet/PC */
-            max-height: 400px;
-            
-            /* Border & Background saat loading */
-            border: 3px solid #333;
-            background-image: url('https://chessboardjs.com/img/chessboards/wikipedia.png'); 
-            background-size: cover;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: #312e2b; /* Warna gelap catur */
+            border: 2px solid #444;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            /* Background kotak-kotak CSS kalau gambar gagal load */
+            background-image: 
+                linear-gradient(45deg, #3d3a37 25%, transparent 25%),
+                linear-gradient(-45deg, #3d3a37 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #3d3a37 75%),
+                linear-gradient(-45deg, transparent 75%, #3d3a37 75%);
+            background-size: 25% 25%;
+            background-position: 0 0, 0 12.5%, 12.5% 12.5%, 12.5% 0;
         }
 
         /* TOMBOL RESIGN */
-        .resign-btn {
-            width: 90vw;
-            max-width: 400px;
-            background: #b33939; /* Merah */
-            color: white;
-            border: none;
-            padding: 15px;
-            font-size: 1rem;
-            font-weight: bold;
-            border-radius: 5px;
-            cursor: pointer;
-            text-transform: uppercase;
+        .btn-resign {
+            background: #b33939; color: white; border: none;
+            padding: 16px; border-radius: 8px; font-weight: bold;
+            font-size: 1.1rem; cursor: pointer; text-transform: uppercase;
         }
-        .resign-btn:active { background: #d63031; }
+        .btn-resign:active { background: #ff4d4d; }
 
-        /* MODAL (Popup Game Over) */
-        .modal-overlay {
-            display: none;
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 1000;
-            justify-content: center; align-items: center;
+        /* MODAL */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 999; justify-content: center; align-items: center;
         }
         .modal-box {
-            background: #2b2b2b; padding: 25px; border-radius: 10px;
-            text-align: center; border: 1px solid #555; width: 80%; max-width: 300px;
+            background: #262421; padding: 30px; border-radius: 12px;
+            text-align: center; border: 2px solid #ffd700; width: 80%;
         }
     </style>
 </head>
@@ -114,29 +72,29 @@
 
     <div class="game-container">
         <div class="player-box">
-            <img src="https://www.chess.com/bundles/web/images/user-image.svg" id="botPic" class="avatar" onerror="this.src='https://www.chess.com/bundles/web/images/user-image.svg'">
-            <div class="user-info">
-                <span class="name-text" id="botDisplay">Bot (Level 1)</span>
+            <img src="https://images.chesscomfiles.com/uploads/v1/user/170960309.8471168b.200x200o.e1808620248c.png" class="avatar" onerror="this.src='https://www.chess.com/bundles/web/images/user-image.svg'">
+            <div class="name-area">
+                <span class="name-tag" id="botNameDisplay">Bot (Level 1)</span>
             </div>
         </div>
 
         <div id="myBoard"></div>
 
         <div class="player-box">
-            <img src="https://www.chess.com/bundles/web/images/user-image.svg" id="userPic" class="avatar" onerror="this.src='https://www.chess.com/bundles/web/images/user-image.svg'">
-            <div class="user-info">
-                <span class="name-text" id="userDisplay">Player (You)</span>
+            <img id="userAvatar" src="https://www.chess.com/bundles/web/images/user-image.svg" class="avatar">
+            <div class="name-area">
+                <span class="name-tag" id="userNameDisplay">Jovan (You)</span>
             </div>
         </div>
 
-        <button class="resign-btn" onclick="askResign()">RESIGN</button>
+        <button class="btn-resign" id="resignBtn">RESIGN</button>
     </div>
 
-    <div id="endModal" class="modal-overlay">
+    <div id="modalEnd" class="modal">
         <div class="modal-box">
-            <h2 id="endTitle" style="margin-top:0; color:#ffd700;">GAME OVER</h2>
-            <p id="endReason" style="color:#ddd; margin:15px 0;">-</p>
-            <button onclick="window.location.href='main.html'" style="padding:12px 25px; background:#81b64c; color:white; border:none; border-radius:5px; font-weight:bold; cursor:pointer;">LOBBY</button>
+            <h2 id="modalTitle" style="color:#ffd700; margin:0;">GAME OVER</h2>
+            <p id="modalReason" style="color:#ccc; margin:15px 0;"></p>
+            <button onclick="window.location.href='main.html'" style="width:100%; padding:15px; background:#81b64c; color:white; border:none; border-radius:8px; font-weight:bold;">LOBBY</button>
         </div>
     </div>
 
@@ -145,133 +103,86 @@
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 
     <script>
-        // --- 1. SETUP GAME & ENGINE ---
         var board = null;
         var game = new Chess();
         var stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js');
-        var engineReady = false;
 
-        // --- 2. AMBIL DATA URL ---
-        const params = new URLSearchParams(window.location.search);
-        
-        // Data Player
-        const pName = params.get('name') || "Player";
-        const pPic = params.get('pic') || ""; // Kalau kosong akan pakai default di HTML
-        
-        // Data Bot
-        const bName = params.get('bot') || "Stockfish";
-        const bLevel = parseInt(params.get('level')) || 1;
-        
-        // --- 3. TAMPILKAN KE UI ---
-        // Format: Nama (ELO)
-        $('#botDisplay').text(`${bName} (Level ${bLevel})`);
-        $('#userDisplay').text(`${pName} (You)`);
+        // Setup Data
+        const urlParams = new URLSearchParams(window.location.search);
+        const name = urlParams.get('name') || "Jovan";
+        const level = urlParams.get('level') || "1";
+        const pic = urlParams.get('pic');
 
-        // Set Gambar (Kalau ada di URL, pakai. Kalau tidak, biarkan default)
-        if(pPic) $('#userPic').attr('src', decodeURIComponent(pPic));
-        
-        // Logika Gambar Bot Sederhana
-        let botImgUrl = "https://images.chesscomfiles.com/uploads/v1/user/170960309.8471168b.200x200o.e1808620248c.png"; // Default Robot
-        if(bName.toLowerCase().includes('jimmy')) botImgUrl = "https://images.chesscomfiles.com/uploads/v1/user/142980365.11a51052.200x200o.b015b6329402.jpeg";
-        if(bName.toLowerCase().includes('nelson')) botImgUrl = "https://images.chesscomfiles.com/uploads/v1/user/36434467.352c80c2.200x200o.73173e34375b.jpeg";
-        
-        $('#botPic').attr('src', botImgUrl);
+        $('#userNameDisplay').text(`${name} (You)`);
+        $('#botNameDisplay').text(`Bot (Level ${level})`);
+        if(pic) $('#userAvatar').attr('src', decodeURIComponent(pic));
 
-        // --- 4. LOGIKA STOCKFISH (ENGINE) ---
-        stockfish.onmessage = function(event) {
-            // Kalau bot nemu langkah terbaik
-            if (event.data.startsWith('bestmove')) {
-                var bestMove = event.data.split(' ')[1];
-                if(bestMove) {
-                    game.move({ from: bestMove.substring(0,2), to: bestMove.substring(2,4), promotion: 'q' });
+        // Bot Logic
+        stockfish.onmessage = function(e) {
+            if (e.data.startsWith('bestmove')) {
+                const move = e.data.split(' ')[1];
+                if (move) {
+                    game.move({ from: move.substring(0, 2), to: move.substring(2, 4), promotion: 'q' });
                     board.position(game.fen());
-                    checkGameOver();
+                    checkStatus();
                 }
             }
         };
 
-        function botThink() {
-            if(game.game_over()) return;
-            // Kirim posisi papan ke engine
+        function makeBotMove() {
+            if (game.game_over()) return;
             stockfish.postMessage('position fen ' + game.fen());
-            stockfish.postMessage('setoption name Skill Level value ' + bLevel); // Set tingkat kesulitan
-            stockfish.postMessage('go depth 10'); // Kedalaman mikir
-        }
-
-        // --- 5. LOGIKA PAPAN (DRAG & DROP) ---
-        function onDragStart(source, piece) {
-            // Game selesai atau user mencoba gerakkan bidak hitam (bot) -> Batalkan
-            if (game.game_over() || piece.search(/^b/) !== -1) return false;
+            stockfish.postMessage('setoption name Skill Level value ' + level);
+            stockfish.postMessage('go depth 10');
         }
 
         function onDrop(source, target) {
-            // Coba lakukan langkah
-            var move = game.move({
-                from: source,
-                to: target,
-                promotion: 'q' // Selalu promosi ke Queen biar simpel
-            });
-
-            // Langkah ilegal -> snapback (kembali ke asal)
+            var move = game.move({ from: source, to: target, promotion: 'q' });
             if (move === null) return 'snapback';
-
-            // Langkah legal -> Cek status & Suruh bot jalan
-            checkGameOver();
-            window.setTimeout(botThink, 500); // Delay dikit biar natural
+            window.setTimeout(makeBotMove, 400);
+            checkStatus();
         }
 
-        function onSnapEnd() {
-            board.position(game.fen());
-        }
-
-        // --- 6. CEK MENANG/KALAH ---
-        function checkGameOver() {
+        function checkStatus() {
             if (game.in_checkmate()) {
-                let winner = (game.turn() === 'b') ? 'YOU WIN!' : 'YOU LOSE'; // Kalau giliran hitam dan skakmat, berarti putih menang
-                showModal(winner, 'Checkmate');
-            } 
-            else if (game.in_draw() || game.in_stalemate() || game.in_threefold_repetition()) {
-                showModal('DRAW', 'Remis');
+                endGame(game.turn() === 'b' ? 'YOU WIN!' : 'YOU LOSE', 'Skakmat');
+            } else if (game.in_draw()) {
+                endGame('DRAW', 'Remis');
             }
         }
 
-        function showModal(title, desc) {
-            $('#endTitle').text(title);
-            $('#endReason').text(desc);
-            $('#endModal').css('display', 'flex');
+        function endGame(title, reason) {
+            $('#modalTitle').text(title);
+            $('#modalReason').text(reason);
+            $('#modalEnd').css('display', 'flex');
         }
 
-        function askResign() {
-            if(confirm("Yakin ingin menyerah?")) {
-                showModal("YOU LOSE", "Kamu menyerah");
-            }
-        }
+        // Resign Button Fix
+        $('#resignBtn').on('click touchstart', function() {
+            if(confirm("Nyerah?")) endGame("YOU LOSE", "Kamu menyerah");
+        });
 
-        // --- 7. INISIALISASI FINAL (KUNCI AGAR MUNCUL) ---
-        $(document).ready(function() {
-            // Konfigurasi Papan
-            var config = {
+        // INIT BOARD (YANG PALING PENTING)
+        $(window).on('load', function() {
+            // Kita hitung lebar kontainer secara paksa
+            const boardWidth = $('#myBoard').width();
+            
+            board = Chessboard('myBoard', {
                 draggable: true,
                 position: 'start',
-                onDragStart: onDragStart,
+                width: boardWidth, // Force pixel size
+                onDragStart: (s, p) => !game.game_over() && p.search(/^w/) !== -1,
                 onDrop: onDrop,
-                onSnapEnd: onSnapEnd,
+                onSnapEnd: () => board.position(game.fen()),
                 pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
-            };
+            });
 
-            // Render Papan
-            board = Chessboard('myBoard', config);
+            // Re-render paksa 3 kali untuk memastikan muncul
+            [100, 500, 1000].forEach(delay => {
+                setTimeout(() => board.resize(), delay);
+            });
 
-            // Inisialisasi Engine
             stockfish.postMessage('uci');
-
-            // Force Resize setelah loading sebentar (Anti-Bug Mobile)
-            setTimeout(function() {
-                board.resize();
-            }, 250);
-            
-            // Resize lagi saat orientasi layar berubah
-            $(window).resize(board.resize);
         });
     </script>
 </body>
