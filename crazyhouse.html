@@ -39,17 +39,18 @@
 
         /* RESERVE PIECES CONTAINER */
         .reserve-bar {
-            background: rgba(0,0,0,0.3);
-            height: 40px;
+            background: rgba(0,0,0,0.5);
+            height: 45px;
             margin: 5px 0;
-            border-radius: 5px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             padding: 0 10px;
-            gap: 5px;
-            overflow-x: auto;
+            gap: 2px;
+            border: 1px dashed #555;
+            min-height: 45px;
         }
-        .reserve-piece { width: 30px; height: 30px; cursor: pointer; }
+        .reserve-piece { width: 35px; height: 35px; cursor: pointer; filter: drop-shadow(0 0 2px black); }
 
         #board { width: 100%; aspect-ratio: 1/1; border: 4px solid #333; border-radius: 4px; touch-action: none; }
 
@@ -109,13 +110,14 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    document.addEventListener('touchmove', function (e) {
+    document.addEventListener('touchmove', (e) => {
         if (e.target.closest('#board') || e.target.closest('.match-container')) e.preventDefault();
     }, { passive: false });
 
     const params = new URLSearchParams(window.location.search);
     const roomId = params.get('id');
     const mySide = params.get('side');
+    const pieceTheme = 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png';
 
     let game = new Chess();
     let board = null;
@@ -129,6 +131,30 @@
         document.getElementById('myPic').src = u.photoURL || defAva;
         initMatch();
     });
+
+    // FUNGSI BARU: UPDATE RESERVE VISUAL
+    function updateReserve(fen) {
+        const myRes = document.getElementById('myReserve');
+        const oppRes = document.getElementById('oppReserve');
+        myRes.innerHTML = ""; oppRes.innerHTML = "";
+
+        // Crazyhouse FEN biasanya punya bagian pocket di akhir, misal: ... w - - [Ppn]
+        const pocketMatch = fen.match(/\[(.*?)\]/);
+        if (pocketMatch && pocketMatch[1]) {
+            const pocket = pocketMatch[1];
+            for (let char of pocket) {
+                const isWhite = char === char.toUpperCase();
+                const piece = isWhite ? 'w' + char : 'b' + char.toUpperCase();
+                const img = `<img src="${pieceTheme.replace('{piece}', piece)}" class="reserve-piece">`;
+                
+                if (mySide === 'white') {
+                    isWhite ? myRes.innerHTML += img : oppRes.innerHTML += img;
+                } else {
+                    !isWhite ? myRes.innerHTML += img : oppRes.innerHTML += img;
+                }
+            }
+        }
+    }
 
     function formatTime(s) {
         let m = Math.floor(s / 60);
@@ -164,6 +190,7 @@
             if(d.lastFen && d.lastFen !== game.fen()) {
                 game.load(d.lastFen);
                 board.position(d.lastFen);
+                updateReserve(d.lastFen); // Update kantong bidak
                 runTimer();
             }
             if(d.status === "resigned") showGameOver("RESIGNED", "Match Over");
@@ -173,16 +200,18 @@
             draggable: true,
             position: 'start',
             orientation: mySide,
-            // FIX BIDAK: Pake URL yang pasti kebaca
-            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+            pieceTheme: pieceTheme,
             onDragStart: (s, p) => {
                 if(game.game_over() || game.turn() !== mySide.charAt(0)) return false;
             },
             onDrop: async (source, target) => {
                 let m = game.move({ from: source, to: target, promotion: 'q' });
                 if(!m) return 'snapback';
+                
+                const newFen = game.fen();
+                updateReserve(newFen); // Update tampilan sendiri dulu
                 runTimer();
-                await updateDoc(ref, { lastFen: game.fen(), timeLeft: timeLeft });
+                await updateDoc(ref, { lastFen: newFen, timeLeft: timeLeft });
             }
         });
     }
