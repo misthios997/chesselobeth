@@ -7,197 +7,168 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --bg-dark: #161512;
-            --bg-card: #262421;
-            --accent: #81b64c;
+            --bg-dark: #0a0a0a;
+            --bg-card: #1a1a1a;
+            --accent: #d4af37; /* Gold/Kuning */
             --text-main: #ffffff;
-            --text-dim: #bababa;
-            --sidebar-w: 70px;
+            --text-dim: #999999;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             margin: 0; background: var(--bg-dark); color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex; height: 100vh; overflow: hidden;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
         }
 
-        /* --- SIDEBAR LAMA --- */
-        .sidebar {
-            width: var(--sidebar-w); background: #21201d;
-            display: flex; flex-direction: column; align-items: center;
-            padding: 20px 0; border-right: 1px solid #333; z-index: 100;
-        }
-        .nav-item {
-            width: 50px; height: 50px; display: flex; align-items: center;
-            justify-content: center; color: var(--text-dim); font-size: 1.4rem;
-            margin-bottom: 20px; border-radius: 8px; cursor: pointer; transition: 0.2s;
-        }
-        .nav-item.active { background: #312e2b; color: var(--accent); }
-
-        /* --- MAIN CONTENT --- */
-        .main-container {
-            flex: 1; display: flex; flex-direction: column; overflow-y: auto;
-            padding-bottom: 100px;
-        }
-
+        /* TOP BAR */
         .top-bar {
             padding: 15px 20px; display: flex; justify-content: space-between;
-            align-items: center; background: #21201d; position: sticky; top: 0; z-index: 99;
+            align-items: center; background: #111; border-bottom: 1px solid #222;
         }
+        .logo { font-weight: bold; color: var(--accent); letter-spacing: 1px; }
+        .currency { background: #222; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; display: flex; align-items: center; gap: 5px; }
 
-        /* --- PROFILE SECTION --- */
+        .main-container { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+
+        /* PROFILE SECTION */
         .profile-card {
             margin: 20px; padding: 20px; background: var(--bg-card);
-            border-radius: 12px; display: flex; align-items: center; gap: 15px;
-            border-bottom: 4px solid #312e2b;
+            border-radius: 15px; display: flex; align-items: center; gap: 15px;
+            border-left: 4px solid var(--accent);
         }
-        .profile-pic { width: 65px; height: 65px; border-radius: 8px; background: #444; object-fit: cover; }
-        .profile-info h2 { margin: 0; font-size: 1.2rem; color: var(--accent); }
+        .avatar-frame { width: 70px; height: 70px; border-radius: 10px; background: #333; overflow: hidden; }
+        .avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
+        .profile-info h2 { margin: 0; font-size: 1.3rem; color: var(--accent); }
+        .profile-info p { margin: 5px 0 0; font-size: 0.85rem; color: var(--text-dim); }
 
-        /* --- SECTION HEADERS --- */
-        .section-title { padding: 0 20px; margin: 20px 0 10px; font-size: 0.9rem; color: var(--accent); font-weight: bold; text-transform: uppercase; }
+        /* DATA STATISTICS */
+        .section-label { padding: 0 20px; margin: 10px 0; font-size: 0.75rem; color: var(--accent); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 20px; }
+        .stat-card { background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #222; }
+        .stat-card small { color: var(--text-dim); display: block; margin-bottom: 5px; font-size: 0.7rem; }
+        .stat-card b { font-size: 1.2rem; }
 
-        /* --- DATA & STATS GRID --- */
-        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
-        .data-card { background: var(--bg-card); padding: 15px; border-radius: 10px; border: 1px solid #333; }
-        .data-card small { color: var(--text-dim); font-size: 0.75rem; }
-        .data-card div { font-size: 1.1rem; font-weight: bold; margin-top: 5px; }
-
-        /* --- ACTION / MODES --- */
-        .action-list { padding: 0 20px; display: flex; flex-direction: column; gap: 10px; }
-        .action-item {
-            background: var(--bg-card); padding: 18px; border-radius: 12px;
-            display: flex; align-items: center; gap: 15px; border: 1px solid #333; cursor: pointer;
+        /* ACTIONS & MODES */
+        .action-container { padding: 0 20px; margin-top: 15px; display: flex; flex-direction: column; gap: 12px; }
+        .action-box {
+            background: var(--bg-card); padding: 18px; border-radius: 15px;
+            display: flex; align-items: center; gap: 15px; border: 1px solid #222;
         }
-        .action-item i { font-size: 1.5rem; color: var(--accent); width: 30px; text-align: center; }
-        .action-item .info h4 { margin: 0; font-size: 1rem; }
-        .action-item .info p { margin: 3px 0 0; font-size: 0.75rem; color: var(--text-dim); }
+        .action-box i { font-size: 1.6rem; color: var(--accent); }
+        .action-box h4 { margin: 0; font-size: 1rem; }
+        .action-box p { margin: 3px 0 0; font-size: 0.75rem; color: var(--text-dim); }
 
-        /* --- BOT SELECTOR (NEW) --- */
-        .bot-selector {
-            background: #2b2926; margin: 0 20px; padding: 15px; border-radius: 12px;
-            border: 1px solid var(--accent); margin-top: 10px;
+        /* PLAY VS BOT (NEW INTEGRATION) */
+        .bot-play-card {
+            background: #151515; border: 1px solid var(--accent);
+            border-radius: 15px; padding: 20px; margin: 10px 0;
         }
-        .level-btns { display: flex; justify-content: space-between; margin: 10px 0; gap: 5px; }
-        .lvl-btn {
-            flex: 1; padding: 10px; background: #1a1917; border: 1px solid #444;
-            color: white; border-radius: 5px; font-weight: bold; cursor: pointer;
+        .level-row { display: flex; gap: 8px; margin: 15px 0; }
+        .level-btn {
+            flex: 1; padding: 12px; background: #222; border: 1px solid #333;
+            color: white; border-radius: 8px; font-weight: bold; cursor: pointer;
         }
-        .lvl-btn.active { background: var(--accent); border-color: var(--accent); }
-        .play-now {
-            width: 100%; padding: 15px; background: var(--accent); color: white;
-            border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; cursor: pointer;
+        .level-btn.active { background: var(--accent); color: black; border-color: var(--accent); }
+        .btn-play-bot {
+            width: 100%; padding: 16px; background: var(--accent); color: black;
+            border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer;
         }
 
-        /* --- MOBILE NAV --- */
+        /* BOTTOM NAV */
         .bottom-nav {
             position: fixed; bottom: 0; width: 100%; height: 70px;
-            background: #21201d; display: none; justify-content: space-around;
-            align-items: center; border-top: 1px solid #333; z-index: 1000;
+            background: #111; display: flex; justify-content: space-around;
+            align-items: center; border-top: 1px solid #222;
         }
-
-        @media (max-width: 600px) {
-            .sidebar { display: none; }
-            .bottom-nav { display: flex; }
-        }
+        .nav-icon { color: #555; font-size: 1.3rem; }
+        .nav-icon.active { color: var(--accent); }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
-        <div class="nav-item active"><i class="fas fa-home"></i></div>
-        <div class="nav-item"><i class="fas fa-chess"></i></div>
-        <div class="nav-item"><i class="fas fa-trophy"></i></div>
-        <div class="nav-item"><i class="fas fa-user"></i></div>
-        <div class="nav-item" style="margin-top:auto;"><i class="fas fa-cog"></i></div>
+    <div class="top-bar">
+        <div class="logo">CHESS ELOBETH</div>
+        <div class="currency">
+            <i class="fas fa-coins" style="color:#ffd700;"></i> <b>1,250</b>
+        </div>
     </div>
 
     <div class="main-container">
-        <div class="top-bar">
-            <div style="font-weight:bold; color:var(--accent);">CHESS ELOBETH</div>
-            <div style="display:flex; gap:10px;">
-                <div style="background:#312e2b; padding:5px 10px; border-radius:15px; font-size:0.8rem;">
-                    <i class="fas fa-coins" style="color:#f1c40f;"></i> 1,250
-                </div>
-            </div>
-        </div>
-
         <div class="profile-card">
-            <img src="https://www.chess.com/bundles/web/images/user-image.svg" class="profile-pic" id="userAvatar">
+            <div class="avatar-frame">
+                <img src="https://www.chess.com/bundles/web/images/user-image.svg" id="pfp">
+            </div>
             <div class="profile-info">
-                <h2 id="userName">Jovan</h2>
+                <h2 id="pName">Jovan</h2>
                 <p>Diamond Member • Rating 1250</p>
             </div>
         </div>
 
-        <div class="section-title">Data Statistics</div>
-        <div class="data-grid">
-            <div class="data-card">
+        <div class="section-label">Data Statistics</div>
+        <div class="stats-grid">
+            <div class="stat-card">
                 <small>GAMES PLAYED</small>
-                <div>142</div>
+                <b>142</b>
             </div>
-            <div class="data-card">
+            <div class="stat-card">
                 <small>WIN RATE</small>
-                <div>64.5%</div>
+                <b>64.5%</b>
             </div>
         </div>
 
-        <div class="section-title">Actions & Modes</div>
-        <div class="action-list">
-            <div class="action-item">
+        <div class="section-label">Actions & Modes</div>
+        <div class="action-container">
+            <div class="action-box">
                 <i class="fas fa-bolt"></i>
-                <div class="info">
+                <div>
                     <h4>Play Online</h4>
                     <p>Find a random opponent globally</p>
                 </div>
             </div>
 
-            <div class="bot-selector">
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+            <div class="bot-play-card">
+                <div style="display:flex; align-items:center; gap:10px;">
                     <i class="fas fa-robot" style="color:var(--accent);"></i>
                     <h4 style="margin:0;">Play vs Stockfish</h4>
                 </div>
-                <div class="level-btns">
-                    <button class="lvl-btn active" onclick="setLvl(1, this)">1</button>
-                    <button class="lvl-btn" onclick="setLvl(5, this)">5</button>
-                    <button class="lvl-btn" onclick="setLvl(10, this)">10</button>
-                    <button class="lvl-btn" onclick="setLvl(15, this)">15</button>
-                    <button class="lvl-btn" onclick="setLvl(20, this)">20</button>
+                <div class="level-row">
+                    <button class="level-btn active" onclick="selLvl(1, this)">1</button>
+                    <button class="level-btn" onclick="selLvl(5, this)">5</button>
+                    <button class="level-btn" onclick="selLvl(10, this)">10</button>
+                    <button class="level-btn" onclick="selLvl(15, this)">15</button>
+                    <button class="level-btn" onclick="selLvl(20, this)">20</button>
                 </div>
-                <button class="play-now" onclick="gasMain()">PLAY BOT</button>
+                <button class="btn-play-bot" onclick="startBot()">PLAY BOT</button>
             </div>
 
-            <div class="action-item">
+            <div class="action-box">
                 <i class="fas fa-puzzle-piece"></i>
-                <div class="info">
+                <div>
                     <h4>Daily Puzzles</h4>
-                    <p>Solve 5 puzzles to earn coins</p>
+                    <p>Earn coins by solving puzzles</p>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="bottom-nav">
-        <i class="fas fa-home" style="color:var(--accent);"></i>
-        <i class="fas fa-chess-board"></i>
-        <i class="fas fa-trophy"></i>
-        <i class="fas fa-user"></i>
+        <i class="fas fa-home nav-icon active"></i>
+        <i class="fas fa-chess-board nav-icon"></i>
+        <i class="fas fa-trophy nav-icon"></i>
+        <i class="fas fa-user nav-icon"></i>
     </div>
 
     <script>
-        let selectedLvl = 1;
-
-        function setLvl(lvl, btn) {
-            selectedLvl = lvl;
-            document.querySelectorAll('.lvl-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+        let currentLevel = 1;
+        function selLvl(l, b) {
+            currentLevel = l;
+            document.querySelectorAll('.level-btn').forEach(btn => btn.classList.remove('active'));
+            b.classList.add('active');
         }
-
-        function gasMain() {
-            const name = document.getElementById('userName').innerText;
-            const pic = document.getElementById('userAvatar').src;
-            window.location.href = `botgame.html?name=${encodeURIComponent(name)}&level=${selectedLvl}&pic=${encodeURIComponent(pic)}`;
+        function startBot() {
+            const name = document.getElementById('pName').innerText;
+            window.location.href = `botgame.html?name=${encodeURIComponent(name)}&level=${currentLevel}`;
         }
     </script>
 </body>
