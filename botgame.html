@@ -51,11 +51,12 @@
         .username { font-weight: bold; font-size: 1.1rem; }
         .elo { font-size: 0.85rem; color: #999; }
 
+        /* Container Papan */
         #myBoard {
             width: 100%;
-            touch-action: none;
+            aspect-ratio: 1 / 1;
             border: 2px solid #333;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            background-color: #262421;
         }
 
         .btn-resign {
@@ -69,9 +70,7 @@
             cursor: pointer;
             text-transform: uppercase;
             font-size: 1rem;
-            margin-top: 5px;
         }
-        .btn-resign:active { background: #ff4d4d; }
 
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -144,24 +143,28 @@
         // Logic Engine
         stockfish.onmessage = function(e) {
             if (e.data.startsWith('bestmove')) {
-                const move = e.data.split(' ')[1];
-                game.move({ from: move.substring(0, 2), to: move.substring(2, 4), promotion: 'q' });
-                board.position(game.fen());
-                checkGameOver();
+                const moveStr = e.data.split(' ')[1];
+                if (moveStr) {
+                    game.move({
+                        from: moveStr.substring(0, 2),
+                        to: moveStr.substring(2, 4),
+                        promotion: 'q'
+                    });
+                    board.position(game.fen());
+                    checkGameOver();
+                }
             }
         };
 
         function makeBotMove() {
             if (game.game_over()) return;
             stockfish.postMessage('position fen ' + game.fen());
-            // Mengatur level bot (0-20)
             stockfish.postMessage('setoption name Skill Level value ' + bLevel);
             stockfish.postMessage('go depth 13');
         }
 
         function onDragStart(source, piece) {
-            if (game.game_over()) return false;
-            if (piece.search(/^b/) !== -1) return false;
+            if (game.game_over() || piece.search(/^b/) !== -1) return false;
         }
 
         function onDrop(source, target) {
@@ -190,17 +193,20 @@
             if(confirm("Yakin ingin menyerah?")) showModal("YOU LOSE", "Kamu menyerah");
         });
 
+        // Initialize Board dengan Delay Kecil agar Vercel sempat Load CSS
         $(document).ready(function() {
-            board = Chessboard('myBoard', {
-                draggable: true,
-                position: 'start',
-                onDragStart: onDragStart,
-                onDrop: onDrop,
-                onSnapEnd: function() { board.position(game.fen()); },
-                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
-            });
-            stockfish.postMessage('uci');
-            stockfish.postMessage('ucinewgame');
+            setTimeout(function() {
+                board = Chessboard('myBoard', {
+                    draggable: true,
+                    position: 'start',
+                    onDragStart: onDragStart,
+                    onDrop: onDrop,
+                    onSnapEnd: function() { board.position(game.fen()); },
+                    pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+                });
+                stockfish.postMessage('uci');
+                stockfish.postMessage('ucinewgame');
+            }, 500);
         });
     </script>
 </body>
