@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vs Stockfish</title>
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    <style>
+        body { background: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        
+        /* Layout Info */
+        .info-bar { width: 350px; display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
+        .player-info { display: flex; align-items: center; gap: 8px; font-weight: bold; }
+        .avatar { width: 35px; height: 35px; border-radius: 50%; border: 1px solid #ffd700; object-fit: cover; }
+        
+        /* Board Area */
+        #myBoard { width: 350px; margin: 5px 0; }
+        
+        /* Controls */
+        .controls { margin-top: 15px; width: 350px; display: flex; justify-content: space-between; }
+        .btn-resign { background: none; border: 1px solid #ff4d4d; color: #ff4d4d; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .status-msg { font-size: 0.9rem; color: #888; font-style: italic; }
+
+        /* Game Over Modal UI */
+        .game-over-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .game-over-box { background: #2d2d2d; padding: 25px; border-radius: 12px; width: 80%; max-width: 320px; text-align: center; border: 2px solid #ffd700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); }
+        .game-over-title { font-size: 2rem; font-weight: 900; margin: 0; text-transform: uppercase; }
+        .win-text { color: #ffd700; }
+        .lose-text { color: #ff4d4d; }
+        .game-over-sub { color: #ccc; margin: 10px 0 20px 0; font-size: 0.9rem; }
+        .btn-home { background: #81b64c; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1rem; }
+    </style>
+</head>
+<body>
+
+    <div class="info-bar">
+        <div class="player-info">
+            <img src="" id="oppPic" class="avatar">
+            <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                <span id="oppName">Bot</span>
+                <span style="font-size:0.7rem; color:#888" id="botLevelDisplay">Level 1</span>
+            </div>
+        </div>
+    </div>
+    
+    <div id="myBoard"></div>
+    
+    <div class="info-bar">
+        <div class="player-info">
+            <img src="" id="myPic" class="avatar">
+            <span id="myName">You</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <span class="status-msg" id="status">Your Turn</span>
+        <button class="btn-resign" onclick="window.history.back()">EXIT</button>
+    </div>
+
+    <div class="game-over-overlay" id="gameOverModal">
+        <div class="game-over-box">
+            <h1 class="game-over-title" id="goTitle">YOU WON</h1>
+            <p class="game-over-sub" id="goReason">by Checkmate</p>
+            <button class="btn-home" onclick="window.location.href='main.html'">BACK TO LOBBY</button>
+        </div>
+    </div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+<script>
+    // --- PARAMETERS ---
+    const params = new URLSearchParams(window.location.search);
+    const botName = params.get('bot') || "Stockfish";
+    const skillLevel = parseInt(params.get('level')) || 1;
+    const myName = params.get('name') || "You";
+    const myPicUrl = params.get('pic') || "https://via.placeholder.com/30";
+
+    // --- SETUP UI ---
+    document.getElementById('myName').innerText = myName;
+    document.getElementById('myPic').src = myPicUrl;
+    document.getElementById('oppName').innerText = botName;
+    document.getElementById('botLevelDisplay').innerText = `Skill Level: ${skillLevel}`;
+    
+    // Set Bot Avatar
+    let botPic = "https://images.chesscomfiles.com/uploads/v1/user/170960309.8471168b.200x200o.e1808620248c.png"; // Stockfish default
+    if(botName.toLowerCase() === 'jimmy') botPic = "https://images.chesscomfiles.com/uploads/v1/user/142980365.11a51052.200x200o.b015b6329402.jpeg";
+    if(botName.toLowerCase() === 'nelson') botPic = "https://images.chesscomfiles.com/uploads/v1/user/36434467.352c80c2.200x200o.73173e34375b.jpeg";
+    document.getElementById('oppPic').src = botPic;
+
+    // --- CHESS LOGIC ---
+    var board = null;
+    var game = new Chess();
+    var isEngineRunning = false;
+    
+    // Load Stockfish from CDN
+    var stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js');
+
+    function onDragStart (source, piece, position, orientation) {
+        if (game.game_over()) return false;
+        if (game.turn() === 'b') return false; // Only White (User) can move
+        if (piece.search(/^b/) !== -1) return false;
+    }
+
+    function onDrop (source, target) {
+        var move = game.move({
+            from: source,
+            to: target,
+            promotion: 'q'
+        });
+
+        if (move === null) return 'snapback';
+
+        updateStatus();
+        window.setTimeout(makeEngineMove, 250);
+    }
+
+    function onSnapEnd () {
+        board.position(game.fen());
+    }
+
+    function updateStatus() {
+        if (game.in_checkmate()) {
+            showGameOver(game.turn() === 'w' ? 'lost' : 'won', 'Checkmate');
+        } else if (game.in_draw()) {
+            showGameOver('draw', 'Draw');
+        } else {
+            document.getElementById('status').innerText = game.turn() === 'w' ? "Your Turn" : `${botName} is thinking...`;
+        }
+    }
+
+    // --- ENGINE LOGIC ---
+    stockfish.onmessage = function(event) {
+        // Parse best move from engine
+        if (event.data.includes('bestmove')) {
+             const bestMove = event.data.split(' ')[1];
+             game.move({ from: bestMove.substring(0, 2), to: bestMove.substring(2, 4), promotion: bestMove.length > 4 ? bestMove.charAt(4) : undefined });
+             board.position(game.fen());
+             updateStatus();
+        }
+    };
+
+    function makeEngineMove() {
+        if(game.game_over()) return;
+        
+        // Configure Engine Level
+        stockfish.postMessage(`setoption name Skill Level value ${skillLevel}`); 
+        // Send position
+        stockfish.postMessage(`position fen ${game.fen()}`);
+        // Calculate (Time varies by level slightly for realism)
+        const depth = skillLevel < 5 ? 1 : (skillLevel < 15 ? 5 : 15);
+        stockfish.postMessage(`go depth ${depth}`);
+    }
+
+    function showGameOver(result, reason) {
+        const modal = document.getElementById('gameOverModal');
+        const title = document.getElementById('goTitle');
+        const rText = document.getElementById('goReason');
+        
+        modal.style.display = 'flex';
+        rText.innerText = "by " + reason;
+
+        if (result === 'won') {
+            title.innerText = "YOU WON";
+            title.className = "game-over-title win-text";
+        } else if (result === 'lost') {
+            title.innerText = "YOU LOST";
+            title.className = "game-over-title lose-text";
+        } else {
+            title.innerText = "DRAW";
+            title.className = "game-over-title";
+            title.style.color = "white";
+        }
+    }
+
+    var config = {
+        draggable: true,
+        position: 'start',
+        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+        onDragStart: onDragStart,
+        onDrop: onDrop,
+        onSnapEnd: onSnapEnd
+    };
+    board = Chessboard('myBoard', config);
+    
+    // Init Engine
+    stockfish.postMessage('uci');
+
+</script>
+</body>
+</html>
