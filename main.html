@@ -54,8 +54,10 @@
         .card { background: #333; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 5px solid #ffd700; position: relative; }
         .card h3 { margin: 0 0 5px 0; color: #ffd700; }
         .card p { margin: 2px 0; font-size: 0.9rem; color: #ccc; }
+        .admin-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; }
+        .btn-small { padding: 5px 10px; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 0.8rem; }
 
-        /* CHAT & MODALS (From previous code) */
+        /* CHAT & MODALS */
         .chat-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; display: none; flex-direction: column; z-index: 2100; }
         .chat-header { padding: 15px; background: #2d2d2d; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ffd700; }
         .chat-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
@@ -68,11 +70,14 @@
         .chat-input-area { padding: 15px; background: #2d2d2d; display: flex; gap: 10px; }
         
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 2200; }
-        .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; text-align: center; }
+        .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; text-align: center; max-height: 90vh; overflow-y: auto; }
         .btn-gold { background: #ffd700; color: black; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        input { width: 100%; padding: 12px; margin-top: 10px; background: #333; color: white; border: 1px solid #444; border-radius: 5px; box-sizing: border-box; }
+        input, select, textarea { width: 100%; padding: 12px; margin-top: 10px; background: #333; color: white; border: 1px solid #444; border-radius: 5px; box-sizing: border-box; }
 
         #searchTimer { font-size: 2.5rem; font-weight: bold; margin: 20px 0; color: #ffd700; }
+        
+        /* FAB OWNER */
+        .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #ffd700; color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 30px; cursor: pointer; z-index: 99; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
@@ -156,7 +161,66 @@
             <h2 style="color:#ffd700">Player Data & Rankings</h2>
             <div id="dataFeed"></div>
         </div>
+    </div>
 
+    <div class="fab" id="ownerFab" onclick="window.openOwnerMenu()">+</div>
+
+    <div class="modal-overlay" id="ownerMenuModal">
+        <div class="modal">
+            <h2 style="color:#ffd700">Owner Actions</h2>
+            <button class="btn-gold" onclick="window.openAddData()">[Add Data Player]</button>
+            <button class="btn-gold" onclick="window.openBroadcastModal()">[Update Broadcast]</button>
+            <button class="btn-gold" style="background:#ff4d4d; color:white" onclick="window.resetChat()">[Reset Chat]</button>
+            <button class="btn-gold" style="background:#444; color:white" onclick="window.closeModals()">CANCEL</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addDataModal">
+        <div class="modal">
+            <h2>New Player Data</h2>
+            <input type="text" id="inpName" placeholder="Full Name">
+            <input type="number" id="inpElo" placeholder="Elo Rating">
+            <input type="text" id="inpDate" placeholder="Date (e.g. 12 Feb 2026)">
+            <select id="inpRank">
+                <option value="None">Rank: None</option>
+                <option value="CM">CM</option>
+                <option value="FM">FM</option>
+                <option value="IM">IM</option>
+                <option value="GM">GM</option>
+            </select>
+            <input type="text" id="inpAccount" placeholder="Chess.com Account">
+            <button class="btn-gold" onclick="window.submitData()">SAVE PLAYER</button>
+            <button class="btn-gold" style="background:#444; color:white" onclick="window.closeModals()">CANCEL</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="editDataModal">
+        <div class="modal">
+            <h2>Edit Player Data</h2>
+            <input type="hidden" id="editId">
+            <input type="text" id="editName" placeholder="Full Name">
+            <input type="number" id="editElo" placeholder="Elo Rating">
+            <input type="text" id="editDate" placeholder="Date">
+            <select id="editRank">
+                <option value="None">Rank: None</option>
+                <option value="CM">CM</option>
+                <option value="FM">FM</option>
+                <option value="IM">IM</option>
+                <option value="GM">GM</option>
+            </select>
+            <input type="text" id="editAccount" placeholder="Chess.com Account">
+            <button class="btn-gold" onclick="window.saveEditData()">UPDATE PLAYER</button>
+            <button class="btn-gold" style="background:#444; color:white" onclick="window.closeModals()">CANCEL</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="broadcastModal">
+        <div class="modal">
+            <h2>Update Broadcast</h2>
+            <textarea id="inpBroadcast" rows="3"></textarea>
+            <button class="btn-gold" onclick="window.submitBroadcast()">UPDATE</button>
+            <button class="btn-gold" style="background:#444; color:white" onclick="window.closeModals()">CANCEL</button>
+        </div>
     </div>
 
     <div class="modal-overlay" id="profileModal">
@@ -186,7 +250,7 @@
         <div class="modal">
             <h2 style="margin:0; color:#ffd700;">Searching...</h2>
             <div id="searchTimer">00:00</div>
-            <p id="searchStatus" style="font-size:0.8rem; color:#aaa;">Matching variant & timer</p>
+            <p id="searchStatus" style="font-size:0.8rem; color:#aaa;">Waiting for opponent...</p>
             <button class="btn-gold" style="background:#ff4d4d; color:white" onclick="window.cancelSearch()">CANCEL</button>
         </div>
     </div>
@@ -219,18 +283,12 @@
     };
 
     window.switchView = (viewName) => {
-        // Reset active classes
         document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
         document.querySelectorAll('.section-view').forEach(s => s.classList.remove('active'));
-        
-        // Highlight menu
         const menuIdx = viewName === 'online' ? 0 : (viewName === 'bot' ? 1 : 2);
         document.querySelectorAll('.sidebar-item')[menuIdx].classList.add('active');
-
-        // Show Section
         const sectionId = viewName === 'online' ? 'viewOnline' : (viewName === 'bot' ? 'viewBot' : 'viewElo');
         document.getElementById(sectionId).classList.add('active');
-        
         window.toggleSidebar(false);
     };
 
@@ -241,14 +299,12 @@
         document.querySelectorAll('.bot-card').forEach(c => c.classList.remove('selected'));
         el.classList.add('selected');
     };
-
     window.startBotGame = () => {
         const myPic = auth.currentUser.photoURL || "https://via.placeholder.com/30";
-        // Encode bot data in URL to pass to botgame.html
         window.location.href = `botgame.html?bot=${selectedBotName}&level=${selectedBotLevel}&pic=${encodeURIComponent(myPic)}&name=${encodeURIComponent(currentUsername)}`;
     };
 
-    // --- EXISTING LOGIC ---
+    // --- AUTH & DATA LOAD ---
     onAuthStateChanged(auth, (user) => {
         if (!user) window.location.href = "index.html";
         else {
@@ -256,6 +312,11 @@
             document.getElementById('welcomeMsg').innerText = `Welcome ${currentUsername}`;
             const upic = user.photoURL || `https://ui-avatars.com/api/?name=${currentUsername}`;
             document.getElementById('profileBtn').innerHTML = `<img src="${upic}" class="profile-img-nav">`;
+            
+            // SHOW OWNER BUTTON IF JOVAN
+            if(currentUsername === "Jovan") {
+                document.getElementById('ownerFab').style.display = 'flex';
+            }
             loadData();
         }
     });
@@ -264,29 +325,98 @@
         onSnapshot(doc(db, "config", "broadcastMsg"), (d) => {
             if(d.exists()) document.getElementById('broadcastDisplay').innerText = `Broadcast: ${d.data().text}`;
         });
+        
+        // ELO FEED & OWNER CONTROLS
         onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (snap) => {
             const feed = document.getElementById('dataFeed');
             feed.innerHTML = '';
             snap.forEach(docSnap => {
                 const data = docSnap.data();
                 const rankDisplay = data.rank && data.rank !== 'None' ? `<span style="color:#ffd700; font-weight:bold">[${data.rank}]</span> ` : '';
+                
+                let adminControls = '';
+                if(currentUsername === "Jovan") {
+                    const dataStr = JSON.stringify(data).replace(/"/g, '&quot;');
+                    adminControls = `
+                    <div class="admin-actions">
+                        <button class="btn-small" style="background:#444" onclick="window.openEdit('${docSnap.id}', '${dataStr}')">Edit</button>
+                        <button class="btn-small" style="background:#ff4d4d" onclick="window.deleteData('${docSnap.id}')">Del</button>
+                    </div>`;
+                }
+
                 const card = document.createElement('div');
                 card.className = 'card';
-                card.innerHTML = `<h3>${rankDisplay}${data.name}</h3><p>Elo: ${data.elo} | Date: ${data.date || '-'}</p>`;
+                card.innerHTML = `
+                    <h3>${rankDisplay}${data.name}</h3>
+                    <p>Elo: ${data.elo} | Date: ${data.date || '-'}</p>
+                    <p style="font-size:0.8rem; color:#888">${data.chessAccount || 'No Account'}</p>
+                    ${adminControls}
+                `;
                 feed.appendChild(card);
             });
         });
     }
 
-    // Chat, Profile, Matchmaking (Same as before)
-    window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
-    window.sendChat = async () => { /* Same chat logic */ const inp=document.getElementById('chatInput'); if(inp.value.trim()){ await addDoc(collection(db,"chats"),{name:currentUsername,text:inp.value,photo:auth.currentUser.photoURL,timestamp:Date.now()}); inp.value=""; }};
-    onSnapshot(query(collection(db,"chats"),orderBy("timestamp","asc"),limit(50)),(s)=>{ const b=document.getElementById('chatBox'); b.innerHTML=""; s.forEach(d=>{ const c=d.data(); b.innerHTML+=`<div class="msg ${c.name===currentUsername?'msg-right':''}"><img src="${c.photo||'https://via.placeholder.com/30'}" class="msg-avatar"><div class="msg-body"><div class="msg-name">${c.name}</div><div>${c.text}</div></div></div>`; }); b.scrollTop=b.scrollHeight; });
-
-    window.openProfileModal = () => document.getElementById('profileModal').style.display = 'flex';
-    document.getElementById('fileInp').onchange = async (e) => { const f=e.target.files[0]; if(f){ const r=ref(storage,`profiles/${auth.currentUser.uid}`); await uploadBytes(r,f); await updateProfile(auth.currentUser,{photoURL:await getDownloadURL(r)}); location.reload(); }};
-    window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+    // --- OWNER ACTIONS ---
+    window.openOwnerMenu = () => { window.closeModals(); document.getElementById('ownerMenuModal').style.display = 'flex'; };
+    window.openAddData = () => { window.closeModals(); document.getElementById('addDataModal').style.display = 'flex'; };
+    window.openBroadcastModal = () => { window.closeModals(); document.getElementById('broadcastModal').style.display = 'flex'; };
     
+    window.submitData = async () => {
+        const payload = {
+            name: document.getElementById('inpName').value,
+            elo: document.getElementById('inpElo').value,
+            date: document.getElementById('inpDate').value,
+            rank: document.getElementById('inpRank').value,
+            chessAccount: document.getElementById('inpAccount').value,
+            timestamp: Date.now()
+        };
+        await addDoc(collection(db, "players"), payload);
+        window.closeModals();
+    };
+
+    window.deleteData = async (id) => {
+        if(confirm("Delete this player data?")) await deleteDoc(doc(db, "players", id));
+    };
+
+    window.openEdit = (id, dataStr) => {
+        const data = JSON.parse(dataStr);
+        document.getElementById('editId').value = id;
+        document.getElementById('editName').value = data.name;
+        document.getElementById('editElo').value = data.elo;
+        document.getElementById('editDate').value = data.date || "";
+        document.getElementById('editRank').value = data.rank || "None";
+        document.getElementById('editAccount').value = data.chessAccount || "";
+        window.closeModals();
+        document.getElementById('editDataModal').style.display = 'flex';
+    };
+
+    window.saveEditData = async () => {
+        const id = document.getElementById('editId').value;
+        const payload = {
+            name: document.getElementById('editName').value,
+            elo: document.getElementById('editElo').value,
+            date: document.getElementById('editDate').value,
+            rank: document.getElementById('editRank').value,
+            chessAccount: document.getElementById('editAccount').value
+        };
+        await updateDoc(doc(db, "players", id), payload);
+        window.closeModals();
+    };
+
+    window.submitBroadcast = async () => {
+        await setDoc(doc(db, "config", "broadcastMsg"), { text: document.getElementById('inpBroadcast').value });
+        window.closeModals();
+    };
+    window.resetChat = async () => {
+        if(confirm("Reset all chat?")) {
+            const q = await getDocs(collection(db, "chats"));
+            q.forEach(async (d) => await deleteDoc(doc(db, "chats", d.id)));
+            window.closeModals();
+        }
+    };
+
+    // --- MATCHMAKING (FIXED) ---
     window.setTimer = (v, id) => { selectedTimer = v; document.querySelectorAll('[id^="t"]').forEach(b => b.classList.remove('active')); document.getElementById(id).classList.add('active'); };
     window.setVariant = (v, id) => { selectedVariant = v; document.querySelectorAll('[id^="v"]').forEach(b => b.classList.remove('active')); document.getElementById(id).classList.add('active'); };
 
@@ -294,20 +424,47 @@
         document.getElementById('searchModal').style.display = 'flex';
         let sec = 0;
         searchInterval = setInterval(() => { sec++; document.getElementById('searchTimer').innerText = `00:${sec.toString().padStart(2,'0')}`; }, 1000);
+
         const q = query(collection(db, "rooms"), where("status", "==", "waiting"), where("timer", "==", selectedTimer), where("variant", "==", selectedVariant));
         const snap = await getDocs(q);
+        
         if (!snap.empty) {
+            // JOIN ROOM
             currentRoomId = snap.docs[0].id;
-            await updateDoc(doc(db, "rooms", currentRoomId), { player2: { name: currentUsername, photo: auth.currentUser.photoURL }, status: "playing" });
+            await updateDoc(doc(db, "rooms", currentRoomId), { player2: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, status: "playing" });
+            // Redirect happens because user joined an existing room
             goToGame(selectedVariant, currentRoomId, 'black');
         } else {
-            const newRoom = await addDoc(collection(db, "rooms"), { player1: { name: currentUsername, photo: auth.currentUser.photoURL }, status: "waiting", timer: selectedTimer, variant: selectedVariant, fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", createdAt: Date.now() });
+            // CREATE ROOM (WAITING)
+            const newRoom = await addDoc(collection(db, "rooms"), { 
+                player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
+                status: "waiting", 
+                timer: selectedTimer, 
+                variant: selectedVariant, 
+                fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 
+                createdAt: Date.now() 
+            });
             currentRoomId = newRoom.id;
-            unsubRoom = onSnapshot(doc(db, "rooms", currentRoomId), (s) => { if (s.data()?.status === "playing") goToGame(selectedVariant, currentRoomId, 'white'); });
+            
+            // LISTENER: Only redirect when status becomes 'playing'
+            unsubRoom = onSnapshot(doc(db, "rooms", currentRoomId), (s) => { 
+                if (s.data()?.status === "playing") {
+                    goToGame(selectedVariant, currentRoomId, 'white'); 
+                }
+            });
         }
     };
     function goToGame(v, id, s) { clearInterval(searchInterval); if(unsubRoom) unsubRoom(); window.location.href = `${v === "crazyhouse" ? "crazyhouse.html" : "game.html"}?id=${id}&side=${s}`; }
     window.cancelSearch = async () => { clearInterval(searchInterval); if (currentRoomId) await deleteDoc(doc(db, "rooms", currentRoomId)); document.getElementById('searchModal').style.display = 'none'; };
+    
+    // --- CHAT & UTILS ---
+    window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
+    window.sendChat = async () => { const inp=document.getElementById('chatInput'); if(inp.value.trim()){ await addDoc(collection(db,"chats"),{name:currentUsername,text:inp.value,photo:auth.currentUser.photoURL,timestamp:Date.now()}); inp.value=""; }};
+    onSnapshot(query(collection(db,"chats"),orderBy("timestamp","asc"),limit(50)),(s)=>{ const b=document.getElementById('chatBox'); b.innerHTML=""; s.forEach(d=>{ const c=d.data(); b.innerHTML+=`<div class="msg ${c.name===currentUsername?'msg-right':''}"><img src="${c.photo||'https://via.placeholder.com/30'}" class="msg-avatar"><div class="msg-body"><div class="msg-name">${c.name}</div><div>${c.text}</div></div></div>`; }); b.scrollTop=b.scrollHeight; });
+
+    window.openProfileModal = () => document.getElementById('profileModal').style.display = 'flex';
+    document.getElementById('fileInp').onchange = async (e) => { const f=e.target.files[0]; if(f){ const r=ref(storage,`profiles/${auth.currentUser.uid}`); await uploadBytes(r,f); await updateProfile(auth.currentUser,{photoURL:await getDownloadURL(r)}); location.reload(); }};
+    window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
     window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
 </script>
 </body>
