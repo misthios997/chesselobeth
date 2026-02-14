@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary: #ffd700; --bg: #1a1a1a; --card: #2d2d2d; --text: #ffffff; --accent: #81b64c; --red: #ff4d4d; }
-        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; user-select: none; -webkit-user-select: none; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; user-select: none; }
         
         header { background: #2d2d2d; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 15px rgba(0,0,0,0.6); position: sticky; top: 0; z-index: 1000; }
         .brand { font-weight: 900; color: var(--primary); font-size: 1.4rem; letter-spacing: 1px; }
@@ -38,9 +38,10 @@
         .data-card { background: #262626; padding: 15px; margin-bottom: 10px; border-radius: 12px; border-left: 5px solid var(--primary); position: relative; }
         .admin-tools { position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; }
         
-        /* List Items (Friend, Inbox, Search) */
+        /* List Items */
         .list-item { background: #262626; padding: 12px; margin-bottom: 10px; border-radius: 10px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border: 1px solid #333; }
         .list-item img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid #555; }
+        .list-content { flex: 1; display: flex; flex-direction: column; font-size: 0.9rem; }
         .list-actions { display: flex; gap: 8px; margin-top: 8px; width: 100%; }
         
         .btn-mini { padding: 8px 12px; border-radius: 6px; border: none; color: white; cursor: pointer; font-size: 0.8rem; font-weight: bold; flex: 1; transition: 0.2s; }
@@ -173,10 +174,6 @@
                 <button class="btn-gold" style="width:auto; margin:0; padding:10px;" onclick="searchFriend()">Search</button>
             </div>
             <div id="friendSearchResults" style="margin-top:15px; font-weight:bold; color:#aaa;">Result: None</div>
-            
-            <hr style="border:0.5px solid #444; margin:15px 0;">
-            <h3>Recommendation</h3>
-            <div id="friendRecsContent"></div>
             <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
         </div>
     </div>
@@ -185,6 +182,9 @@
         <div class="modal">
             <h2 style="color:var(--primary)">Friend List</h2>
             <div id="friendListContent"></div>
+            <hr style="border:0.5px solid #444; margin:15px 0;">
+            <h3 style="color:#aaa; font-size:0.9rem;">Recommendation</h3>
+            <div id="friendRecsContent"></div>
             <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
         </div>
     </div>
@@ -256,7 +256,7 @@
     <div id="chatOverlay">
         <div class="chat-header"><b>LIVE CHAT</b><button onclick="toggleChat(false)" style="background:none; border:none; color:white; font-size:1.5rem">&times;</button></div>
         <div id="chatBox"></div>
-        <div style="padding:15px; display:flex; gap:10px; background:#2d2d2d;">
+        <div class="chat-input-bar" style="padding:15px; display:flex; gap:10px; background:#2d2d2d;">
             <input type="text" id="chatIn" style="flex:1; margin:0;" placeholder="Type..." onkeypress="if(event.key==='Enter')sendChat()">
             <button onclick="sendChat()" style="background:var(--primary); border:none; padding:10px 20px; border-radius:8px; font-weight:bold;">SEND</button>
         </div>
@@ -300,19 +300,20 @@
         let user, curName, myTitle = "", timerVal = 10, variant = "standard", botLvl = 1, sInterval, roomId, unsubRoom, unsubPChat;
         let serverVersion = 0;
 
-        // -- WINDOW FUNCTIONS (DIDEFINISIKAN DIAWAL BIAR GAK ERROR) --
+        // -- WINDOW FUNCTIONS --
         window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
         window.toggleDropdown = () => { const m = document.getElementById('mainMenu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
         window.switchSection = (s) => { document.querySelectorAll('.section-view').forEach(v => v.style.display = 'none'); document.getElementById('sec-'+s).style.display = 'block'; window.toggleDropdown(); };
         window.openInbox = async () => { 
             document.getElementById('inboxModal').style.display = 'flex'; window.toggleDropdown();
             document.getElementById('inboxDot').style.display = 'none';
+            // Mark all as read
             const s = await getDocs(query(collection(db, "inbox"), where("to", "==", curName), where("read", "==", false)));
             s.forEach(d => updateDoc(doc(db, "inbox", d.id), { read: true }));
         };
         window.delInbox = async(id) => await deleteDoc(doc(db, "inbox", id));
-        window.openAddFriend = () => { document.getElementById('addFriendModal').style.display='flex'; loadRecs(); window.toggleDropdown(); };
-        window.openFriendList = () => { document.getElementById('friendListModal').style.display='flex'; loadFriendList(); window.toggleDropdown(); };
+        window.openAddFriend = () => { document.getElementById('addFriendModal').style.display='flex'; window.toggleDropdown(); };
+        window.openFriendList = () => { document.getElementById('friendListModal').style.display='flex'; loadFriendList(); loadRecs(); window.toggleDropdown(); };
         window.openOwnerTools = () => { document.getElementById('ownerToolsModal').style.display = 'flex'; window.toggleDropdown(); };
         window.openAddModal = () => document.getElementById('addModal').style.display = 'flex';
         window.openAvatarModal = () => document.getElementById('avatarModal').style.display = 'flex';
@@ -328,20 +329,17 @@
             if(!u) window.location.href = "index.html";
             else {
                 user = u; curName = u.displayName;
-                
                 checkBanStatus(curName);
                 
-                // SAVE USER DATA FOR SEARCH
+                // SAVE USER FOR SEARCH
                 await setDoc(doc(db, "users", curName), { name: curName, photo: u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg" }, { merge: true });
 
-                // TITLE CHECK
                 const tDoc = await getDoc(doc(db, "titles", curName));
                 if(tDoc.exists()) { myTitle = tDoc.data().title; await updateDoc(doc(db, "users", curName), { title: myTitle }); }
 
                 document.getElementById('welcomeMsg').innerText = `Welcome, ${myTitle ? '['+myTitle+'] ' : ''}${curName}`;
                 document.getElementById('myAvatar').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
                 
-                // ACCESS CHECK
                 const aDoc = await getDoc(doc(db, "access", curName));
                 if(curName === "Jovan" || aDoc.exists()) {
                     document.getElementById('ownerFab').style.display = 'flex';
@@ -353,7 +351,7 @@
             }
         });
 
-        // --- INBOX ---
+        // --- INBOX LOGIC ---
         function listenInbox() {
             onSnapshot(query(collection(db, "inbox"), where("to", "==", curName)), (s) => {
                 const list = document.getElementById('inboxContent'); list.innerHTML = "";
@@ -373,21 +371,34 @@
                     list.innerHTML += `<div class="list-item" style="display:block">${content}</div>`;
                 });
                 document.getElementById('inboxDot').style.display = hasUnread ? 'block' : 'none';
-                document.getElementById('inboxCount').innerText = hasUnread ? '(!)' : '';
             });
         }
 
-        // --- SEARCH & FRIENDS ---
+        // --- SEARCH & FRIENDS (FIXED SEARCH) ---
         window.searchFriend = async () => {
             const val = document.getElementById('friendSearchIn').value;
             const res = document.getElementById('friendSearchResults');
+            
             if(!val) { res.innerHTML = "Result: None"; return; }
+            
+            // Fix: Simple exact search or range search
             const q = query(collection(db, "users"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'));
             const s = await getDocs(q);
+            
             res.innerHTML = s.empty ? "Result: None" : "Result:";
             s.forEach(d => {
-                if(d.data().name !== curName)
-                res.innerHTML += `<div class="list-item"><img src="${d.data().photo}"><b>${d.data().name}</b><div class="list-actions"><button class="btn-mini btn-blue" onclick="addFriend('${d.data().name}')">Add</button><button class="btn-mini btn-gray" onclick="seeInfo('${d.data().name}')">Info</button></div></div>`;
+                const u = d.data();
+                if(u.name !== curName) {
+                    res.innerHTML += `
+                    <div class="list-item">
+                        <img src="${u.photo}">
+                        <div class="list-content"><b>${u.name}</b></div>
+                        <div class="list-actions">
+                            <button class="btn-mini btn-blue" onclick="addFriend('${u.name}')">Add</button>
+                            <button class="btn-mini btn-gray" onclick="seeInfo('${u.name}')">Info</button>
+                        </div>
+                    </div>`;
+                }
             });
         };
 
@@ -413,7 +424,7 @@
             });
         }
 
-        // --- INFO & CHALLENGE ---
+        // --- SEE INFO & CHALLENGE ---
         window.seeInfo = async (name) => {
             const u = await getDoc(doc(db, "users", name));
             if(!u.exists()) return;
@@ -426,7 +437,8 @@
             const hSnap = await getDocs(query(collection(db, "history"), where("player", "==", name), limit(5)));
             hSnap.forEach(hd => {
                 const hist = hd.data();
-                h.innerHTML += `<div class="history-item">${hist.player} vs ${hist.opp} (${hist.res})</div>`;
+                // Format: Name vs Opponent (+)
+                h.innerHTML += `<div class="history-item">${hist.player} vs ${hist.opp} (${hist.res.includes(name) ? '+' : '-'})</div>`;
             });
 
             document.getElementById('infoActions').innerHTML = `<button class="btn-gold" style="background:#3498db" onclick="openPrivateChat('${name}')">Chat Privately</button>`;
@@ -454,7 +466,9 @@
 
             unsubRoom = onSnapshot(chalRef, (s) => {
                 if(s.exists() && s.data().status === "accepted") {
-                    window.location.href = `${s.data().variant || 'standard'}.html?id=${s.data().roomId}&side=${document.getElementById('chalSide').value}`;
+                    // Redirect to game.html (NOT standard.html)
+                    const v = s.data().variant === 'crazyhouse' ? 'crazyhouse' : 'game';
+                    window.location.href = `${v}.html?id=${s.data().roomId}&side=${document.getElementById('chalSide').value}`;
                 }
             });
         };
@@ -475,7 +489,9 @@
             }
 
             await deleteDoc(doc(db, "inbox", inboxId));
-            window.location.href = `${vari}.html?id=${newRoomId}&side=${mySide}`;
+            // Redirect to game.html
+            const v = vari === 'crazyhouse' ? 'crazyhouse' : 'game';
+            window.location.href = `${v}.html?id=${newRoomId}&side=${mySide}`;
         };
 
         // --- CHAT SYSTEM ---
@@ -540,7 +556,9 @@
 
         function goGame(id, side) { 
             clearInterval(sInterval); if(unsubRoom) unsubRoom(); 
-            window.location.href = `${variant === "crazyhouse" ? "crazyhouse.html" : "game.html"}?id=${id}&side=${side}`; 
+            // Fix: Redirect to game.html
+            const v = variant === 'crazyhouse' ? 'crazyhouse' : 'game';
+            window.location.href = `${v}.html?id=${id}&side=${side}`; 
         }
 
         // --- OWNER & UPDATE ---
@@ -568,6 +586,12 @@
         }
 
         function loadData() {
+            // Fix Broadcast Loading
+            onSnapshot(doc(db, "config", "broadcastMsg"), (d) => {
+                const txt = d.exists() ? d.data().text : "Welcome to ChessEloBeth!";
+                document.getElementById('bcText').innerText = txt;
+            });
+            
             onSnapshot(doc(db, "config", "settings"), (d) => {
                 if(d.exists()) {
                     serverVersion = d.data().latestVersion || 0;
