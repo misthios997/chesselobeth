@@ -8,63 +8,56 @@
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     
     <style>
-        /* CSS RESET & ANTI-SCROLL */
+        /* LOCK LAYAR AGAR TIDAK SCROLL */
         html, body {
             height: 100%; width: 100%; margin: 0; padding: 0;
             background-color: #161512; color: white;
-            font-family: sans-serif; overflow: hidden;
+            font-family: -apple-system, system-ui, sans-serif;
+            overflow: hidden; touch-action: none;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
 
         .game-container {
-            width: 92%; max-width: 400px;
+            width: 95%; max-width: 400px;
             display: flex; flex-direction: column; gap: 12px;
         }
 
-        /* BOX PLAYER (Bot & You) */
+        /* PLAYER BOX */
         .player-box {
             background: #262421; padding: 10px; border-radius: 8px;
             display: flex; align-items: center; gap: 12px;
-            border: 1px solid #333;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
-        .avatar { width: 45px; height: 45px; border-radius: 4px; background: #444; }
-        .name-area { display: flex; flex-direction: column; }
-        .name-tag { font-weight: bold; font-size: 1rem; }
+        .avatar { width: 48px; height: 48px; border-radius: 4px; background: #444; object-fit: cover; }
+        .name-info { display: flex; flex-direction: column; }
+        .name-text { font-weight: bold; font-size: 1.1rem; }
 
-        /* AREA PAPAN (DENGAN BACKGROUND CADANGAN) */
+        /* AREA PAPAN (WAJIB MUNCUL) */
         #myBoard {
             width: 100%;
             aspect-ratio: 1 / 1;
-            background-color: #312e2b; /* Warna gelap catur */
-            border: 2px solid #444;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            /* Background kotak-kotak CSS kalau gambar gagal load */
-            background-image: 
-                linear-gradient(45deg, #3d3a37 25%, transparent 25%),
-                linear-gradient(-45deg, #3d3a37 25%, transparent 25%),
-                linear-gradient(45deg, transparent 75%, #3d3a37 75%),
-                linear-gradient(-45deg, transparent 75%, #3d3a37 75%);
-            background-size: 25% 25%;
-            background-position: 0 0, 0 12.5%, 12.5% 12.5%, 12.5% 0;
+            border: 2px solid #333;
+            background-color: #2b2b2b;
         }
 
         /* TOMBOL RESIGN */
         .btn-resign {
             background: #b33939; color: white; border: none;
-            padding: 16px; border-radius: 8px; font-weight: bold;
-            font-size: 1.1rem; cursor: pointer; text-transform: uppercase;
+            padding: 18px; border-radius: 8px; font-weight: bold;
+            font-size: 1rem; cursor: pointer; text-transform: uppercase;
+            width: 100%; -webkit-tap-highlight-color: transparent;
         }
         .btn-resign:active { background: #ff4d4d; }
 
         /* MODAL */
-        .modal {
+        .overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 999; justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center;
         }
         .modal-box {
             background: #262421; padding: 30px; border-radius: 12px;
-            text-align: center; border: 2px solid #ffd700; width: 80%;
+            text-align: center; border: 2px solid #ffd700; width: 85%;
         }
     </style>
 </head>
@@ -72,29 +65,29 @@
 
     <div class="game-container">
         <div class="player-box">
-            <img src="https://images.chesscomfiles.com/uploads/v1/user/170960309.8471168b.200x200o.e1808620248c.png" class="avatar" onerror="this.src='https://www.chess.com/bundles/web/images/user-image.svg'">
-            <div class="name-area">
-                <span class="name-tag" id="botNameDisplay">Bot (Level 1)</span>
+            <img id="botPic" class="avatar" src="https://images.chesscomfiles.com/uploads/v1/user/170960309.8471168b.200x200o.e1808620248c.png">
+            <div class="name-info">
+                <span class="name-text" id="botDisplay">Stockfish (Level 1)</span>
             </div>
         </div>
 
         <div id="myBoard"></div>
 
         <div class="player-box">
-            <img id="userAvatar" src="https://www.chess.com/bundles/web/images/user-image.svg" class="avatar">
-            <div class="name-area">
-                <span class="name-tag" id="userNameDisplay">Jovan (You)</span>
+            <img id="userPic" class="avatar" src="https://www.chess.com/bundles/web/images/user-image.svg">
+            <div class="name-info">
+                <span class="name-text" id="userDisplay">Player (You)</span>
             </div>
         </div>
 
-        <button class="btn-resign" id="resignBtn">RESIGN</button>
+        <button class="btn-resign" onclick="handleResign()">RESIGN</button>
     </div>
 
-    <div id="modalEnd" class="modal">
+    <div id="gameOverModal" class="overlay">
         <div class="modal-box">
-            <h2 id="modalTitle" style="color:#ffd700; margin:0;">GAME OVER</h2>
-            <p id="modalReason" style="color:#ccc; margin:15px 0;"></p>
-            <button onclick="window.location.href='main.html'" style="width:100%; padding:15px; background:#81b64c; color:white; border:none; border-radius:8px; font-weight:bold;">LOBBY</button>
+            <h2 id="resTitle" style="color:#ffd700; margin:0;">GAME OVER</h2>
+            <p id="resDesc" style="color:#ccc; margin:15px 0;"></p>
+            <button onclick="window.location.href='main.html'" style="width:100%; padding:15px; background:#81b64c; color:white; border:none; border-radius:8px; font-weight:bold;">KEMBALI KE LOBBY</button>
         </div>
     </div>
 
@@ -103,21 +96,24 @@
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 
     <script>
+        // INISIALISASI
         var board = null;
         var game = new Chess();
-        var stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js');
+        // STOCKFISH TERBARU (V16)
+        var stockfish = new Worker('https://stockfishjs.azureedge.net/stockfish.js');
 
-        // Setup Data
-        const urlParams = new URLSearchParams(window.location.search);
-        const name = urlParams.get('name') || "Jovan";
-        const level = urlParams.get('level') || "1";
-        const pic = urlParams.get('pic');
+        // AMBIL DATA URL
+        const params = new URLSearchParams(window.location.search);
+        const pName = params.get('name') || "Jovan";
+        const pPic = params.get('pic') || "";
+        const bLevel = params.get('level') || "1";
 
-        $('#userNameDisplay').text(`${name} (You)`);
-        $('#botNameDisplay').text(`Bot (Level ${level})`);
-        if(pic) $('#userAvatar').attr('src', decodeURIComponent(pic));
+        // UPDATE UI
+        document.getElementById('userDisplay').innerText = pName + " (You)";
+        document.getElementById('botDisplay').innerText = "Stockfish (Level " + bLevel + ")";
+        if(pPic) document.getElementById('userPic').src = decodeURIComponent(pPic);
 
-        // Bot Logic
+        // LOGIKA BOT
         stockfish.onmessage = function(e) {
             if (e.data.startsWith('bestmove')) {
                 const move = e.data.split(' ')[1];
@@ -129,61 +125,64 @@
             }
         };
 
-        function makeBotMove() {
+        function botMove() {
             if (game.game_over()) return;
             stockfish.postMessage('position fen ' + game.fen());
-            stockfish.postMessage('setoption name Skill Level value ' + level);
+            stockfish.postMessage('setoption name Skill Level value ' + bLevel);
             stockfish.postMessage('go depth 10');
         }
 
+        // LOGIKA PAPAN
         function onDrop(source, target) {
             var move = game.move({ from: source, to: target, promotion: 'q' });
             if (move === null) return 'snapback';
-            window.setTimeout(makeBotMove, 400);
+            window.setTimeout(botMove, 400);
             checkStatus();
         }
 
         function checkStatus() {
             if (game.in_checkmate()) {
-                endGame(game.turn() === 'b' ? 'YOU WIN!' : 'YOU LOSE', 'Skakmat');
+                showResult(game.turn() === 'b' ? 'YOU WIN!' : 'YOU LOSE', 'Skakmat!');
             } else if (game.in_draw()) {
-                endGame('DRAW', 'Remis');
+                showResult('DRAW', 'Permainan Remis');
             }
         }
 
-        function endGame(title, reason) {
-            $('#modalTitle').text(title);
-            $('#modalReason').text(reason);
-            $('#modalEnd').css('display', 'flex');
+        function showResult(t, d) {
+            document.getElementById('resTitle').innerText = t;
+            document.getElementById('resDesc').innerText = d;
+            document.getElementById('gameOverModal').style.display = 'flex';
         }
 
-        // Resign Button Fix
-        $('#resignBtn').on('click touchstart', function() {
-            if(confirm("Nyerah?")) endGame("YOU LOSE", "Kamu menyerah");
-        });
+        // RESIGN BUTTON (FIXED)
+        function handleResign() {
+            if(confirm("Yakin ingin menyerah?")) {
+                showResult("YOU LOSE", "Kamu telah menyerah.");
+            }
+        }
 
-        // INIT BOARD (YANG PALING PENTING)
-        $(window).on('load', function() {
-            // Kita hitung lebar kontainer secara paksa
-            const boardWidth = $('#myBoard').width();
-            
-            board = Chessboard('myBoard', {
+        // RUNNER
+        $(document).ready(function() {
+            const cfg = {
                 draggable: true,
                 position: 'start',
-                width: boardWidth, // Force pixel size
                 onDragStart: (s, p) => !game.game_over() && p.search(/^w/) !== -1,
                 onDrop: onDrop,
                 onSnapEnd: () => board.position(game.fen()),
                 pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
-            });
-
-            // Re-render paksa 3 kali untuk memastikan muncul
-            [100, 500, 1000].forEach(delay => {
-                setTimeout(() => board.resize(), delay);
-            });
-
-            stockfish.postMessage('uci');
+            };
+            
+            board = Chessboard('myBoard', cfg);
+            
+            // PAKSA RESIZE SUPAYA PAPAN MUNCUL
+            setTimeout(() => { 
+                board.resize(); 
+                stockfish.postMessage('uci');
+            }, 150);
         });
+
+        // Responsif kalau layar diputar
+        window.onresize = () => board.resize();
     </script>
 </body>
 </html>
