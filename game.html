@@ -14,13 +14,10 @@
         .avatar { width: 40px; height: 40px; border-radius: 4px; border: 2px solid #444; object-fit: cover; }
         .name-tag { font-weight: bold; font-size: 0.9rem; }
         
-        /* TIMER STYLE */
-        .timer-box { background: #111; color: #fff; padding: 5px 12px; border-radius: 5px; font-family: 'Courier New', monospace; font-weight: 900; font-size: 1.2rem; min-width: 60px; text-align: center; border: 1px solid #444; }
-        .timer-box.active { background: #fff; color: #000; border-color: var(--primary); }
-        .timer-box.low { color: var(--danger); }
+        .timer-box { background: #111; color: #fff; padding: 5px 12px; border-radius: 5px; font-family: 'Courier New', monospace; font-weight: 900; font-size: 1.2rem; min-width: 70px; text-align: center; border: 1px solid #444; transition: 0.3s; }
+        .timer-box.active { background: #fff; color: #000; border-color: var(--primary); transform: scale(1.05); }
 
         #board { width: 90vw; max-width: 400px; margin: 10px 0; border: 2px solid #333; }
-        
         .controls { width: 90vw; max-width: 400px; display: flex; gap: 10px; margin-top: 10px; }
         .btn { flex: 1; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; }
         .btn-resign { background: #b33939; }
@@ -37,7 +34,7 @@
             <img src="" id="oppPic" class="avatar">
             <div class="name-tag" id="oppName">Opponent...</div>
         </div>
-        <div id="oppTimer" class="timer-box">00:00</div>
+        <div id="oppTimer" class="timer-box">10:00</div>
     </div>
 
     <div id="board"></div>
@@ -47,7 +44,7 @@
             <img src="" id="myPic" class="avatar">
             <div class="name-tag" id="myName">You</div>
         </div>
-        <div id="myTimer" class="timer-box">00:00</div>
+        <div id="myTimer" class="timer-box">10:00</div>
     </div>
 
     <div class="controls">
@@ -68,12 +65,13 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"; // Note: Adjust import if necessary based on your setup
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore as getFs, doc as fsDoc, onSnapshot as fsSnap, updateDoc as fsUpd } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", authDomain: "chesselobeth.firebaseapp.com", projectId: "chesselobeth", storageBucket: "chesselobeth.firebasestorage.app", messagingSenderId: "829508204106", appId: "1:829508204106:web:e8952c359f63d49646d8b3" };
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const db = getFs(app);
     const auth = getAuth(app);
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -83,7 +81,8 @@
     let game = new Chess();
     let board = null;
     let user = null;
-    let timeLeft = { w: 600, b: 600 }; // Default 10 min
+    let timeLeft = { w: 600, b: 600 }; 
+    let timerStarted = false;
     let timerInterval = null;
 
     onAuthStateChanged(auth, (u) => {
@@ -95,25 +94,26 @@
     });
 
     function formatTime(s) {
+        if (s < 0) return "00:00";
         let m = Math.floor(s / 60);
         let sec = s % 60;
         return (m < 10 ? '0' + m : m) + ":" + (sec < 10 ? '0' + sec : sec);
     }
 
-    function runTimer() {
-        if (timerInterval) clearInterval(timerInterval);
+    function startTimerLogic() {
+        if (timerInterval) return; // Prevent multiple intervals
         timerInterval = setInterval(() => {
-            let turn = game.turn(); // 'w' or 'b'
+            if (game.game_over()) { clearInterval(timerInterval); return; }
+            
+            let turn = game.turn();
             timeLeft[turn]--;
 
-            // Update UI
             const myT = document.getElementById('myTimer');
             const oppT = document.getElementById('oppTimer');
             
             myT.innerText = formatTime(mySide === 'white' ? timeLeft.w : timeLeft.b);
             oppT.innerText = formatTime(mySide === 'white' ? timeLeft.b : timeLeft.w);
 
-            // Active class highlight
             if (turn === mySide.charAt(0)) {
                 myT.classList.add('active'); oppT.classList.remove('active');
             } else {
@@ -122,20 +122,24 @@
 
             if (timeLeft[turn] <= 0) {
                 clearInterval(timerInterval);
-                showGameOver("TIME OUT", (turn === 'w' ? "Black" : "White") + " wins by time");
+                checkTimeout();
             }
         }, 1000);
     }
 
+    async function checkTimeout() {
+        const roomRef = fsDoc(db, "rooms", roomId);
+        await fsUpd(roomRef, { status: "timeout" });
+    }
+
     async function initMatch() {
-        const roomRef = doc(db, "rooms", roomId);
+        const roomRef = fsDoc(db, "rooms", roomId);
         
-        onSnapshot(roomRef, (snapshot) => {
+        fsSnap(roomRef, (snapshot) => {
             const data = snapshot.data();
             if (!data) return;
 
-            // Sync Timers & Info
-            if (data.timeLeft) timeLeft = data.timeLeft;
+            // Update info lawan
             if (mySide === 'white' && data.player2) {
                 document.getElementById('oppName').innerText = data.player2.name;
                 document.getElementById('oppPic').src = data.player2.photo;
@@ -144,17 +148,18 @@
                 document.getElementById('oppPic').src = data.player1.photo;
             }
 
-            // Sync Move
+            // Sync Timers & Move
+            if (data.timeLeft) timeLeft = data.timeLeft;
             if (data.lastFen && data.lastFen !== game.fen()) {
                 game.load(data.lastFen);
                 board.position(data.lastFen);
-                runTimer();
+                if (!timerStarted) { timerStarted = true; startTimerLogic(); }
             }
 
-            // Sync Status
-            if (data.status === "resigned") {
-                showGameOver(data.resignedBy === user.displayName ? "YOU RESIGNED" : "OPPONENT RESIGNED", "Match finished.");
-            }
+            // Status Check
+            if (data.status === "resigned") showGameOver(data.resignedBy === user.displayName ? "YOU RESIGNED" : "OPPONENT RESIGNED", "Match Over");
+            if (data.status === "timeout") showGameOver("TIME OUT", "One player ran out of time");
+            if (game.game_over()) showGameOver("GAME OVER", "Match finished naturally");
         });
 
         board = Chessboard('board', {
@@ -164,30 +169,27 @@
             pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
             onDragStart: (source, piece) => {
                 if (game.game_over()) return false;
-                if ((mySide === 'white' && piece.search(/^b/) !== -1) || (mySide === 'black' && piece.search(/^w/) !== -1)) return false;
                 if (game.turn() !== mySide.charAt(0)) return false;
+                if ((mySide === 'white' && piece.search(/^b/) !== -1) || (mySide === 'black' && piece.search(/^w/) !== -1)) return false;
             },
             onDrop: async (source, target) => {
                 let move = game.move({ from: source, to: target, promotion: 'q' });
                 if (move === null) return 'snapback';
                 
-                await updateDoc(roomRef, {
+                if (!timerStarted) { timerStarted = true; startTimerLogic(); }
+
+                await fsUpd(roomRef, {
                     lastFen: game.fen(),
                     timeLeft: timeLeft,
                     lastMove: Date.now()
                 });
-                runTimer();
             }
         });
-
-        // Set initial timer text
-        document.getElementById('myTimer').innerText = formatTime(600);
-        document.getElementById('oppTimer').innerText = formatTime(600);
     }
 
     window.confirmResign = async () => {
-        if (confirm("Resign match?")) {
-            await updateDoc(doc(db, "rooms", roomId), { status: "resigned", resignedBy: user.displayName });
+        if (confirm("Resign now?")) {
+            await fsUpd(fsDoc(db, "rooms", roomId), { status: "resigned", resignedBy: user.displayName });
         }
     };
 
