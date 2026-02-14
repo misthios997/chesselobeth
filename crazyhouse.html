@@ -9,43 +9,18 @@
         :root { --primary: #ffd700; --bg: #1a1a1a; --card: #262421; --danger: #b33939; }
         html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; overscroll-behavior: none; }
         body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        
-        .match-container { width: 95vw; max-width: 450px; margin-top: 10px; display: flex; flex-direction: column; }
-
+        .match-container { width: 95vw; max-width: 450px; margin-top: 10px; }
         .player-card { background: var(--card); padding: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; margin: 5px 0; border: 1px solid #333; }
         .p-info { display: flex; align-items: center; gap: 10px; }
         .ava { width: 40px; height: 40px; border-radius: 6px; background: #444; object-fit: cover; border: 1px solid var(--primary); }
         .name { font-weight: bold; font-size: 0.9rem; color: #fff; }
-        .timer-display { background: #000; padding: 5px 10px; border-radius: 6px; font-family: monospace; font-size: 1.2rem; font-weight: bold; border: 1px solid #444; min-width: 60px; text-align: center; }
-
-        .reserve-bar { 
-            background: #333; 
-            height: 50px; 
-            margin: 5px 0; 
-            border-radius: 8px; 
-            display: flex; 
-            align-items: center; 
-            padding: 0 10px; 
-            gap: 5px; 
-            border: 1px solid #444; 
-            overflow-x: auto;
-        }
-
-        /* Container papan dipastikan punya ukuran */
-        #board { 
-            width: 100%; 
-            aspect-ratio: 1/1; 
-            border: 4px solid #333; 
-            border-radius: 4px; 
-            touch-action: none; 
-            background-color: #262421; 
-        }
-
-        .reserve-piece { width: 38px; height: 38px; cursor: pointer; filter: drop-shadow(0 0 1px #fff); }
-        .reserve-piece.selected { background: rgba(255,215,0,0.4); border-radius: 5px; box-shadow: 0 0 10px var(--primary); }
-
+        .timer-display { background: #000; padding: 5px 10px; border-radius: 6px; font-family: monospace; font-size: 1.2rem; font-weight: bold; border: 1px solid #444; min-width: 65px; text-align: center; }
+        .timer-display.active { border-color: var(--primary); color: var(--primary); }
+        .reserve-bar { background: #333; height: 50px; margin: 5px 0; border-radius: 8px; display: flex; align-items: center; padding: 0 10px; gap: 5px; border: 1px solid #444; overflow-x: auto; }
+        .reserve-piece { width: 38px; height: 38px; cursor: pointer; filter: drop-shadow(0 0 1px #fff); transition: 0.2s; }
+        .reserve-piece.selected { background: rgba(255,215,0,0.4); border-radius: 5px; box-shadow: 0 0 10px var(--primary); transform: scale(1.1); }
+        #board { width: 100%; aspect-ratio: 1/1; border: 4px solid #333; border-radius: 4px; touch-action: none; }
         .btn-resign { width: 100%; padding: 14px; background: var(--danger); color: white; border: none; border-radius: 10px; font-weight: 900; cursor: pointer; margin-top: 10px; text-transform: uppercase; }
-
         .game-over-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
         .go-box { background: #2d2d2d; padding: 30px; border-radius: 20px; text-align: center; border: 2px solid var(--primary); width: 80%; }
     </style>
@@ -60,13 +35,9 @@
             </div>
             <div id="oppTimer" class="timer-display">10:00</div>
         </div>
-
         <div class="reserve-bar" id="oppReserve"></div>
-
         <div id="board"></div>
-
         <div class="reserve-bar" id="myReserve"></div>
-
         <div class="player-card">
             <div class="p-info">
                 <img src="" id="myPic" class="ava">
@@ -74,16 +45,11 @@
             </div>
             <div id="myTimer" class="timer-display">10:00</div>
         </div>
-
         <button class="btn-resign" onclick="confirmResign()">RESIGN</button>
     </div>
 
     <div class="game-over-overlay" id="gameOverModal">
-        <div class="go-box">
-            <h1 id="goTitle" style="color:var(--primary); margin:0;">MATCH ENDED</h1>
-            <p id="goReason" style="margin: 15px 0; color:#bbb;"></p>
-            <button onclick="window.location.href='main.html'" style="background:var(--primary); border:none; padding:12px 25px; border-radius:8px; font-weight:bold; cursor:pointer; width:100%;">BACK TO LOBBY</button>
-        </div>
+        <div class="go-box"><h1 id="goTitle"></h1><p id="goReason"></p><button onclick="window.location.href='main.html'" style="background:var(--primary); border:none; padding:12px 25px; border-radius:8px; font-weight:bold; cursor:pointer; width:100%;">BACK TO LOBBY</button></div>
     </div>
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
@@ -102,69 +68,88 @@
 
     const params = new URLSearchParams(window.location.search);
     const roomId = params.get('id');
-    const mySide = params.get('side') || 'white'; 
+    const mySide = params.get('side'); 
     const pieceTheme = 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png';
 
     let game = new Chess();
     let board = null;
     let pocket = { white: [], black: [] };
+    let timeLeft = { w: 600, b: 600 };
     let selectedPieceIdx = null;
+    let timerInterval = null;
 
     onAuthStateChanged(auth, (u) => {
-        if (!u) { window.location.href = "index.html"; return; }
+        if (!u) return window.location.href = "index.html";
         document.getElementById('myName').innerText = u.displayName;
         document.getElementById('myPic').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
-        
-        // Render papan di sini setelah elemen dipastikan ada
-        setTimeout(initMatch, 500);
+        initMatch();
     });
+
+    function updateTimerDisplay() {
+        const myT = document.getElementById('myTimer');
+        const oppT = document.getElementById('oppTimer');
+        const wTime = Math.max(0, timeLeft.w);
+        const bTime = Math.max(0, timeLeft.b);
+        
+        const f = (t) => `${Math.floor(t/60)}:${(t%60).toString().padStart(2,'0')}`;
+        
+        if(mySide === 'white') {
+            myT.innerText = f(wTime); oppT.innerText = f(bTime);
+            game.turn() === 'w' ? myT.classList.add('active') : myT.classList.remove('active');
+            game.turn() === 'b' ? oppT.classList.add('active') : oppT.classList.remove('active');
+        } else {
+            myT.innerText = f(bTime); oppT.innerText = f(wTime);
+            game.turn() === 'b' ? myT.classList.add('active') : myT.classList.remove('active');
+            game.turn() === 'w' ? oppT.classList.add('active') : oppT.classList.remove('active');
+        }
+    }
+
+    function startTimer() {
+        if(timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft[game.turn()]--;
+            updateTimerDisplay();
+            if(timeLeft.w <= 0 || timeLeft.b <= 0) showGameOver("TIME OUT", "Match Ended");
+        }, 1000);
+    }
 
     function renderPocket() {
         const myRes = document.getElementById('myReserve');
         const oppRes = document.getElementById('oppReserve');
-        if(!myRes || !oppRes) return;
-
         myRes.innerHTML = ""; oppRes.innerHTML = "";
-        const myPieces = pocket[mySide] || [];
-        const oppSide = mySide === 'white' ? 'black' : 'white';
-        const oppPieces = pocket[oppSide] || [];
-
-        myPieces.forEach((p, idx) => {
+        
+        pocket[mySide].forEach((p, idx) => {
             const img = document.createElement('img');
             img.src = pieceTheme.replace('{piece}', (mySide === 'white' ? 'w' : 'b') + p.toUpperCase());
             img.className = 'reserve-piece' + (selectedPieceIdx === idx ? ' selected' : '');
-            img.onclick = (e) => {
-                e.stopPropagation();
-                if (game.turn() !== mySide.charAt(0)) return;
-                selectedPieceIdx = (selectedPieceIdx === idx) ? null : idx;
-                renderPocket();
-            };
+            img.onclick = () => { if(game.turn() === mySide.charAt(0)) { selectedPieceIdx = idx; renderPocket(); } };
             myRes.appendChild(img);
         });
 
-        oppPieces.forEach(p => {
+        const oppColor = mySide === 'white' ? 'black' : 'white';
+        pocket[oppColor].forEach(p => {
             const img = document.createElement('img');
-            img.src = pieceTheme.replace('{piece}', (oppSide === 'white' ? 'w' : 'b') + p.toUpperCase());
+            img.src = pieceTheme.replace('{piece}', (oppColor === 'white' ? 'w' : 'b') + p.toUpperCase());
             img.className = 'reserve-piece';
             oppRes.appendChild(img);
         });
     }
 
     async function handleDrop(square) {
-        if (selectedPieceIdx === null) return;
-        if (game.get(square)) return; 
+        if (selectedPieceIdx === null || game.turn() !== mySide.charAt(0)) return;
+        const pieceType = pocket[mySide][selectedPieceIdx];
         
-        const pieceType = pocket[mySide][selectedPieceIdx].toLowerCase();
+        // Crazyhouse drop logic via put
+        if (game.get(square)) return;
         const success = game.put({ type: pieceType, color: mySide.charAt(0) }, square);
         
         if (success) {
             pocket[mySide].splice(selectedPieceIdx, 1);
             selectedPieceIdx = null;
-            let f = game.fen().split(' ');
-            f[1] = f[1] === 'w' ? 'b' : 'w';
+            // Switch turn manually after put
+            let f = game.fen().split(' '); f[1] = (f[1]==='w'?'b':'w');
             game.load(f.join(' '));
             board.position(game.fen());
-            renderPocket();
             await sync();
         }
     }
@@ -172,70 +157,53 @@
     async function sync() {
         await updateDoc(doc(db, "rooms", roomId), { 
             lastFen: game.fen(), 
-            pocket: pocket,
-            lastMove: Date.now() 
+            pocket: pocket, 
+            timeLeft: timeLeft, 
+            lastMoveTime: Date.now() 
         });
     }
 
     function initMatch() {
-        if (board) return; // Cegah double init
-
         board = Chessboard('board', {
-            draggable: true,
-            position: 'start',
-            orientation: mySide,
-            pieceTheme: pieceTheme,
-            onDragStart: (s, p) => {
-                if (game.game_over() || game.turn() !== mySide.charAt(0)) return false;
-            },
+            draggable: true, position: 'start', orientation: mySide, pieceTheme: pieceTheme,
+            onDragStart: (s, p) => !game.game_over() && game.turn() === mySide.charAt(0) && p.charAt(0) === mySide.charAt(0),
             onDrop: async (source, target) => {
                 let move = game.move({ from: source, to: target, promotion: 'q' });
                 if (!move) return 'snapback';
                 if (move.captured) {
-                    const whoMoved = game.turn() === 'b' ? 'white' : 'black';
-                    pocket[whoMoved].push(move.captured);
+                    const capturer = game.turn() === 'b' ? 'white' : 'black';
+                    pocket[capturer].push(move.captured);
                 }
-                renderPocket();
                 await sync();
             }
         });
 
-        // Click handler papan untuk drop bidak
-        $('#board').on('click', '.square-55d63', function() {
-            handleDrop($(this).attr('data-square'));
-        });
+        $('#board').on('click', '.square-55d63', function() { handleDrop($(this).attr('data-square')); });
 
-        // Firebase Listener
         onSnapshot(doc(db, "rooms", roomId), (s) => {
-            const d = s.data();
-            if (!d) return;
-
-            // Info Lawan
-            if(mySide === 'white' && d.player2) {
-                document.getElementById('oppName').innerText = d.player2.name;
-                document.getElementById('oppPic').src = d.player2.photo || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
-            } else if(mySide === 'black' && d.player1) {
-                document.getElementById('oppName').innerText = d.player1.name;
-                document.getElementById('oppPic').src = d.player1.photo || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
-            }
-
-            if (d.pocket) pocket = d.pocket;
+            const d = s.data(); if (!d) return;
+            if(mySide==='white' && d.player2) { document.getElementById('oppName').innerText = d.player2.name; document.getElementById('oppPic').src = d.player2.photo; }
+            if(mySide==='black' && d.player1) { document.getElementById('oppName').innerText = d.player1.name; document.getElementById('oppPic').src = d.player1.photo; }
+            
             if (d.lastFen && d.lastFen !== game.fen()) {
                 game.load(d.lastFen);
                 board.position(d.lastFen);
+                startTimer();
             }
+            if (d.pocket) pocket = d.pocket;
+            if (d.timeLeft) timeLeft = d.timeLeft;
             renderPocket();
-            if (d.status === "resigned") showGameOver(d.resignedBy === auth.currentUser.displayName ? "YOU RESIGNED" : "OPPONENT RESIGNED", "GGWP");
+            updateTimerDisplay();
+            if (d.status === "resigned") showGameOver("MATCH ENDED", d.resignedBy + " resigned");
         });
     }
 
     window.confirmResign = async () => {
-        if(confirm("Yakin mau nyerah?")) {
-            await updateDoc(doc(db, "rooms", roomId), { status: "resigned", resignedBy: auth.currentUser.displayName });
-        }
+        if(confirm("Resign?")) await updateDoc(doc(db, "rooms", roomId), { status: "resigned", resignedBy: auth.currentUser.displayName });
     };
 
     function showGameOver(t, r) {
+        clearInterval(timerInterval);
         document.getElementById('goTitle').innerText = t;
         document.getElementById('goReason').innerText = r;
         document.getElementById('gameOverModal').style.display = 'flex';
