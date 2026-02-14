@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     
     <style>
-        /* ANTI SCROLL & LOCK SCREEN */
+        /* TOTAL ANTI-SCROLL */
         html, body {
             overflow: hidden;
             position: fixed;
@@ -28,15 +28,14 @@
             align-items: center;
             justify-content: center;
             padding: 10px;
-            box-sizing: border-box;
         }
 
         .game-container {
-            width: 95%;
+            width: 100%;
             max-width: 400px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
         }
 
         .player-box {
@@ -46,57 +45,44 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            min-height: 60px;
         }
 
         .avatar {
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             border-radius: 4px;
             background: #333;
             object-fit: cover;
         }
 
         .username { font-weight: bold; font-size: 1rem; color: #fff; }
-        .info-sub { font-size: 0.8rem; color: #999; }
+        .sub-text { font-size: 0.8rem; color: #999; }
 
-        /* WRAPPER PAPAN */
-        #board-area {
+        /* AREA PAPAN */
+        #board-wrapper {
             width: 100%;
             display: flex;
             justify-content: center;
+            background: #161512;
         }
 
         #myBoard {
             border: 2px solid #333;
-            background-color: #262421;
+            /* Ukuran akan diatur lewat JS */
         }
 
-        /* BUTTON */
         .btn-resign {
             background: #b33939;
             color: white;
             border: none;
-            padding: 18px;
+            padding: 16px;
             border-radius: 8px;
             font-weight: bold;
             width: 100%;
             cursor: pointer;
             text-transform: uppercase;
             font-size: 1rem;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .btn-resign:active { background: #ff4d4d; }
-
-        /* MODAL */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); display: none;
-            justify-content: center; align-items: center; z-index: 9999;
-        }
-        .modal-content {
-            background: #262421; padding: 30px; border-radius: 12px;
-            text-align: center; border: 2px solid #ffd700; width: 80%;
         }
     </style>
 </head>
@@ -104,14 +90,14 @@
 
     <div class="game-container">
         <div class="player-box">
-            <img src="https://images.chesscomfiles.com/uploads/v1/user/170960309.8471168b.200x200o.e1808620248c.png" id="oppPic" class="avatar">
+            <img src="https://images.chesscomfiles.com/uploads/v1/user/170960309.8471168b.200x200o.e1808620248c.png" class="avatar">
             <div>
                 <div class="username" id="oppName">Bot</div>
-                <div class="info-sub" id="oppElo">Level 1</div>
+                <div class="sub-text" id="oppLevel">Level 1</div>
             </div>
         </div>
 
-        <div id="board-area">
+        <div id="board-wrapper">
             <div id="myBoard"></div>
         </div>
 
@@ -119,17 +105,17 @@
             <img src="" id="myPic" class="avatar">
             <div>
                 <div class="username" id="myName">Jovan</div>
-                <div class="info-sub">Pemain</div>
+                <div class="sub-text">Pemain</div>
             </div>
         </div>
 
-        <button class="btn-resign" onclick="handleResign()">RESIGN</button>
+        <button class="btn-resign" id="finalResignBtn">RESIGN</button>
     </div>
 
-    <div class="modal-overlay" id="gameOverModal">
-        <div class="modal-content">
-            <h2 id="goTitle" style="color:#ffd700; margin:0;">GAME OVER</h2>
-            <p id="goReason" style="color: #ccc; margin: 15px 0;"></p>
+    <div id="resultModal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); display:none; justify-content:center; align-items:center; z-index:9999;">
+        <div style="background:#262421; padding:30px; border-radius:12px; text-align:center; border:2px solid #ffd700; width:80%;">
+            <h2 id="modalTitle" style="color:#ffd700; margin:0;">GAME OVER</h2>
+            <p id="modalDesc" style="color:#ccc; margin:15px 0;"></p>
             <button style="width:100%; padding:15px; background:#81b64c; color:white; border:none; border-radius:8px; font-weight:bold;" onclick="window.location.href='main.html'">KE LOBBY</button>
         </div>
     </div>
@@ -143,23 +129,20 @@
         var game = new Chess();
         var stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js');
 
-        // Ambil Data dari URL
         const params = new URLSearchParams(window.location.search);
         const pName = params.get('name') || "Jovan";
         const pPic = params.get('pic') || "";
         const bLevel = parseInt(params.get('level')) || 1;
 
-        // Set UI
-        document.getElementById('myName').innerText = pName;
-        document.getElementById('myPic').src = decodeURIComponent(pPic);
-        document.getElementById('oppElo').innerText = 'Level ' + bLevel;
+        $('#myName').text(pName);
+        $('#myPic').attr('src', decodeURIComponent(pPic));
+        $('#oppLevel').text('Level ' + bLevel);
 
-        // Logic Engine
         stockfish.onmessage = function(e) {
             if (e.data.startsWith('bestmove')) {
-                const moveStr = e.data.split(' ')[1];
-                if (moveStr) {
-                    game.move({ from: moveStr.substring(0, 2), to: moveStr.substring(2, 4), promotion: 'q' });
+                const move = e.data.split(' ')[1];
+                if (move) {
+                    game.move({ from: move.substring(0, 2), to: move.substring(2, 4), promotion: 'q' });
                     board.position(game.fen());
                     checkGameOver();
                 }
@@ -173,56 +156,48 @@
             stockfish.postMessage('go depth 10');
         }
 
-        function onDragStart(source, piece) {
-            if (game.game_over() || piece.search(/^b/) !== -1) return false;
-        }
-
         function onDrop(source, target) {
             var move = game.move({ from: source, to: target, promotion: 'q' });
             if (move === null) return 'snapback';
-            window.setTimeout(makeBotMove, 400);
+            window.setTimeout(makeBotMove, 500);
             checkGameOver();
         }
 
         function checkGameOver() {
             if (game.in_checkmate()) {
-                showModal(game.turn() === 'b' ? 'YOU WIN!' : 'YOU LOSE', 'Skakmat');
+                showFinal(game.turn() === 'b' ? 'YOU WIN!' : 'YOU LOSE', 'Skakmat');
             } else if (game.in_draw()) {
-                showModal('DRAW', 'Permainan Remis');
+                showFinal('DRAW', 'Remis');
             }
         }
 
-        function showModal(title, reason) {
-            document.getElementById('goTitle').innerText = title;
-            document.getElementById('goReason').innerText = reason;
-            document.getElementById('gameOverModal').style.display = 'flex';
+        function showFinal(t, d) {
+            $('#modalTitle').text(t);
+            $('#modalDesc').text(d);
+            $('#resultModal').css('display', 'flex');
         }
 
-        function handleResign() {
-            if(confirm("Yakin ingin menyerah?")) {
-                showModal("YOU LOSE", "Kamu menyerah (Resigned)");
-            }
-        }
+        document.getElementById('finalResignBtn').onclick = function() {
+            if(confirm("Menyerah?")) showFinal("YOU LOSE", "Kamu menyerah");
+        };
 
-        // Inisialisasi Papan dengan Force Width
         $(document).ready(function() {
-            const containerWidth = $('#board-area').width();
-            
+            // KUNCI UKURAN PAPAN SECARA MANUAL (PENTING!)
+            const screenWidth = $(window).width();
+            const boardSize = Math.min(screenWidth - 40, 400);
+            $('#myBoard').css('width', boardSize + 'px');
+
             board = Chessboard('myBoard', {
                 draggable: true,
-                width: containerWidth,
                 position: 'start',
-                onDragStart: onDragStart,
+                onDragStart: (s, p) => !game.game_over() && p.search(/^w/) !== -1,
                 onDrop: onDrop,
-                onSnapEnd: function() { board.position(game.fen()); },
+                onSnapEnd: () => board.position(game.fen()),
                 pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
             });
 
-            // Re-sync untuk asuransi papan muncul
-            setTimeout(() => { 
-                board.resize(); 
-                stockfish.postMessage('uci');
-            }, 500);
+            // Re-render asuransi
+            setTimeout(() => { board.resize(); stockfish.postMessage('uci'); }, 600);
         });
     </script>
 </body>
