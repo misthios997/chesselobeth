@@ -20,16 +20,31 @@
         .reserve-piece { width: 38px; height: 38px; cursor: pointer; filter: drop-shadow(0 0 1px #fff); transition: 0.2s; }
         .reserve-piece.selected { background: rgba(255,215,0,0.4); border-radius: 5px; box-shadow: 0 0 10px var(--primary); transform: scale(1.1); }
         #board { width: 100%; aspect-ratio: 1/1; border: 4px solid #333; border-radius: 4px; }
+        
+        /* Modal Promosi */
         #promoModal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 10000; }
         .promo-box { background: #2d2d2d; padding: 20px; border-radius: 15px; display: flex; gap: 10px; border: 2px solid var(--primary); }
         .promo-opt { width: 60px; height: 60px; cursor: pointer; background: #444; border-radius: 8px; }
-        .game-over-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
-        .go-box { background: #2d2d2d; padding: 30px; border-radius: 20px; text-align: center; border: 2px solid var(--primary); width: 80%; }
+
+        /* Modal Game Over */
+        .game-over-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+        .go-box { background: #2d2d2d; padding: 30px; border-radius: 20px; text-align: center; border: 2px solid var(--primary); width: 80%; max-width: 300px; }
+        .go-box h1 { margin: 0 0 10px 0; color: var(--primary); font-size: 2rem; }
+        .go-box p { margin: 0 0 20px 0; font-size: 1.1rem; color: #ccc; }
+        .go-btn { background: var(--primary); border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; color: #000; font-size: 1rem; }
     </style>
 </head>
 <body>
 
     <div id="promoModal"><div class="promo-box" id="promoPieces"></div></div>
+
+    <div class="game-over-overlay" id="gameOverModal">
+        <div class="go-box">
+            <h1 id="goTitle">GAME OVER</h1>
+            <p id="goReason">Loading result...</p>
+            <button class="go-btn" onclick="window.location.href='main.html'">BACK TO LOBBY</button>
+        </div>
+    </div>
 
     <div class="match-container">
         <div class="player-card">
@@ -50,10 +65,6 @@
             <div id="myTimer" class="timer-display">10:00</div>
         </div>
         <button class="btn-resign" onclick="confirmResign()">RESIGN</button>
-    </div>
-
-    <div class="game-over-overlay" id="gameOverModal">
-        <div class="go-box"><h1 id="goTitle"></h1><p id="goReason"></p><button onclick="window.location.href='main.html'" style="background:var(--primary); border:none; padding:12px 25px; border-radius:8px; font-weight:bold; cursor:pointer; width:100%;">BACK TO LOBBY</button></div>
     </div>
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
@@ -83,18 +94,19 @@
     let isMoving = false;
     let selectedPieceIdx = null;
     let pendingMove = null;
+    let gameEnded = false;
 
     onAuthStateChanged(auth, (u) => {
         if (!u) return window.location.href = "index.html";
         document.getElementById('myName').innerText = u.displayName;
-        document.getElementById('myPic').src = u.photoURL;
+        document.getElementById('myPic').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
         initMatch();
     });
 
     function initMatch() {
         board = Chessboard('board', {
             draggable: true, position: 'start', orientation: mySide, pieceTheme: pieceTheme,
-            onDragStart: (s, p) => !isMoving && game.turn() === myColor && p.charAt(0) === myColor,
+            onDragStart: (s, p) => !gameEnded && !isMoving && game.turn() === myColor && p.charAt(0) === myColor,
             onDrop: (source, target) => {
                 const moveObj = { from: source, to: target };
                 const piece = game.get(source);
@@ -119,7 +131,12 @@
         $('#board').on('click', '.square-55d63', function() { handleDrop($(this).attr('data-square')); });
 
         onSnapshot(doc(db, "rooms", roomId), (s) => {
-            const d = s.data(); if (!d || isMoving) return;
+            const d = s.data(); if (!d) return;
+            
+            // Sync Player Info
+            if(mySide==='white' && d.player2) { document.getElementById('oppName').innerText = d.player2.name; document.getElementById('oppPic').src = d.player2.photo; }
+            if(mySide==='black' && d.player1) { document.getElementById('oppName').innerText = d.player1.name; document.getElementById('oppPic').src = d.player1.photo; }
+
             if (d.lastFen && d.lastFen !== game.fen()) {
                 game.load(d.lastFen);
                 board.position(d.lastFen);
@@ -127,6 +144,7 @@
             if (d.pocket) pocket = d.pocket;
             if (d.timeLeft) timeLeft = d.timeLeft;
             updateUI();
+            checkGameOver(d);
         });
     }
 
@@ -157,11 +175,11 @@
     }
 
     async function handleDrop(square) {
-        if (isMoving || selectedPieceIdx === null || game.turn() !== myColor) return;
+        if (gameEnded || isMoving || selectedPieceIdx === null || game.turn() !== myColor) return;
         if (game.get(square)) return;
         const type = pocket[mySide][selectedPieceIdx];
         
-        // Simulasi check
+        // Strict Validation Check for Drops
         const test = new Chess(game.fen());
         test.put({ type: type, color: myColor }, square);
         const f = test.fen().split(' '); f[1] = (myColor==='w'?'b':'w');
@@ -172,6 +190,7 @@
         game.put({ type: type, color: myColor }, square);
         pocket[mySide].splice(selectedPieceIdx, 1);
         selectedPieceIdx = null;
+        
         let t = game.fen().split(' '); t[1] = (myColor==='w'?'b':'w');
         game.load(t.join(' '));
         board.position(game.fen());
@@ -181,28 +200,42 @@
 
     async function sync() {
         isMoving = true;
-        await updateDoc(doc(db, "rooms", roomId), { lastFen: game.fen(), pocket: pocket, timeLeft: timeLeft, lastMove: Date.now() });
+        await updateDoc(doc(db, "rooms", roomId), { 
+            lastFen: game.fen(), 
+            pocket: pocket, 
+            timeLeft: timeLeft, 
+            lastMove: Date.now() 
+        });
         isMoving = false;
     }
 
     function updateUI() {
         const f = (t) => `${Math.floor(t/60)}:${(t%60).toString().padStart(2,'0')}`;
-        document.getElementById('myTimer').innerText = f(mySide === 'white' ? timeLeft.w : timeLeft.b);
-        document.getElementById('oppTimer').innerText = f(mySide === 'white' ? timeLeft.b : timeLeft.w);
+        const myT = document.getElementById('myTimer');
+        const oppT = document.getElementById('oppTimer');
+        myT.innerText = f(mySide === 'white' ? timeLeft.w : timeLeft.b);
+        oppT.innerText = f(mySide === 'white' ? timeLeft.b : timeLeft.w);
         renderPocket();
+        
+        if (!gameEnded) {
+            game.turn() === myColor ? myT.classList.add('active') : myT.classList.remove('active');
+            game.turn() !== myColor ? oppT.classList.add('active') : oppT.classList.remove('active');
+        }
     }
 
     function renderPocket() {
         const myRes = document.getElementById('myReserve');
         const oppRes = document.getElementById('oppReserve');
         myRes.innerHTML = ""; oppRes.innerHTML = "";
+        
         (pocket[mySide] || []).forEach((p, idx) => {
             const img = document.createElement('img');
             img.src = pieceTheme.replace('{piece}', myColor + p.toUpperCase());
             img.className = 'reserve-piece' + (selectedPieceIdx === idx ? ' selected' : '');
-            img.onclick = () => { if(game.turn() === myColor) { selectedPieceIdx = idx; renderPocket(); } };
+            img.onclick = () => { if(game.turn() === myColor && !gameEnded) { selectedPieceIdx = idx; renderPocket(); } };
             myRes.appendChild(img);
         });
+        
         const oppColor = mySide === 'white' ? 'b' : 'w';
         (pocket[mySide==='white'?'black':'white'] || []).forEach(p => {
             const img = document.createElement('img');
@@ -212,9 +245,36 @@
         });
     }
 
-    setInterval(() => { if(!game.game_over() && !isMoving) { timeLeft[game.turn()]--; updateUI(); } }, 1000);
+    setInterval(() => {
+        if(!gameEnded && !isMoving && game.fen() !== 'start') {
+            timeLeft[game.turn()]--;
+            updateUI();
+            if (timeLeft.w <= 0 || timeLeft.b <= 0) {
+                if (game.turn() === myColor) {
+                    updateDoc(doc(db, "rooms", roomId), { status: 'timeout', loser: myColor });
+                }
+            }
+        }
+    }, 1000);
 
-    window.confirmResign = async () => { if(confirm("Resign?")) await updateDoc(doc(db, "rooms", roomId), { status: "resigned", resignedBy: auth.currentUser.displayName }); };
+    function checkGameOver(d) {
+        let title = "", reason = "";
+        if (d.status === 'resigned') { title = "GAME OVER"; reason = d.resignedBy + " Resigned"; }
+        else if (d.status === 'timeout') { title = "TIME OUT"; reason = (d.loser === 'w' ? 'White' : 'Black') + " ran out of time"; }
+        else if (game.in_checkmate()) { title = "CHECKMATE"; reason = (game.turn() === 'w' ? 'Black' : 'White') + " Wins!"; }
+        
+        if (title) {
+            gameEnded = true;
+            isMoving = true;
+            document.getElementById('goTitle').innerText = title;
+            document.getElementById('goReason').innerText = reason;
+            document.getElementById('gameOverModal').style.display = 'flex';
+        }
+    }
+
+    window.confirmResign = async () => {
+        if(confirm("Are you sure?")) await updateDoc(doc(db, "rooms", roomId), { status: "resigned", resignedBy: auth.currentUser.displayName });
+    };
 </script>
 </body>
 </html>
