@@ -3,34 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHESSELOBETH - Lobby</title>
+    <title>CHESSELOBETH - Main</title>
     <style>
-        body { background-color: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; }
-        header { background: #2d2d2d; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.5); position: sticky; top: 0; z-index: 100; }
+        body { background-color: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
+        
+        /* HEADER */
+        header { background: #2d2d2d; padding: 10px 15px; display: flex; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.5); position: sticky; top: 0; z-index: 100; justify-content: space-between; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .menu-btn { background: none; border: none; color: #ffd700; font-size: 1.8rem; cursor: pointer; padding: 0; }
         .brand { font-weight: bold; color: #ffd700; font-size: 1.2rem; }
+        
         .nav-btns { display: flex; gap: 10px; align-items: center; }
         .icon-btn { background: #333; border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; border: 1px solid #444; overflow: hidden; }
         .profile-img-nav { width: 100%; height: 100%; object-fit: cover; }
-        
-        .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
-        .welcome { font-size: 1.5rem; margin-bottom: 15px; color: #ffd700; }
 
+        /* SIDEBAR */
+        .sidebar { position: fixed; top: 0; left: -250px; width: 250px; height: 100%; background: #262421; z-index: 2000; transition: 0.3s ease; box-shadow: 2px 0 15px rgba(0,0,0,0.7); display: flex; flex-direction: column; padding-top: 60px; }
+        .sidebar.open { left: 0; }
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1900; display: none; }
+        .sidebar-item { padding: 15px 25px; color: #ccc; cursor: pointer; border-bottom: 1px solid #333; font-weight: bold; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+        .sidebar-item:hover, .sidebar-item.active { background: #ffd700; color: black; }
+        .close-sidebar { position: absolute; top: 15px; right: 15px; font-size: 1.5rem; color: #888; cursor: pointer; }
+
+        /* CONTENT CONTAINER */
+        .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
+        .section-view { display: none; animation: fadeIn 0.3s; }
+        .section-view.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* CARDS & BUTTONS */
+        .welcome { font-size: 1.5rem; margin-bottom: 15px; color: #ffd700; }
         .lobby-card { background: #2d2d2d; padding: 20px; border-radius: 12px; border-left: 5px solid #81b64c; margin-bottom: 20px; }
         label { font-size: 0.75rem; color: #aaa; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 8px; margin-top: 10px; }
         .selector-group { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
         .sel-btn { flex: 1; min-width: 80px; padding: 12px; background: #333; border: 1px solid #444; color: white; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .sel-btn.active { border-color: #81b64c; background: rgba(129, 182, 76, 0.2); color: #81b64c; }
         .btn-search { background: #81b64c; color: white; width: 100%; padding: 15px; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1rem; cursor: pointer; margin-top: 15px; }
+        
+        /* BOT SELECTION STYLE */
+        .bot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 15px; }
+        .bot-card { background: #333; padding: 15px; border-radius: 8px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        .bot-card:hover { transform: translateY(-3px); background: #444; }
+        .bot-card.selected { border-color: #ffd700; background: rgba(255, 215, 0, 0.1); }
+        .bot-avatar { width: 50px; height: 50px; border-radius: 50%; margin-bottom: 5px; }
+        .bot-name { font-weight: bold; font-size: 0.9rem; }
+        .bot-elo { font-size: 0.8rem; color: #888; }
 
-        .broadcast-box { background: linear-gradient(45deg, #b8860b, #daa520); color: black; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; }
+        /* DATA FEED / ELO STYLE */
         .card { background: #333; padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 5px solid #ffd700; position: relative; }
         .card h3 { margin: 0 0 5px 0; color: #ffd700; }
         .card p { margin: 2px 0; font-size: 0.9rem; color: #ccc; }
-        .admin-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; }
-        .btn-small { padding: 5px 10px; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 0.8rem; }
-        
-        /* Chat Overlay */
-        .chat-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; display: none; flex-direction: column; z-index: 1100; }
+
+        /* CHAT & MODALS (From previous code) */
+        .chat-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; display: none; flex-direction: column; z-index: 2100; }
         .chat-header { padding: 15px; background: #2d2d2d; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ffd700; }
         .chat-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         .msg { display: flex; gap: 10px; max-width: 85%; }
@@ -39,23 +65,40 @@
         .msg-body { background: #333; padding: 10px; border-radius: 10px; }
         .msg-right .msg-body { background: #ffd700; color: black; }
         .msg-name { font-size: 0.7rem; font-weight: bold; margin-bottom: 2px; color: #ffd700; }
-        .msg-right .msg-name { color: #555; text-align: right; }
         .chat-input-area { padding: 15px; background: #2d2d2d; display: flex; gap: 10px; }
-
-        /* Modals */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; text-align: center; max-height: 90vh; overflow-y: auto; }
-        .btn-gold { background: #ffd700; color: black; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        input, select, textarea { width: 100%; padding: 12px; margin-top: 10px; background: #333; color: white; border: 1px solid #444; border-radius: 5px; box-sizing: border-box; }
         
-        .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #ffd700; color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 30px; cursor: pointer; z-index: 99; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 2200; }
+        .modal { background: #2d2d2d; padding: 25px; border-radius: 15px; width: 85%; max-width: 400px; text-align: center; }
+        .btn-gold { background: #ffd700; color: black; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        input { width: 100%; padding: 12px; margin-top: 10px; background: #333; color: white; border: 1px solid #444; border-radius: 5px; box-sizing: border-box; }
+
         #searchTimer { font-size: 2.5rem; font-weight: bold; margin: 20px 0; color: #ffd700; }
     </style>
 </head>
 <body>
 
+    <div class="sidebar-overlay" id="sideOverlay" onclick="window.toggleSidebar(false)"></div>
+    <nav class="sidebar" id="sidebar">
+        <div class="close-sidebar" onclick="window.toggleSidebar(false)">&times;</div>
+        <div class="sidebar-item active" onclick="window.switchView('online')">
+            <span>⚔️</span> Play Online
+        </div>
+        <div class="sidebar-item" onclick="window.switchView('bot')">
+            <span>🤖</span> Play Bot
+        </div>
+        <div class="sidebar-item" onclick="window.switchView('elo')">
+            <span>🏆</span> ELO / Leaderboard
+        </div>
+        <div style="margin-top: auto; border-top: 1px solid #444;">
+             <div class="sidebar-item" onclick="window.logout()"><span>🚪</span> Logout</div>
+        </div>
+    </nav>
+
     <header>
-        <div class="brand">CHESSELOBETH</div>
+        <div class="header-left">
+            <button class="menu-btn" onclick="window.toggleSidebar(true)">☰</button>
+            <div class="brand">CHESSELOBETH</div>
+        </div>
         <div class="nav-btns">
             <button class="icon-btn" onclick="window.toggleChat(true)">💬</button>
             <button class="icon-btn" onclick="window.openProfileModal()" id="profileBtn">U</button>
@@ -64,30 +107,57 @@
 
     <div class="container">
         <div class="welcome" id="welcomeMsg">Welcome...</div>
-        
-        <div class="lobby-card">
-            <label>Timer Set</label>
-            <div class="selector-group">
-                <button class="sel-btn" id="t3" onclick="window.setTimer(3, 't3')">3Min</button>
-                <button class="sel-btn" id="t5" onclick="window.setTimer(5, 't5')">5Min</button>
-                <button class="sel-btn active" id="t10" onclick="window.setTimer(10, 't10')">10Min</button>
-            </div>
+        <div class="broadcast-box" id="broadcastDisplay" style="background: linear-gradient(45deg, #b8860b, #daa520); color: black; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold;">Broadcast: Loading...</div>
 
-            <label>Variant</label>
-            <div class="selector-group">
-                <button class="sel-btn active" id="vStd" onclick="window.setVariant('standard', 'vStd')">Standard</button>
-                <button class="sel-btn" id="vCh" onclick="window.setVariant('crazyhouse', 'vCh')">Crazyhouse</button>
-                <button class="sel-btn" style="opacity:0.5" disabled>All Rook (Working)</button>
-            </div>
+        <div id="viewOnline" class="section-view active">
+            <div class="lobby-card">
+                <label>Timer Set</label>
+                <div class="selector-group">
+                    <button class="sel-btn" id="t3" onclick="window.setTimer(3, 't3')">3Min</button>
+                    <button class="sel-btn" id="t5" onclick="window.setTimer(5, 't5')">5Min</button>
+                    <button class="sel-btn active" id="t10" onclick="window.setTimer(10, 't10')">10Min</button>
+                </div>
 
-            <button class="btn-search" onclick="window.startMatchmaking()">[ 🔍 PLAY ONLINE ]</button>
+                <label>Variant</label>
+                <div class="selector-group">
+                    <button class="sel-btn active" id="vStd" onclick="window.setVariant('standard', 'vStd')">Standard</button>
+                    <button class="sel-btn" id="vCh" onclick="window.setVariant('crazyhouse', 'vCh')">Crazyhouse</button>
+                </div>
+
+                <button class="btn-search" onclick="window.startMatchmaking()">[ 🔍 PLAY ONLINE ]</button>
+            </div>
         </div>
 
-        <div class="broadcast-box" id="broadcastDisplay">Broadcast: Loading...</div>
-        <div id="dataFeed"></div>
-    </div>
+        <div id="viewBot" class="section-view">
+            <div class="lobby-card">
+                <h2 style="margin-top:0; color:#ffd700">Choose Opponent</h2>
+                <div class="bot-grid">
+                    <div class="bot-card selected" onclick="window.selectBot('jimmy', 1, this)">
+                        <img src="https://images.chesscomfiles.com/uploads/v1/user/142980365.11a51052.200x200o.b015b6329402.jpeg" class="bot-avatar">
+                        <div class="bot-name">Jimmy</div>
+                        <div class="bot-elo">Elo 600</div>
+                    </div>
+                    <div class="bot-card" onclick="window.selectBot('nelson', 10, this)">
+                        <img src="https://images.chesscomfiles.com/uploads/v1/user/36434467.352c80c2.200x200o.73173e34375b.jpeg" class="bot-avatar">
+                        <div class="bot-name">Nelson</div>
+                        <div class="bot-elo">Elo 1300</div>
+                    </div>
+                    <div class="bot-card" onclick="window.selectBot('stockfish', 20, this)">
+                        <img src="https://images.chesscomfiles.com/uploads/v1/user/170960309.8471168b.200x200o.e1808620248c.png" class="bot-avatar">
+                        <div class="bot-name">Stockfish</div>
+                        <div class="bot-elo">Elo 3200</div>
+                    </div>
+                </div>
+                <button class="btn-search" style="margin-top:20px; background:#444;" onclick="window.startBotGame()">PLAY BOT ▶</button>
+            </div>
+        </div>
 
-    <div class="fab" id="ownerFab" onclick="window.openOwnerMenu()">+</div>
+        <div id="viewElo" class="section-view">
+            <h2 style="color:#ffd700">Player Data & Rankings</h2>
+            <div id="dataFeed"></div>
+        </div>
+
+    </div>
 
     <div class="modal-overlay" id="profileModal">
         <div class="modal">
@@ -96,7 +166,6 @@
                 <p>Click to Upload Photo</p>
                 <input type="file" id="fileInp" hidden accept="image/png, image/jpeg">
             </div>
-            <button class="btn-gold" style="background:#ff4d4d; color:white; margin-top:20px" onclick="window.logout()">LOGOUT</button>
             <button class="btn-gold" style="background:#444; color:white" onclick="window.closeModals()">CLOSE</button>
         </div>
     </div>
@@ -110,64 +179,6 @@
         <div class="chat-input-area">
             <input type="text" id="chatInput" placeholder="Type here..." onkeypress="if(event.key==='Enter')window.sendChat()">
             <button onclick="window.sendChat()" style="background:#ffd700; border:none; padding:10px 20px; border-radius:5px; cursor:pointer;">SEND</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="ownerMenuModal">
-        <div class="modal">
-            <h2 style="color:#ffd700">Owner Actions</h2>
-            <button class="btn-gold" onclick="window.openAddData()">[Add Data Player]</button>
-            <button class="btn-gold" onclick="window.openBroadcastModal()">[Update Broadcast]</button>
-            <button class="btn-gold" style="background:#ff4d4d; color:white" onclick="window.resetChat()">[Reset Chat]</button>
-            <button class="btn-gold" style="background:#444; color:white" onclick="window.closeModals()">CANCEL</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="addDataModal">
-        <div class="modal">
-            <h2>New Player Data</h2>
-            <input type="text" id="inpName" placeholder="Full Name">
-            <input type="number" id="inpElo" placeholder="Elo Rating">
-            <input type="text" id="inpDate" placeholder="Date (e.g. 12 Feb 2026)">
-            <select id="inpRank">
-                <option value="None">Rank: None</option>
-                <option value="CM">CM</option>
-                <option value="FM">FM</option>
-                <option value="IM">IM</option>
-                <option value="GM">GM</option>
-            </select>
-            <input type="text" id="inpAccount" placeholder="Chess.com Account">
-            <button class="btn-gold" onclick="window.submitData()">SAVE PLAYER</button>
-            <button class="btn-gold" style="background:#444; color:white" onclick="window.closeModals()">CANCEL</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="editDataModal">
-        <div class="modal">
-            <h2>Edit Player Data</h2>
-            <input type="hidden" id="editId">
-            <input type="text" id="editName" placeholder="Full Name">
-            <input type="number" id="editElo" placeholder="Elo Rating">
-            <input type="text" id="editDate" placeholder="Date">
-            <select id="editRank">
-                <option value="None">Rank: None</option>
-                <option value="CM">CM</option>
-                <option value="FM">FM</option>
-                <option value="IM">IM</option>
-                <option value="GM">GM</option>
-            </select>
-            <input type="text" id="editAccount" placeholder="Chess.com Account">
-            <button class="btn-gold" onclick="window.saveEditData()">UPDATE PLAYER</button>
-            <button class="btn-gold" style="background:#444; color:white" onclick="window.closeModals()">CANCEL</button>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="broadcastModal">
-        <div class="modal">
-            <h2>Update Broadcast</h2>
-            <textarea id="inpBroadcast" rows="3"></textarea>
-            <button class="btn-gold" onclick="window.submitBroadcast()">UPDATE</button>
-            <button class="btn-gold" style="background:#444; color:white" onclick="window.closeModals()">CANCEL</button>
         </div>
     </div>
 
@@ -196,7 +207,48 @@
     let selectedTimer = 10;
     let selectedVariant = "standard";
     let searchInterval, currentRoomId, unsubRoom;
+    let selectedBotLevel = 1;
+    let selectedBotName = "Jimmy";
 
+    // --- UI NAVIGATION ---
+    window.toggleSidebar = (open) => {
+        const sb = document.getElementById('sidebar');
+        const ov = document.getElementById('sideOverlay');
+        if(open) { sb.classList.add('open'); ov.style.display = 'block'; }
+        else { sb.classList.remove('open'); ov.style.display = 'none'; }
+    };
+
+    window.switchView = (viewName) => {
+        // Reset active classes
+        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.section-view').forEach(s => s.classList.remove('active'));
+        
+        // Highlight menu
+        const menuIdx = viewName === 'online' ? 0 : (viewName === 'bot' ? 1 : 2);
+        document.querySelectorAll('.sidebar-item')[menuIdx].classList.add('active');
+
+        // Show Section
+        const sectionId = viewName === 'online' ? 'viewOnline' : (viewName === 'bot' ? 'viewBot' : 'viewElo');
+        document.getElementById(sectionId).classList.add('active');
+        
+        window.toggleSidebar(false);
+    };
+
+    // --- BOT LOGIC ---
+    window.selectBot = (name, level, el) => {
+        selectedBotLevel = level;
+        selectedBotName = name;
+        document.querySelectorAll('.bot-card').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+    };
+
+    window.startBotGame = () => {
+        const myPic = auth.currentUser.photoURL || "https://via.placeholder.com/30";
+        // Encode bot data in URL to pass to botgame.html
+        window.location.href = `botgame.html?bot=${selectedBotName}&level=${selectedBotLevel}&pic=${encodeURIComponent(myPic)}&name=${encodeURIComponent(currentUsername)}`;
+    };
+
+    // --- EXISTING LOGIC ---
     onAuthStateChanged(auth, (user) => {
         if (!user) window.location.href = "index.html";
         else {
@@ -204,169 +256,52 @@
             document.getElementById('welcomeMsg').innerText = `Welcome ${currentUsername}`;
             const upic = user.photoURL || `https://ui-avatars.com/api/?name=${currentUsername}`;
             document.getElementById('profileBtn').innerHTML = `<img src="${upic}" class="profile-img-nav">`;
-            
-            if(currentUsername === "Jovan") {
-                document.getElementById('ownerFab').style.display = 'flex';
-            }
             loadData();
         }
     });
 
-    // --- DATA LOAD (Feed & Broadcast) ---
     function loadData() {
         onSnapshot(doc(db, "config", "broadcastMsg"), (d) => {
             if(d.exists()) document.getElementById('broadcastDisplay').innerText = `Broadcast: ${d.data().text}`;
         });
-
         onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (snap) => {
             const feed = document.getElementById('dataFeed');
-            feed.innerHTML = '<label>Recent Players</label>';
+            feed.innerHTML = '';
             snap.forEach(docSnap => {
                 const data = docSnap.data();
                 const rankDisplay = data.rank && data.rank !== 'None' ? `<span style="color:#ffd700; font-weight:bold">[${data.rank}]</span> ` : '';
-                
-                let adminControls = '';
-                if(currentUsername === "Jovan") {
-                    const dataStr = JSON.stringify(data).replace(/"/g, '&quot;');
-                    adminControls = `
-                    <div class="admin-actions">
-                        <button class="btn-small" style="background:#444" onclick="window.openEdit('${docSnap.id}', '${dataStr}')">Edit</button>
-                        <button class="btn-small" style="background:#ff4d4d" onclick="window.deleteData('${docSnap.id}')">Del</button>
-                    </div>`;
-                }
-
                 const card = document.createElement('div');
                 card.className = 'card';
-                card.innerHTML = `
-                    <h3>${rankDisplay}${data.name}</h3>
-                    <p>Elo: ${data.elo} | Date: ${data.date || '-'}</p>
-                    <p style="font-size:0.8rem; color:#888">${data.chessAccount || 'No Account'}</p>
-                    ${adminControls}
-                `;
+                card.innerHTML = `<h3>${rankDisplay}${data.name}</h3><p>Elo: ${data.elo} | Date: ${data.date || '-'}</p>`;
                 feed.appendChild(card);
             });
         });
     }
 
-    // --- CHAT SYSTEM ---
-    window.toggleChat = (s) => {
-        document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
-        if(s) { const b = document.getElementById('chatBox'); b.scrollTop = b.scrollHeight; }
-    };
-    window.sendChat = async () => {
-        const inp = document.getElementById('chatInput');
-        if(!inp.value.trim()) return;
-        await addDoc(collection(db, "chats"), { name: currentUsername, text: inp.value, photo: auth.currentUser.photoURL || "", timestamp: Date.now() });
-        inp.value = "";
-    };
-    onSnapshot(query(collection(db, "chats"), orderBy("timestamp", "asc"), limit(100)), (snap) => {
-        const box = document.getElementById('chatBox');
-        box.innerHTML = "";
-        snap.forEach(d => {
-            const c = d.data();
-            const side = c.name === currentUsername ? 'msg-right' : '';
-            const pic = c.photo || `https://ui-avatars.com/api/?name=${c.name}`;
-            box.innerHTML += `<div class="msg ${side}"><img src="${pic}" class="msg-avatar"><div class="msg-body"><div class="msg-name">${c.name}</div><div>${c.text}</div></div></div>`;
-        });
-        box.scrollTop = box.scrollHeight;
-    });
+    // Chat, Profile, Matchmaking (Same as before)
+    window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
+    window.sendChat = async () => { /* Same chat logic */ const inp=document.getElementById('chatInput'); if(inp.value.trim()){ await addDoc(collection(db,"chats"),{name:currentUsername,text:inp.value,photo:auth.currentUser.photoURL,timestamp:Date.now()}); inp.value=""; }};
+    onSnapshot(query(collection(db,"chats"),orderBy("timestamp","asc"),limit(50)),(s)=>{ const b=document.getElementById('chatBox'); b.innerHTML=""; s.forEach(d=>{ const c=d.data(); b.innerHTML+=`<div class="msg ${c.name===currentUsername?'msg-right':''}"><img src="${c.photo||'https://via.placeholder.com/30'}" class="msg-avatar"><div class="msg-body"><div class="msg-name">${c.name}</div><div>${c.text}</div></div></div>`; }); b.scrollTop=b.scrollHeight; });
 
-    // --- PROFILE & PHOTO ---
     window.openProfileModal = () => document.getElementById('profileModal').style.display = 'flex';
-    document.getElementById('fileInp').onchange = async (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        const sRef = ref(storage, `profiles/${auth.currentUser.uid}`);
-        await uploadBytes(sRef, file);
-        const url = await getDownloadURL(sRef);
-        await updateProfile(auth.currentUser, { photoURL: url });
-        location.reload();
-    };
-
-    // --- OWNER ACTIONS ---
-    window.openOwnerMenu = () => document.getElementById('ownerMenuModal').style.display = 'flex';
-    window.openAddData = () => { window.closeModals(); document.getElementById('addDataModal').style.display = 'flex'; };
-    window.openBroadcastModal = () => { window.closeModals(); document.getElementById('broadcastModal').style.display = 'flex'; };
+    document.getElementById('fileInp').onchange = async (e) => { const f=e.target.files[0]; if(f){ const r=ref(storage,`profiles/${auth.currentUser.uid}`); await uploadBytes(r,f); await updateProfile(auth.currentUser,{photoURL:await getDownloadURL(r)}); location.reload(); }};
     window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
     
-    window.submitData = async () => {
-        const payload = {
-            name: document.getElementById('inpName').value,
-            elo: document.getElementById('inpElo').value,
-            date: document.getElementById('inpDate').value,
-            rank: document.getElementById('inpRank').value,
-            chessAccount: document.getElementById('inpAccount').value,
-            timestamp: Date.now()
-        };
-        await addDoc(collection(db, "players"), payload);
-        window.closeModals();
-    };
-
-    window.deleteData = async (id) => {
-        if(confirm("Delete this player data?")) await deleteDoc(doc(db, "players", id));
-    };
-
-    window.openEdit = (id, dataStr) => {
-        const data = JSON.parse(dataStr);
-        document.getElementById('editId').value = id;
-        document.getElementById('editName').value = data.name;
-        document.getElementById('editElo').value = data.elo;
-        document.getElementById('editDate').value = data.date || "";
-        document.getElementById('editRank').value = data.rank || "None";
-        document.getElementById('editAccount').value = data.chessAccount || "";
-        window.closeModals();
-        document.getElementById('editDataModal').style.display = 'flex';
-    };
-
-    window.saveEditData = async () => {
-        const id = document.getElementById('editId').value;
-        const payload = {
-            name: document.getElementById('editName').value,
-            elo: document.getElementById('editElo').value,
-            date: document.getElementById('editDate').value,
-            rank: document.getElementById('editRank').value,
-            chessAccount: document.getElementById('editAccount').value
-        };
-        await updateDoc(doc(db, "players", id), payload);
-        window.closeModals();
-    };
-
-    window.submitBroadcast = async () => {
-        await setDoc(doc(db, "config", "broadcastMsg"), { text: document.getElementById('inpBroadcast').value });
-        window.closeModals();
-    };
-    window.resetChat = async () => {
-        if(confirm("Reset all chat?")) {
-            const q = await getDocs(collection(db, "chats"));
-            q.forEach(async (d) => await deleteDoc(doc(db, "chats", d.id)));
-        }
-    };
-
-    // --- MATCHMAKING ---
     window.setTimer = (v, id) => { selectedTimer = v; document.querySelectorAll('[id^="t"]').forEach(b => b.classList.remove('active')); document.getElementById(id).classList.add('active'); };
     window.setVariant = (v, id) => { selectedVariant = v; document.querySelectorAll('[id^="v"]').forEach(b => b.classList.remove('active')); document.getElementById(id).classList.add('active'); };
 
     window.startMatchmaking = async () => {
         document.getElementById('searchModal').style.display = 'flex';
         let sec = 0;
-        searchInterval = setInterval(() => { sec++; document.getElementById('searchTimer').innerText = `${Math.floor(sec/60).toString().padStart(2,'0')}:${(sec%60).toString().padStart(2,'0')}`; }, 1000);
-
+        searchInterval = setInterval(() => { sec++; document.getElementById('searchTimer').innerText = `00:${sec.toString().padStart(2,'0')}`; }, 1000);
         const q = query(collection(db, "rooms"), where("status", "==", "waiting"), where("timer", "==", selectedTimer), where("variant", "==", selectedVariant));
         const snap = await getDocs(q);
         if (!snap.empty) {
             currentRoomId = snap.docs[0].id;
-            await updateDoc(doc(db, "rooms", currentRoomId), { player2: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, status: "playing" });
+            await updateDoc(doc(db, "rooms", currentRoomId), { player2: { name: currentUsername, photo: auth.currentUser.photoURL }, status: "playing" });
             goToGame(selectedVariant, currentRoomId, 'black');
         } else {
-            const newRoom = await addDoc(collection(db, "rooms"), { 
-                player1: { name: currentUsername, photo: auth.currentUser.photoURL || "" }, 
-                status: "waiting", 
-                timer: selectedTimer, 
-                variant: selectedVariant, 
-                fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 
-                pockets: { w: "", b: "" },
-                createdAt: Date.now() 
-            });
+            const newRoom = await addDoc(collection(db, "rooms"), { player1: { name: currentUsername, photo: auth.currentUser.photoURL }, status: "waiting", timer: selectedTimer, variant: selectedVariant, fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", createdAt: Date.now() });
             currentRoomId = newRoom.id;
             unsubRoom = onSnapshot(doc(db, "rooms", currentRoomId), (s) => { if (s.data()?.status === "playing") goToGame(selectedVariant, currentRoomId, 'white'); });
         }
