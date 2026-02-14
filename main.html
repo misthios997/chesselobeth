@@ -8,50 +8,32 @@
     <style>
         :root { --primary: #ffd700; --bg: #1a1a1a; --card: #2d2d2d; --text: #ffffff; --accent: #81b64c; }
         body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
-        
-        /* HEADER & MENU */
         header { background: #2d2d2d; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 15px rgba(0,0,0,0.6); position: sticky; top: 0; z-index: 1000; }
         .brand { font-weight: 900; color: var(--primary); font-size: 1.4rem; letter-spacing: 1px; }
         .nav-right { display: flex; gap: 15px; align-items: center; }
-        
         .menu-container { position: relative; }
         .dots-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 5px; }
         .dropdown-menu { display: none; position: absolute; right: 0; top: 45px; background: #333; min-width: 200px; border-radius: 12px; z-index: 1001; box-shadow: 0 8px 25px rgba(0,0,0,0.7); border: 1px solid #444; overflow: hidden; }
         .dropdown-menu a { color: white; padding: 14px 20px; text-decoration: none; display: flex; align-items: center; gap: 12px; font-size: 0.95rem; border-bottom: 1px solid #444; }
         .dropdown-menu a:hover { background: var(--primary); color: black; }
-        
         .profile-trigger { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--primary); cursor: pointer; object-fit: cover; }
-
-        /* BROADCAST */
         .broadcast-container { margin: 15px 20px; }
-        #broadcastBox { background: linear-gradient(135deg, #b8860b, #daa520); color: black; padding: 15px; border-radius: 10px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px; }
-        
-        /* LOBBY & CARDS */
+        #broadcastBox { background: linear-gradient(135deg, #b8860b, #daa520); color: black; padding: 15px; border-radius: 10px; font-weight: bold; display: flex; align-items: center; gap: 10px; }
         .container { max-width: 600px; margin: 0 auto; padding: 10px 20px; }
         .welcome-text { font-size: 1.6rem; font-weight: bold; margin-bottom: 20px; color: var(--primary); }
-        .play-card { background: var(--card); border-radius: 18px; padding: 25px; border-left: 6px solid var(--accent); margin-bottom: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.4); }
-        .label-group { font-size: 0.75rem; color: #aaa; text-transform: uppercase; font-weight: 800; margin-bottom: 12px; display: block; letter-spacing: 1px; }
+        .play-card { background: var(--card); border-radius: 18px; padding: 25px; border-left: 6px solid var(--accent); margin-bottom: 25px; }
+        .label-group { font-size: 0.75rem; color: #aaa; text-transform: uppercase; font-weight: 800; margin-bottom: 12px; display: block; }
         .sel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
         .btn-opt { background: #3d3d3d; border: 1px solid #4d4d4d; color: white; padding: 14px 5px; border-radius: 10px; cursor: pointer; font-weight: bold; }
         .btn-opt.active { background: rgba(129, 182, 76, 0.2); border-color: var(--accent); color: var(--accent); }
-        .btn-main { background: var(--accent); color: white; width: 100%; padding: 18px; border: none; border-radius: 12px; font-weight: 900; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 15px rgba(129, 182, 76, 0.4); }
-
-        /* DATA FEED / RECENT PLAYERS */
+        .btn-main { background: var(--accent); color: white; width: 100%; padding: 18px; border: none; border-radius: 12px; font-weight: 900; font-size: 1.2rem; cursor: pointer; }
         .data-card { background: #262626; padding: 18px; margin-bottom: 15px; border-radius: 12px; border-left: 5px solid var(--primary); position: relative; }
-        .data-card h3 { margin: 0 0 5px 0; color: var(--primary); font-size: 1.15rem; }
-        .data-card p { margin: 3px 0; color: #bbb; font-size: 0.9rem; }
-        .admin-tools { position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; }
-        .btn-mini { padding: 6px 12px; border-radius: 6px; border: none; color: white; font-weight: bold; cursor: pointer; font-size: 0.75rem; }
-        .btn-edit { background: #444; }
-        .btn-del { background: #ff4d4d; }
-
-        /* MODALS */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(5px); }
-        .modal { background: #2d2d2d; padding: 30px; border-radius: 20px; width: 85%; max-width: 420px; border: 1px solid #444; }
-        .btn-gold { background: var(--primary); color: black; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: 900; margin-top: 15px; cursor: pointer; }
+        .admin-tools { position: absolute; top: 15px; right: 15px; }
+        .btn-mini { padding: 6px 12px; border-radius: 6px; border: none; color: white; cursor: pointer; font-size: 0.75rem; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal { background: #2d2d2d; padding: 30px; border-radius: 20px; width: 85%; max-width: 420px; }
         input, select, textarea { width: 100%; padding: 14px; margin-top: 12px; background: #1a1a1a; border: 1px solid #444; border-radius: 8px; color: white; box-sizing: border-box; }
-
-        /* CHAT */
+        .btn-gold { background: var(--primary); color: black; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: 900; margin-top: 15px; cursor: pointer; }
         #chatOverlay { position: fixed; bottom: 0; right: 0; width: 100%; height: 100%; background: var(--bg); display: none; flex-direction: column; z-index: 3000; }
         .chat-header { padding: 15px; background: #2d2d2d; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); }
         #chatBox { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
@@ -60,15 +42,13 @@
         .msg-ava { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
         .msg-bubble { background: #333; padding: 10px; border-radius: 12px; font-size: 0.9rem; }
         .msg-self .msg-bubble { background: var(--primary); color: black; }
-
-        /* FAB */
-        .fab { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--primary); color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 2rem; cursor: pointer; z-index: 900; box-shadow: 0 5px 20px rgba(0,0,0,0.5); border: none; }
+        .fab { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--primary); color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 2rem; cursor: pointer; z-index: 900; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="header-left"><div class="brand">CHESSELOBETH</div></div>
+        <div class="brand">CHESSELOBETH</div>
         <div class="nav-right">
             <button class="dots-btn" onclick="toggleChat(true)"><i class="far fa-comment-dots"></i></button>
             <div class="menu-container">
@@ -86,7 +66,7 @@
     </header>
 
     <div class="broadcast-container">
-        <div id="broadcastBox"><i class="fas fa-bullhorn"></i> <span id="bcText">Broadcast: Loading...</span></div>
+        <div id="broadcastBox"><i class="fas fa-bullhorn"></i> <span id="bcText">Loading...</span></div>
     </div>
 
     <div class="container">
@@ -95,13 +75,13 @@
         <div id="sec-online" class="section-view">
             <div class="play-card">
                 <label class="label-group">Timer Set</label>
-                <div class="sel-grid">
+                <div class="sel-grid" id="timerGrid">
                     <button class="btn-opt" onclick="setTimer(3, this)">3Min</button>
                     <button class="btn-opt" onclick="setTimer(5, this)">5Min</button>
                     <button class="btn-opt active" onclick="setTimer(10, this)">10Min</button>
                 </div>
                 <label class="label-group">Variant</label>
-                <div class="sel-grid" style="grid-template-columns: 1fr 1.2fr">
+                <div class="sel-grid" id="variantGrid" style="grid-template-columns: 1fr 1.2fr">
                     <button class="btn-opt active" onclick="setVariant('standard', this)">Standard</button>
                     <button class="btn-opt" onclick="setVariant('crazyhouse', this)">Crazyhouse</button>
                 </div>
@@ -110,21 +90,21 @@
         </div>
 
         <div id="sec-elo" class="section-view" style="display:none">
-            <h2 style="color:var(--primary)">Recent Players & Stats</h2>
+            <h2 style="color:var(--primary)">Recent Players</h2>
             <div id="dataFeed"></div>
         </div>
 
         <div id="sec-bot" class="section-view" style="display:none">
              <div class="play-card" style="border-left-color: var(--primary)">
-                <h2 style="margin-top:0">Play vs Stockfish</h2>
+                <h2 style="margin-top:0">Vs Stockfish</h2>
                 <label class="label-group">Select Level</label>
-                <div class="sel-grid" style="grid-template-columns: 1fr 1fr">
+                <div class="sel-grid" id="botGrid" style="grid-template-columns: 1fr 1fr">
                     <button class="btn-opt active" onclick="setBotLvl(1, this)">Lvl 1</button>
                     <button class="btn-opt" onclick="setBotLvl(10, this)">Lvl 10</button>
                     <button class="btn-opt" onclick="setBotLvl(15, this)">Lvl 15</button>
                     <button class="btn-opt" onclick="setBotLvl(20, this)">Lvl 20</button>
                 </div>
-                <button class="btn-main" style="background:#444" onclick="startBot()">START BOT GAME ▶</button>
+                <button class="btn-main" style="background:#444" onclick="startBot()">START BOT ▶</button>
              </div>
         </div>
     </div>
@@ -141,12 +121,11 @@
 
     <div class="modal-overlay" id="addModal">
         <div class="modal">
-            <h2>New Player Data</h2>
-            <input type="text" id="inName" placeholder="Full Name">
-            <input type="number" id="inElo" placeholder="Elo Rating">
+            <h2>Add Player</h2>
+            <input type="text" id="inName" placeholder="Name">
+            <input type="number" id="inElo" placeholder="Elo">
             <input type="text" id="inDate" placeholder="Date">
-            <select id="inRank"><option value="None">No Rank</option><option value="CM">CM</option><option value="FM">FM</option><option value="IM">IM</option><option value="GM">GM</option></select>
-            <input type="text" id="inAcc" placeholder="Chess.com Acc">
+            <select id="inRank"><option value="None">No Rank</option><option value="GM">GM</option><option value="IM">IM</option></select>
             <button class="btn-gold" onclick="submitData()">SAVE</button>
             <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
         </div>
@@ -154,8 +133,8 @@
 
     <div class="modal-overlay" id="ownerToolsModal">
         <div class="modal">
-            <h2>Owner Action</h2>
-            <textarea id="bcInput" rows="2" placeholder="New Broadcast Message..."></textarea>
+            <h2>Owner</h2>
+            <textarea id="bcInput" rows="2" placeholder="Message..."></textarea>
             <button class="btn-gold" onclick="updateBC()">UPDATE BC</button>
             <button class="btn-gold" style="background:#ff4d4d; color:white; margin-top:20px" onclick="resetAllChat()">RESET CHAT</button>
             <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
@@ -201,36 +180,40 @@
         });
 
         function loadCoreData() {
-            onSnapshot(doc(db, "config", "broadcastMsg"), (d) => { if(d.exists()) document.getElementById('bcText').innerText = "Broadcast: " + d.data().text; });
+            onSnapshot(doc(db, "config", "broadcastMsg"), (d) => { if(d.exists()) document.getElementById('bcText').innerText = d.data().text; });
             onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (s) => {
                 const f = document.getElementById('dataFeed'); f.innerHTML = "";
-                s.forEach(docSnap => {
-                    const d = docSnap.data();
-                    f.innerHTML += `<div class="data-card">
-                        <h3><span style="color:var(--primary)">${d.rank !== 'None' ? d.rank : ''}</span> ${d.name}</h3>
-                        <p>Elo: ${d.elo} | ${d.date}</p>
-                        ${curName === "Jovan" ? `<div class="admin-tools"><button class="btn-mini btn-del" onclick="window.delData('${docSnap.id}')">Del</button></div>` : ''}
-                    </div>`;
+                s.forEach(ds => {
+                    const d = ds.data();
+                    f.innerHTML += `<div class="data-card"><h3>${d.name}</h3><p>Elo: ${d.elo}</p></div>`;
                 });
             });
             onSnapshot(query(collection(db, "chats"), orderBy("timestamp", "asc"), limit(50)), (s) => {
                 const b = document.getElementById('chatBox'); b.innerHTML = "";
                 s.forEach(d => {
                     const m = d.data();
-                    b.innerHTML += `<div class="msg-wrap ${m.name === curName ? 'msg-self' : ''}">
-                        <img src="${m.photo || 'https://via.placeholder.com/30'}" class="msg-ava">
-                        <div class="msg-bubble"><b>${m.name}</b><br>${m.text}</div>
-                    </div>`;
+                    b.innerHTML += `<div class="msg-wrap ${m.name === curName ? 'msg-self' : ''}"><img src="${m.photo}" class="msg-ava"><div class="msg-bubble">${m.text}</div></div>`;
                 });
                 b.scrollTop = b.scrollHeight;
             });
         }
 
-        window.toggleDropdown = () => { const m = document.getElementById('mainMenu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
-        window.switchSection = (id) => { document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none'); document.getElementById('sec-' + id).style.display = 'block'; window.toggleDropdown(); };
-        
-        window.setTimer = (v, b) => { timerVal = v; document.querySelectorAll('#sec-online .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
-        window.setVariant = (v, b) => { variant = v; document.querySelectorAll('#sec-online .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
+        // --- FIX UI SELECTOR ---
+        window.setTimer = (v, b) => { 
+            timerVal = v; 
+            document.querySelectorAll('#timerGrid .btn-opt').forEach(x => x.classList.remove('active')); 
+            b.classList.add('active'); 
+        };
+        window.setVariant = (v, b) => { 
+            variant = v; 
+            document.querySelectorAll('#variantGrid .btn-opt').forEach(x => x.classList.remove('active')); 
+            b.classList.add('active'); 
+        };
+        window.setBotLvl = (v, b) => { 
+            botLvl = v; 
+            document.querySelectorAll('#botGrid .btn-opt').forEach(x => x.classList.remove('active')); 
+            b.classList.add('active'); 
+        };
 
         window.startMatchmaking = async () => {
             document.getElementById('searchOverlay').style.display = 'flex';
@@ -242,24 +225,19 @@
                 await updateDoc(doc(db, "rooms", roomId), { player2: { name: curName, photo: user.photoURL || "" }, status: "playing" });
                 goGame(roomId, 'black');
             } else {
-                const nr = await addDoc(collection(db, "rooms"), { player1: { name: curName, photo: user.photoURL || "" }, status: "waiting", timer: timerVal, variant: variant, fen: "start", createdAt: Date.now() });
+                const nr = await addDoc(collection(db, "rooms"), { player1: { name: curName, photo: user.photoURL || "" }, status: "waiting", timer: timerVal, variant: variant, createdAt: Date.now() });
                 roomId = nr.id;
                 unsubRoom = onSnapshot(doc(db, "rooms", roomId), (s) => { if(s.data()?.status === "playing") goGame(roomId, 'white'); });
             }
         };
 
-        // --- FIX REDIRECT CRAZYHOUSE ---
         function goGame(id, side) { 
             clearInterval(sInterval); if(unsubRoom) unsubRoom(); 
             const page = variant === "crazyhouse" ? "crazyhouse.html" : "game.html";
             window.location.href = `${page}?id=${id}&side=${side}`; 
         }
 
-        window.cancelSearch = async () => { clearInterval(sInterval); if(roomId) await deleteDoc(doc(db, "rooms", roomId)); document.getElementById('searchOverlay').style.display = 'none'; };
-        window.setBotLvl = (v, b) => { botLvl = v; document.querySelectorAll('#sec-bot .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
-        window.startBot = () => window.location.href = `botgame.html?level=${botLvl}&name=${curName}&pic=${encodeURIComponent(user.photoURL || "")}`;
-
-        // --- FIX AVATAR PICKER ---
+        window.startBot = () => window.location.href = `botgame.html?level=${botLvl}`;
         window.openAvatarSelector = () => {
             const inp = document.createElement('input'); inp.type = 'file'; inp.accept = "image/*";
             inp.onchange = async (e) => {
@@ -269,16 +247,14 @@
                     await uploadBytes(r, f);
                     const url = await getDownloadURL(r);
                     await updateProfile(user, { photoURL: url });
-                    alert("Profile Updated!"); location.reload();
+                    location.reload();
                 }
             };
             inp.click();
         };
 
-        window.submitData = async () => { await addDoc(collection(db, "players"), { name: document.getElementById('inName').value, elo: document.getElementById('inElo').value, date: document.getElementById('inDate').value, rank: document.getElementById('inRank').value, timestamp: Date.now() }); window.closeModals(); };
-        window.delData = async (id) => { if(confirm("Delete?")) await deleteDoc(doc(db, "players", id)); };
-        window.updateBC = async () => { await setDoc(doc(db, "config", "broadcastMsg"), { text: document.getElementById('bcInput').value }); window.closeModals(); };
-        window.resetAllChat = async () => { if(confirm("Reset all chat?")) { const q = await getDocs(collection(db, "chats")); q.forEach(async (d) => await deleteDoc(doc(db, "chats", d.id))); } };
+        window.toggleDropdown = () => { const m = document.getElementById('mainMenu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
+        window.switchSection = (id) => { document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none'); document.getElementById('sec-' + id).style.display = 'block'; window.toggleDropdown(); };
         window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
         window.sendChat = async () => { const i = document.getElementById('chatIn'); if(i.value.trim()){ await addDoc(collection(db, "chats"), { name: curName, text: i.value, photo: user.photoURL, timestamp: Date.now() }); i.value = ""; }};
         window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
