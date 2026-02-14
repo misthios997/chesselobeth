@@ -3,94 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chess Game - Bot</title>
-    
+    <title>Arena - ChessELOBETH</title>
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
-    
     <style>
-        /* RESET & LAYOUT */
         html, body {
             height: 100%; width: 100%; margin: 0; padding: 0;
             background-color: #161512; color: white;
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-family: sans-serif; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-
-        .game-container {
-            width: 95vw; max-width: 400px;
-            display: flex; flex-direction: column; gap: 8px;
-        }
-
-        /* PLAYER BOX */
+        .game-container { width: 95vw; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
+        
         .player-box {
-            background: #262421; padding: 10px; border-radius: 8px;
-            display: flex; align-items: center; gap: 12px;
-            border: 1px solid #333;
+            background: #262421; padding: 12px; border-radius: 8px;
+            display: flex; align-items: center; gap: 12px; border: 1px solid #333;
         }
+        .avatar { width: 45px; height: 45px; border-radius: 4px; background: #444; }
 
-        .avatar { width: 45px; height: 45px; border-radius: 4px; background: #444; object-fit: cover; }
-        .name-tag { font-weight: bold; font-size: 1rem; }
+        /* WARNA HIJAU CREAM (CHESS.COM) */
+        #myBoard { width: 100% !important; aspect-ratio: 1/1; border: 2px solid #333; }
+        .white-1e1d7 { background-color: #ebecd0 !important; }
+        .black-3c85d { background-color: #779556 !important; }
 
-        /* PAPAN CATUR (HIJAU CREAM) */
-        #myBoard {
-            width: 100% !important;
-            aspect-ratio: 1 / 1;
-            border: 2px solid #333;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        .btn-resign {
+            background: #b33939; color: white; border: none;
+            padding: 16px; border-radius: 8px; font-weight: bold; width: 100%;
+            cursor: pointer; text-transform: uppercase;
         }
-
-        /* Custom Warna Chess.com */
-        .white-1e1d7 { background-color: #ebecd0 !important; color: #779556 !important; }
-        .black-3c85d { background-color: #779556 !important; color: #ebecd0 !important; }
-
-        /* BUTTONS */
-        .controls { display: flex; gap: 8px; width: 100%; }
-        .btn {
-            flex: 1; padding: 15px; border: none; border-radius: 6px;
-            font-weight: bold; cursor: pointer; text-transform: uppercase;
-            font-size: 0.9rem; color: white;
-        }
-        .btn-resign { background-color: #b33939; }
-        .btn-action { background-color: #3c3a39; }
-        .btn:active { opacity: 0.8; }
-
-        /* MODAL */
+        
         .overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 999; justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center;
         }
-        .modal-content {
-            background: #262421; padding: 25px; border-radius: 12px;
-            text-align: center; border: 2px solid #779556; width: 80%;
-        }
+        .modal { background: #262421; padding: 30px; border-radius: 12px; text-align: center; border: 2px solid #779556; width: 80%; }
     </style>
 </head>
 <body>
 
     <div class="game-container">
         <div class="player-box">
-            <img id="botPic" class="avatar" src="https://www.chess.com/bundles/web/images/user-image.svg">
-            <span class="name-tag" id="botDisplay">Stockfish (Level 1)</span>
+            <img src="https://images.chesscomfiles.com/uploads/v1/user/170960309.8471168b.200x200o.e1808620248c.png" class="avatar">
+            <b id="botDisplay">Stockfish (Level 1)</b>
         </div>
 
         <div id="myBoard"></div>
 
         <div class="player-box">
-            <img id="userPic" class="avatar" src="https://www.chess.com/bundles/web/images/user-image.svg">
-            <span class="name-tag" id="userDisplay">Jovan (You)</span>
+            <img id="userPic" src="https://www.chess.com/bundles/web/images/user-image.svg" class="avatar">
+            <b id="userDisplay">Jovan (You)</b>
         </div>
 
-        <div class="controls">
-            <button class="btn btn-action" onclick="undoMove()">UNDO</button>
-            <button class="btn btn-resign" onclick="handleResign()">RESIGN</button>
-        </div>
+        <button class="btn-resign" onclick="tombolResign()">RESIGN</button>
     </div>
 
-    <div id="endOverlay" class="overlay">
-        <div class="modal-content">
-            <h2 id="endTitle" style="margin:0; color:#ebecd0;">GAME OVER</h2>
-            <p id="endDesc" style="margin:15px 0; color:#ccc;"></p>
-            <button onclick="window.location.href='main.html'" style="padding:12px 25px; background:#779556; color:white; border:none; border-radius:6px; font-weight:bold;">LOBBY</button>
+    <div id="modalEnd" class="overlay">
+        <div class="modal">
+            <h2 id="resTitle" style="color:#ebecd0;">GAME OVER</h2>
+            <p id="resDesc" style="margin: 15px 0; color:#ccc;"></p>
+            <button onclick="window.location.href='main.html'" style="padding:15px; background:#779556; color:white; border:none; border-radius:6px; width:100%; font-weight:bold;">LOBBY</button>
         </div>
     </div>
 
@@ -104,89 +74,65 @@
         var stockfish = new Worker('https://stockfishjs.azureedge.net/stockfish.js');
 
         const params = new URLSearchParams(window.location.search);
-        const pName = params.get('name') || "Jovan";
+        const uName = params.get('name') || "Jovan";
         const bLevel = params.get('level') || "1";
-        const pPic = params.get('pic');
+        const uPic = params.get('pic');
 
-        // Update UI
-        document.getElementById('userDisplay').innerText = pName + " (You)";
+        document.getElementById('userDisplay').innerText = uName + " (You)";
         document.getElementById('botDisplay').innerText = "Stockfish (Level " + bLevel + ")";
-        if(pPic) document.getElementById('userPic').src = decodeURIComponent(pPic);
-        document.getElementById('botPic').src = "https://images.chesscomfiles.com/uploads/v1/user/170960309.8471168b.200x200o.e1808620248c.png";
+        if(uPic) document.getElementById('userPic').src = decodeURIComponent(uPic);
 
-        // Engine Logic
         stockfish.onmessage = function(e) {
             if (e.data.startsWith('bestmove')) {
-                const moveStr = e.data.split(' ')[1];
-                if (moveStr) {
-                    game.move({ from: moveStr.substring(0, 2), to: moveStr.substring(2, 4), promotion: 'q' });
-                    board.position(game.fen());
-                    checkGameOver();
-                }
+                const move = e.data.split(' ')[1];
+                game.move({ from: move.substring(0, 2), to: move.substring(2, 4), promotion: 'q' });
+                board.position(game.fen());
+                cekStatus();
             }
         };
 
-        function makeBotMove() {
+        function botMikir() {
             if (game.game_over()) return;
             stockfish.postMessage('position fen ' + game.fen());
             stockfish.postMessage('setoption name Skill Level value ' + bLevel);
             stockfish.postMessage('go depth 10');
         }
 
-        // Board Logic
         function onDrop(source, target) {
             var move = game.move({ from: source, to: target, promotion: 'q' });
             if (move === null) return 'snapback';
-            window.setTimeout(makeBotMove, 400);
-            checkGameOver();
+            window.setTimeout(botMikir, 400);
+            cekStatus();
         }
 
-        function checkGameOver() {
+        function cekStatus() {
             if (game.game_over()) {
-                let status = "Draw";
-                if (game.in_checkmate()) status = game.turn() === 'b' ? "YOU WIN!" : "YOU LOSE";
-                document.getElementById('endTitle').innerText = status;
-                document.getElementById('endDesc').innerText = game.in_checkmate() ? "Checkmate!" : "Draw Game";
-                document.getElementById('endOverlay').style.display = 'flex';
+                let msg = game.in_checkmate() ? (game.turn() === 'b' ? "YOU WIN!" : "YOU LOSE") : "DRAW";
+                document.getElementById('resTitle').innerText = msg;
+                document.getElementById('resDesc').innerText = game.in_checkmate() ? "Checkmate!" : "Stalemate/Draw";
+                document.getElementById('modalEnd').style.display = 'flex';
             }
         }
 
-        function handleResign() {
+        function tombolResign() {
             if(confirm("Nyerah?")) {
-                document.getElementById('endTitle').innerText = "YOU LOSE";
-                document.getElementById('endDesc').innerText = "Kamu menyerah.";
-                document.getElementById('endOverlay').style.display = 'flex';
+                document.getElementById('resTitle').innerText = "YOU LOSE";
+                document.getElementById('resDesc').innerText = "Kamu menyerah.";
+                document.getElementById('modalEnd').style.display = 'flex';
             }
         }
 
-        function undoMove() {
-            game.undo(); // Undo bot
-            game.undo(); // Undo player
-            board.position(game.fen());
-        }
-
-        // INITIALIZE
         $(document).ready(function() {
-            var config = {
+            board = Chessboard('myBoard', {
                 draggable: true,
                 position: 'start',
-                // BIDAK WIKIPEDIA
                 pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-                onDragStart: (s, p) => !game.game_over() && p.search(/^w/) !== -1,
                 onDrop: onDrop,
                 onSnapEnd: () => board.position(game.fen())
-            };
-            
-            board = Chessboard('myBoard', config);
-
-            // FORCE RENDER (Penting buat Mobile)
-            setTimeout(() => { board.resize(); }, 100);
-            setTimeout(() => { board.resize(); }, 500);
-            
-            stockfish.postMessage('uci');
+            });
+            setTimeout(() => { board.resize(); stockfish.postMessage('uci'); }, 200);
+            setTimeout(() => { board.resize(); }, 1000);
         });
-
-        window.onresize = () => board.resize();
     </script>
 </body>
 </html>
