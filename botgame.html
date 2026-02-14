@@ -3,42 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CHESSELOBETH - Bot Game</title>
+    <title>Chess - Bot Game</title>
     
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     
     <style>
-        /* LOCK LAYAR AGAR TIDAK SCROLL */
         html, body {
             height: 100%; width: 100%; margin: 0; padding: 0;
             background-color: #161512; color: white;
-            font-family: -apple-system, system-ui, sans-serif;
-            overflow: hidden; touch-action: none;
+            font-family: sans-serif; overflow: hidden;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
 
         .game-container {
-            width: 95%; max-width: 400px;
-            display: flex; flex-direction: column; gap: 12px;
+            width: 95vw; max-width: 400px;
+            display: flex; flex-direction: column; gap: 10px;
         }
 
-        /* PLAYER BOX */
+        /* INFO BOX */
         .player-box {
-            background: #262421; padding: 10px; border-radius: 8px;
+            background: #262421; padding: 12px; border-radius: 8px;
             display: flex; align-items: center; gap: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            border: 1px solid #333;
         }
 
-        .avatar { width: 48px; height: 48px; border-radius: 4px; background: #444; object-fit: cover; }
-        .name-info { display: flex; flex-direction: column; }
-        .name-text { font-weight: bold; font-size: 1.1rem; }
+        .avatar { width: 45px; height: 45px; border-radius: 4px; background: #444; }
+        .name-tag { font-weight: bold; font-size: 1rem; color: #fff; }
 
-        /* AREA PAPAN (WAJIB MUNCUL) */
+        /* PAPAN CATUR */
         #myBoard {
             width: 100%;
             aspect-ratio: 1 / 1;
             border: 2px solid #333;
             background-color: #2b2b2b;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
 
         /* TOMBOL RESIGN */
@@ -46,7 +44,7 @@
             background: #b33939; color: white; border: none;
             padding: 18px; border-radius: 8px; font-weight: bold;
             font-size: 1rem; cursor: pointer; text-transform: uppercase;
-            width: 100%; -webkit-tap-highlight-color: transparent;
+            width: 100%; margin-top: 5px;
         }
         .btn-resign:active { background: #ff4d4d; }
 
@@ -57,7 +55,7 @@
         }
         .modal-box {
             background: #262421; padding: 30px; border-radius: 12px;
-            text-align: center; border: 2px solid #ffd700; width: 85%;
+            text-align: center; border: 2px solid #ffd700; width: 80%;
         }
     </style>
 </head>
@@ -65,29 +63,25 @@
 
     <div class="game-container">
         <div class="player-box">
-            <img id="botPic" class="avatar" src="https://images.chesscomfiles.com/uploads/v1/user/170960309.8471168b.200x200o.e1808620248c.png">
-            <div class="name-info">
-                <span class="name-text" id="botDisplay">Stockfish (Level 1)</span>
-            </div>
+            <img src="https://www.chess.com/bundles/web/images/user-image.svg" id="botPic" class="avatar">
+            <div class="name-tag" id="botLabel">Stockfish (Level 1)</div>
         </div>
 
         <div id="myBoard"></div>
 
         <div class="player-box">
-            <img id="userPic" class="avatar" src="https://www.chess.com/bundles/web/images/user-image.svg">
-            <div class="name-info">
-                <span class="name-text" id="userDisplay">Player (You)</span>
-            </div>
+            <img src="https://www.chess.com/bundles/web/images/user-image.svg" id="userPic" class="avatar">
+            <div class="name-tag" id="userLabel">Jovan (You)</div>
         </div>
 
-        <button class="btn-resign" onclick="handleResign()">RESIGN</button>
+        <button class="btn-resign" onclick="klikResign()">RESIGN</button>
     </div>
 
-    <div id="gameOverModal" class="overlay">
+    <div id="popEnd" class="overlay">
         <div class="modal-box">
-            <h2 id="resTitle" style="color:#ffd700; margin:0;">GAME OVER</h2>
-            <p id="resDesc" style="color:#ccc; margin:15px 0;"></p>
-            <button onclick="window.location.href='main.html'" style="width:100%; padding:15px; background:#81b64c; color:white; border:none; border-radius:8px; font-weight:bold;">KEMBALI KE LOBBY</button>
+            <h2 id="endStatus" style="color:#ffd700; margin:0;">GAME OVER</h2>
+            <p id="endDesc" style="color:#ccc; margin:15px 0;"></p>
+            <button onclick="window.location.href='main.html'" style="width:100%; padding:15px; background:#81b64c; color:white; border:none; border-radius:8px; font-weight:bold;">LOBBY</button>
         </div>
     </div>
 
@@ -96,24 +90,23 @@
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 
     <script>
-        // INISIALISASI
         var board = null;
         var game = new Chess();
-        // STOCKFISH TERBARU (V16)
         var stockfish = new Worker('https://stockfishjs.azureedge.net/stockfish.js');
 
-        // AMBIL DATA URL
-        const params = new URLSearchParams(window.location.search);
-        const pName = params.get('name') || "Jovan";
-        const pPic = params.get('pic') || "";
-        const bLevel = params.get('level') || "1";
+        // Ambil Data
+        const urlParams = new URLSearchParams(window.location.search);
+        const uName = urlParams.get('name') || "Jovan";
+        const uPic = urlParams.get('pic');
+        const bLevel = urlParams.get('level') || "1";
 
-        // UPDATE UI
-        document.getElementById('userDisplay').innerText = pName + " (You)";
-        document.getElementById('botDisplay').innerText = "Stockfish (Level " + bLevel + ")";
-        if(pPic) document.getElementById('userPic').src = decodeURIComponent(pPic);
+        // Pasang ke UI
+        document.getElementById('userLabel').innerText = uName + " (You)";
+        document.getElementById('botLabel').innerText = "Stockfish (Level " + bLevel + ")";
+        if(uPic) document.getElementById('userPic').src = decodeURIComponent(uPic);
+        document.getElementById('botPic').src = "https://images.chesscomfiles.com/uploads/v1/user/170960309.8471168b.200x200o.e1808620248c.png";
 
-        // LOGIKA BOT
+        // Logic Engine
         stockfish.onmessage = function(e) {
             if (e.data.startsWith('bestmove')) {
                 const move = e.data.split(' ')[1];
@@ -125,63 +118,63 @@
             }
         };
 
-        function botMove() {
+        function botJalan() {
             if (game.game_over()) return;
             stockfish.postMessage('position fen ' + game.fen());
             stockfish.postMessage('setoption name Skill Level value ' + bLevel);
             stockfish.postMessage('go depth 10');
         }
 
-        // LOGIKA PAPAN
+        // Logic Papan
         function onDrop(source, target) {
             var move = game.move({ from: source, to: target, promotion: 'q' });
             if (move === null) return 'snapback';
-            window.setTimeout(botMove, 400);
+            window.setTimeout(botJalan, 400);
             checkStatus();
         }
 
         function checkStatus() {
             if (game.in_checkmate()) {
-                showResult(game.turn() === 'b' ? 'YOU WIN!' : 'YOU LOSE', 'Skakmat!');
+                tampilHasil(game.turn() === 'b' ? 'YOU WIN!' : 'YOU LOSE', 'Skakmat!');
             } else if (game.in_draw()) {
-                showResult('DRAW', 'Permainan Remis');
+                tampilHasil('DRAW', 'Permainan Remis');
             }
         }
 
-        function showResult(t, d) {
-            document.getElementById('resTitle').innerText = t;
-            document.getElementById('resDesc').innerText = d;
-            document.getElementById('gameOverModal').style.display = 'flex';
+        function tampilHasil(t, d) {
+            document.getElementById('endStatus').innerText = t;
+            document.getElementById('endDesc').innerText = d;
+            document.getElementById('popEnd').style.display = 'flex';
         }
 
-        // RESIGN BUTTON (FIXED)
-        function handleResign() {
-            if(confirm("Yakin ingin menyerah?")) {
-                showResult("YOU LOSE", "Kamu telah menyerah.");
+        // FUNGSI RESIGN PASTI JALAN
+        function klikResign() {
+            if(confirm("Yakin mau menyerah?")) {
+                tampilHasil("YOU LOSE", "Kamu menyerah.");
             }
         }
 
-        // RUNNER
+        // JALANKAN PAPAN
         $(document).ready(function() {
-            const cfg = {
+            var config = {
                 draggable: true,
                 position: 'start',
+                // MENGGUNAKAN ASSET WIKIPEDIA SEPERTI PERMINTAAN
+                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
                 onDragStart: (s, p) => !game.game_over() && p.search(/^w/) !== -1,
                 onDrop: onDrop,
-                onSnapEnd: () => board.position(game.fen()),
-                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+                onSnapEnd: () => board.position(game.fen())
             };
             
-            board = Chessboard('myBoard', cfg);
+            board = Chessboard('myBoard', config);
             
-            // PAKSA RESIZE SUPAYA PAPAN MUNCUL
+            // Fix Papan Blank (Resize paksa)
             setTimeout(() => { 
                 board.resize(); 
                 stockfish.postMessage('uci');
-            }, 150);
+            }, 200);
         });
 
-        // Responsif kalau layar diputar
         window.onresize = () => board.resize();
     </script>
 </body>
