@@ -37,7 +37,6 @@
         .timer-display { background: #000; padding: 5px 10px; border-radius: 6px; font-family: monospace; font-size: 1.2rem; font-weight: bold; border: 1px solid #444; }
         .timer-display.active { border-color: var(--primary); color: var(--primary); }
 
-        /* RESERVE PIECES CONTAINER */
         .reserve-bar {
             background: rgba(0,0,0,0.5);
             height: 45px;
@@ -50,7 +49,7 @@
             border: 1px dashed #555;
             min-height: 45px;
         }
-        .reserve-piece { width: 35px; height: 35px; cursor: pointer; filter: drop-shadow(0 0 2px black); }
+        .reserve-piece { width: 30px; height: 30px; filter: drop-shadow(0 0 2px black); }
 
         #board { width: 100%; aspect-ratio: 1/1; border: 4px solid #333; border-radius: 4px; touch-action: none; }
 
@@ -132,33 +131,38 @@
         initMatch();
     });
 
-    // FUNGSI BARU: UPDATE RESERVE VISUAL
-    function updateReserve(fen) {
+    // HITUNG BIDAK YANG DIMAKAN MANUAL
+    function updatePocket() {
+        const boardFen = game.fen().split(' ')[0];
+        const counts = { p:8, n:2, b:2, r:2, q:1, P:8, N:2, B:2, R:2, Q:1 };
+        
+        // Kurangi dengan yang masih ada di papan
+        for (let char of boardFen) {
+            if (counts[char] !== undefined) counts[char]--;
+        }
+
         const myRes = document.getElementById('myReserve');
         const oppRes = document.getElementById('oppReserve');
         myRes.innerHTML = ""; oppRes.innerHTML = "";
 
-        // Crazyhouse FEN biasanya punya bagian pocket di akhir, misal: ... w - - [Ppn]
-        const pocketMatch = fen.match(/\[(.*?)\]/);
-        if (pocketMatch && pocketMatch[1]) {
-            const pocket = pocketMatch[1];
-            for (let char of pocket) {
-                const isWhite = char === char.toUpperCase();
-                const piece = isWhite ? 'w' + char : 'b' + char.toUpperCase();
-                const img = `<img src="${pieceTheme.replace('{piece}', piece)}" class="reserve-piece">`;
+        // Tampilkan bidak sisa (yang sudah dimakan)
+        Object.keys(counts).forEach(p => {
+            for(let i=0; i < counts[p]; i++) {
+                const isWhite = p === p.toUpperCase();
+                // Di Crazyhouse: Lu dapet bidak lawan dengan warna lo
+                const displayPiece = isWhite ? 'b' + p.toUpperCase() : 'w' + p.toUpperCase();
+                const belongsTo = isWhite ? 'black' : 'white'; 
                 
-                if (mySide === 'white') {
-                    isWhite ? myRes.innerHTML += img : oppRes.innerHTML += img;
-                } else {
-                    !isWhite ? myRes.innerHTML += img : oppRes.innerHTML += img;
-                }
+                const img = `<img src="${pieceTheme.replace('{piece}', displayPiece)}" class="reserve-piece">`;
+                
+                if (belongsTo === mySide) myRes.innerHTML += img;
+                else oppRes.innerHTML += img;
             }
-        }
+        });
     }
 
     function formatTime(s) {
-        let m = Math.floor(s / 60);
-        let sc = s % 60;
+        let m = Math.floor(s / 60); let sc = s % 60;
         return `${m}:${sc < 10 ? '0'+sc : sc}`;
     }
 
@@ -178,7 +182,6 @@
         onSnapshot(ref, (s) => {
             const d = s.data();
             if(!d) return;
-
             if(mySide === 'white' && d.player2) {
                 document.getElementById('oppName').innerText = d.player2.name;
                 document.getElementById('oppPic').src = d.player2.photo || defAva;
@@ -186,32 +189,23 @@
                 document.getElementById('oppName').innerText = d.player1.name;
                 document.getElementById('oppPic').src = d.player1.photo || defAva;
             }
-
             if(d.lastFen && d.lastFen !== game.fen()) {
                 game.load(d.lastFen);
                 board.position(d.lastFen);
-                updateReserve(d.lastFen); // Update kantong bidak
+                updatePocket();
                 runTimer();
             }
-            if(d.status === "resigned") showGameOver("RESIGNED", "Match Over");
         });
 
         board = Chessboard('board', {
-            draggable: true,
-            position: 'start',
-            orientation: mySide,
-            pieceTheme: pieceTheme,
-            onDragStart: (s, p) => {
-                if(game.game_over() || game.turn() !== mySide.charAt(0)) return false;
-            },
+            draggable: true, position: 'start', orientation: mySide, pieceTheme: pieceTheme,
+            onDragStart: (s, p) => { if(game.game_over() || game.turn() !== mySide.charAt(0)) return false; },
             onDrop: async (source, target) => {
                 let m = game.move({ from: source, to: target, promotion: 'q' });
                 if(!m) return 'snapback';
-                
-                const newFen = game.fen();
-                updateReserve(newFen); // Update tampilan sendiri dulu
+                updatePocket();
                 runTimer();
-                await updateDoc(ref, { lastFen: newFen, timeLeft: timeLeft });
+                await updateDoc(ref, { lastFen: game.fen(), timeLeft: timeLeft });
             }
         });
     }
