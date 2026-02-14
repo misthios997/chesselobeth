@@ -69,6 +69,7 @@
     const params = new URLSearchParams(window.location.search);
     const roomId = params.get('id');
     const mySide = params.get('side'); 
+    const myColor = mySide.charAt(0); // 'w' or 'b'
     const pieceTheme = 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png';
 
     let game = new Chess();
@@ -76,7 +77,7 @@
     let pocket = { white: [], black: [] };
     let timeLeft = { w: 600, b: 600 };
     let selectedPieceIdx = null;
-    let isBoardLocked = false; // LOCK UTAMA
+    let isMoving = false; // Flag status pengiriman data
 
     onAuthStateChanged(auth, (u) => {
         if (!u) return window.location.href = "index.html";
@@ -89,13 +90,16 @@
         const myT = document.getElementById('myTimer');
         const oppT = document.getElementById('oppTimer');
         const f = (t) => `${Math.floor(t/60)}:${(t%60).toString().padStart(2,'0')}`;
+        const turn = game.turn();
         
         if(mySide === 'white') {
             myT.innerText = f(timeLeft.w); oppT.innerText = f(timeLeft.b);
-            game.turn() === 'w' ? myT.classList.add('active') : myT.classList.remove('active');
+            turn === 'w' ? myT.classList.add('active') : myT.classList.remove('active');
+            turn === 'b' ? oppT.classList.add('active') : oppT.classList.remove('active');
         } else {
             myT.innerText = f(timeLeft.b); oppT.innerText = f(timeLeft.w);
-            game.turn() === 'b' ? myT.classList.add('active') : myT.classList.remove('active');
+            turn === 'b' ? myT.classList.add('active') : myT.classList.remove('active');
+            turn === 'w' ? oppT.classList.add('active') : oppT.classList.remove('active');
         }
         renderPocket();
     }
@@ -105,56 +109,65 @@
         const oppRes = document.getElementById('oppReserve');
         myRes.innerHTML = ""; oppRes.innerHTML = "";
         
-        pocket[mySide].forEach((p, idx) => {
+        (pocket[mySide] || []).forEach((p, idx) => {
             const img = document.createElement('img');
-            img.src = pieceTheme.replace('{piece}', (mySide === 'white' ? 'w' : 'b') + p.toUpperCase());
+            img.src = pieceTheme.replace('{piece}', myColor + p.toUpperCase());
             img.className = 'reserve-piece' + (selectedPieceIdx === idx ? ' selected' : '');
             img.onclick = () => { 
-                if(!isBoardLocked && game.turn() === mySide.charAt(0)) { 
-                    selectedPieceIdx = idx; renderPocket(); 
+                if(!isMoving && game.turn() === myColor) { 
+                    selectedPieceIdx = (selectedPieceIdx === idx) ? null : idx; 
+                    renderPocket(); 
                 } 
             };
             myRes.appendChild(img);
         });
 
-        const oppColor = mySide === 'white' ? 'black' : 'white';
-        (pocket[oppColor] || []).forEach(p => {
+        const oppSide = mySide === 'white' ? 'black' : 'white';
+        const oppColor = oppSide.charAt(0);
+        (pocket[oppSide] || []).forEach(p => {
             const img = document.createElement('img');
-            img.src = pieceTheme.replace('{piece}', (oppColor === 'white' ? 'w' : 'b') + p.toUpperCase());
+            img.src = pieceTheme.replace('{piece}', oppColor + p.toUpperCase());
             img.className = 'reserve-piece';
             oppRes.appendChild(img);
         });
     }
 
+    // Simulasi legalitas drop (Khusus Crazyhouse)
+    function checkDropLegal(type, square) {
+        const temp = new Chess(game.fen());
+        const put = temp.put({ type: type, color: myColor }, square);
+        if (!put) return false;
+        
+        // Cek apakah raja sendiri kena skak setelah naruh bidak
+        const fenParts = temp.fen().split(' ');
+        fenParts[1] = (myColor === 'w' ? 'b' : 'w'); // Pindah turn ke lawan buat simulasi ancaman
+        const validate = new Chess(fenParts.join(' '));
+        return !validate.in_check();
+    }
+
     async function handleDrop(square) {
-        if (isBoardLocked || selectedPieceIdx === null || game.turn() !== mySide.charAt(0)) return;
-        
-        // VALIDASI DROP: Cek apakah kotak kosong & apakah Raja sedang Check
+        if (isMoving || selectedPieceIdx === null || game.turn() !== myColor) return;
         if (game.get(square)) return;
-        
+
         const pieceType = pocket[mySide][selectedPieceIdx];
-        const moveAttempt = game.put({ type: pieceType, color: mySide.charAt(0) }, square);
-        
-        if (moveAttempt) {
-            // Setelah put, kita harus cek apakah posisi ini legal (tidak membiarkan Raja kena check)
-            // chess.js put() tidak otomatis cek legalitas check, jadi kita validasi manual
-            if (game.in_check()) {
-                game.remove(square); // Batalkan jika masih check
-                alert("Illegal Move: King is still in check!");
-                return;
-            }
-
-            isBoardLocked = true; // KUNCI PAPAN
-            pocket[mySide].splice(selectedPieceIdx, 1);
-            selectedPieceIdx = null;
-
-            let tokens = game.fen().split(' ');
-            tokens[1] = tokens[1] === 'w' ? 'b' : 'w'; // Ganti Turn
-            game.load(tokens.join(' '));
-            
-            board.position(game.fen());
-            await sync();
+        if (!checkDropLegal(pieceType, square)) {
+            alert("Illegal Move: King is in check!");
+            return;
         }
+
+        isMoving = true;
+        game.put({ type: pieceType, color: myColor }, square);
+        pocket[mySide].splice(selectedPieceIdx, 1);
+        selectedPieceIdx = null;
+
+        // Ganti turn manual untuk FEN
+        let tokens = game.fen().split(' ');
+        tokens[1] = tokens[1] === 'w' ? 'b' : 'w';
+        game.load(tokens.join(' '));
+        
+        board.position(game.fen());
+        await sync();
+        isMoving = false;
     }
 
     async function sync() {
@@ -170,54 +183,59 @@
         board = Chessboard('board', {
             draggable: true, position: 'start', orientation: mySide, pieceTheme: pieceTheme,
             onDragStart: (s, p) => {
-                if(isBoardLocked || game.game_over() || game.turn() !== mySide.charAt(0)) return false;
-                if(p.charAt(0) !== mySide.charAt(0)) return false;
+                // HANYA BOLEH JALAN KALO TURN COCOK & GA LAGI SYNC
+                if(isMoving || game.game_over() || game.turn() !== myColor) return false;
+                if(p.charAt(0) !== myColor) return false;
             },
             onDrop: async (source, target) => {
-                let move = game.move({ from: source, to: target, promotion: 'q' });
+                const move = game.move({ from: source, to: target, promotion: 'q' });
                 if (!move) return 'snapback';
                 
-                isBoardLocked = true; // KUNCI PAPAN
+                isMoving = true;
                 if (move.captured) {
                     const capturer = game.turn() === 'b' ? 'white' : 'black';
                     pocket[capturer].push(move.captured);
                 }
                 await sync();
+                isMoving = false;
             }
         });
 
         $('#board').on('click', '.square-55d63', function() { handleDrop($(this).attr('data-square')); });
 
+        // Timer Local yang sinkron
         setInterval(() => {
-            if(!game.game_over() && !isBoardLocked) {
+            if(!game.game_over() && !isMoving) {
                 timeLeft[game.turn()]--;
                 updateUI();
             }
         }, 1000);
 
         onSnapshot(doc(db, "rooms", roomId), (s) => {
-            const d = s.data(); if (!d) return;
+            const d = s.data(); 
+            if (!d || isMoving) return;
 
+            // Pastikan info player sinkron
             if(mySide==='white' && d.player2) { document.getElementById('oppName').innerText = d.player2.name; document.getElementById('oppPic').src = d.player2.photo; }
             if(mySide==='black' && d.player1) { document.getElementById('oppName').innerText = d.player1.name; document.getElementById('oppPic').src = d.player1.photo; }
             
+            // Sync FEN & Turn
             if (d.lastFen && d.lastFen !== game.fen()) {
                 game.load(d.lastFen);
                 board.position(d.lastFen);
-                isBoardLocked = false; // BUKA KUNCI SETELAH DATA MASUK
             }
             
             if (d.pocket) pocket = d.pocket;
             if (d.timeLeft) timeLeft = d.timeLeft;
             updateUI();
             
-            if (d.status === "resigned") showGameOver("GAME OVER", d.resignedBy + " menyerah");
-            if (game.in_checkmate()) showGameOver("CHECKMATE", (game.turn()==='w'?'Black':'White') + " menang!");
+            if (d.status === "resigned") showGameOver("GAME OVER", d.resignedBy + " resigned");
+            if (game.in_checkmate()) showGameOver("CHECKMATE", (game.turn()==='w'?'Black':'White') + " wins!");
         });
     }
 
     window.confirmResign = async () => {
-        if(confirm("Nyerah sekarang?")) await updateDoc(doc(db, "rooms", roomId), { status: "resigned", resignedBy: auth.currentUser.displayName });
+        if(confirm("Confirm Resign?")) await updateDoc(doc(db, "rooms", roomId), { status: "resigned", resignedBy: auth.currentUser.displayName });
     };
 
     function showGameOver(t, r) {
