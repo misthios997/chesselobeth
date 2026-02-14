@@ -26,7 +26,8 @@
         .go-box { background: #2d2d2d; padding: 30px; border-radius: 20px; text-align: center; border: 2px solid var(--primary); width: 80%; max-width: 300px; }
         .go-btn { background: var(--primary); border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 15px; }
         
-        .thinking-loader { font-size: 0.8rem; color: var(--primary); display: none; }
+        .thinking-loader { font-size: 0.8rem; color: var(--primary); display: none; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -44,9 +45,9 @@
     <div class="match-container">
         <div class="player-card">
             <div class="p-info">
-                <img src="https://i.ibb.co.com/8LpY5v7/avatar1.jpg" class="ava">
+                <img src="https://ui-avatars.com/api/?name=Stock+Fish&background=ffd700&color=000" class="ava">
                 <div>
-                    <div class="name">Stockfish AI</div>
+                    <div class="name">Stockfish Engine</div>
                     <div class="thinking-loader" id="botStatus">Thinking...</div>
                 </div>
             </div>
@@ -87,13 +88,23 @@
     let gameEnded = false;
     let pendingMove = null;
 
-    // --- STOCKFISH INTEGRATION ---
-    const stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');
-    
+    // --- FIX BLANK SCREEN: STOCKFISH WORKER VIA BLOB ---
+    let stockfish;
+    try {
+        const sfUrl = 'https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js';
+        const blob = new Blob([`importScripts('${sfUrl}');`], { type: 'application/javascript' });
+        stockfish = new Worker(URL.createObjectURL(blob));
+    } catch (e) {
+        console.error("Worker failed", e);
+        alert("Engine failed to load. Try refreshing.");
+    }
+
     stockfish.onmessage = function(event) {
         if (event.data.startsWith('bestmove')) {
-            const move = event.data.split(' ')[1];
-            makeEngineMove(move);
+            const moveStr = event.data.split(' ')[1];
+            if (moveStr && moveStr !== '(none)') {
+                makeEngineMove(moveStr);
+            }
         }
     };
 
@@ -101,8 +112,10 @@
         if (gameEnded) return;
         document.getElementById('botStatus').style.display = 'block';
         
-        // Sesuaikan Depth dengan Level (Lvl 1 = Depth 1, Lvl 10 = Depth 15)
-        const depth = level === 1 ? 1 : level + 5; 
+        // Difficulty Logic
+        // Level 1: Depth 1 (Bego banget)
+        // Level 10: Depth 14 (Sangat susah)
+        const depth = level === 1 ? 1 : Math.min(level + 4, 14);
         
         stockfish.postMessage('position fen ' + game.fen());
         stockfish.postMessage('go depth ' + depth);
@@ -111,12 +124,14 @@
     function makeEngineMove(moveStr) {
         const from = moveStr.substring(0, 2);
         const to = moveStr.substring(2, 4);
-        const promo = moveStr.substring(4, 5) || 'q';
+        const promo = moveStr.length > 4 ? moveStr.substring(4, 5) : 'q';
 
-        game.move({ from: from, to: to, promotion: promo });
-        board.position(game.fen());
-        document.getElementById('botStatus').style.display = 'none';
-        checkStatus();
+        const move = game.move({ from: from, to: to, promotion: promo });
+        if (move) {
+            board.position(game.fen());
+            document.getElementById('botStatus').style.display = 'none';
+            checkStatus();
+        }
     }
 
     onAuthStateChanged(auth, (u) => {
@@ -183,7 +198,7 @@
             reason = (game.turn() === 'w' ? 'Stockfish' : 'You') + " Wins!";
         } else if (game.in_draw()) {
             title = "DRAW";
-            reason = "Stalemate or Insufficient Material";
+            reason = "Stalemate or Draw Rule";
         }
 
         if (title) {
