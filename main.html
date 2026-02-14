@@ -3,172 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ChessELOBETH - Lobby</title>
+    <title>CHESSELOBETH</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --bg-dark: #0a0a0a;
-            --bg-card: #1a1a1a;
-            --accent: #d4af37; /* Gold/Kuning */
-            --text-main: #ffffff;
-            --text-dim: #999999;
+            --bg-dark: #121212;
+            --card-bg: #222222;
+            --primary: #d4af37; /* Kuning Emas */
+            --accent-green: #779556;
+            --text: #ffffff;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
-            margin: 0; background: var(--bg-dark); color: var(--text-main);
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+            margin: 0; background-color: var(--bg-dark); color: var(--text);
+            font-family: 'Segoe UI', sans-serif; overflow-x: hidden;
         }
 
-        /* TOP BAR */
-        .top-bar {
-            padding: 15px 20px; display: flex; justify-content: space-between;
-            align-items: center; background: #111; border-bottom: 1px solid #222;
+        /* HEADER */
+        .header {
+            padding: 20px; display: flex; justify-content: space-between; align-items: center;
         }
-        .logo { font-weight: bold; color: var(--accent); letter-spacing: 1px; }
-        .currency { background: #222; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; display: flex; align-items: center; gap: 5px; }
-
-        .main-container { flex: 1; overflow-y: auto; padding-bottom: 80px; }
-
-        /* PROFILE SECTION */
-        .profile-card {
-            margin: 20px; padding: 20px; background: var(--bg-card);
-            border-radius: 15px; display: flex; align-items: center; gap: 15px;
-            border-left: 4px solid var(--accent);
+        .logo { color: var(--primary); font-weight: bold; font-size: 1.4rem; }
+        .header-icons { display: flex; gap: 15px; align-items: center; }
+        
+        /* MENU DROPDOWN */
+        .menu-container { position: relative; }
+        .dots-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        .dropdown-content {
+            display: none; position: absolute; right: 0; top: 30px; background: #333;
+            min-width: 150px; border-radius: 8px; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
-        .avatar-frame { width: 70px; height: 70px; border-radius: 10px; background: #333; overflow: hidden; }
-        .avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
-        .profile-info h2 { margin: 0; font-size: 1.3rem; color: var(--accent); }
-        .profile-info p { margin: 5px 0 0; font-size: 0.85rem; color: var(--text-dim); }
-
-        /* DATA STATISTICS */
-        .section-label { padding: 0 20px; margin: 10px 0; font-size: 0.75rem; color: var(--accent); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 20px; }
-        .stat-card { background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid #222; }
-        .stat-card small { color: var(--text-dim); display: block; margin-bottom: 5px; font-size: 0.7rem; }
-        .stat-card b { font-size: 1.2rem; }
-
-        /* ACTIONS & MODES */
-        .action-container { padding: 0 20px; margin-top: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .action-box {
-            background: var(--bg-card); padding: 18px; border-radius: 15px;
-            display: flex; align-items: center; gap: 15px; border: 1px solid #222;
+        .dropdown-content a {
+            color: white; padding: 12px 16px; text-decoration: none; display: block; font-size: 0.9rem;
         }
-        .action-box i { font-size: 1.6rem; color: var(--accent); }
-        .action-box h4 { margin: 0; font-size: 1rem; }
-        .action-box p { margin: 3px 0 0; font-size: 0.75rem; color: var(--text-dim); }
+        .dropdown-content a:hover { background: #444; border-radius: 8px; }
 
-        /* PLAY VS BOT (NEW INTEGRATION) */
-        .bot-play-card {
-            background: #151515; border: 1px solid var(--accent);
-            border-radius: 15px; padding: 20px; margin: 10px 0;
+        /* WELCOME */
+        .welcome { padding: 0 20px; color: var(--primary); font-size: 1.5rem; margin-bottom: 20px; }
+
+        /* PLAY CARD */
+        .play-card {
+            margin: 20px; background: var(--card-bg); border-radius: 15px;
+            padding: 20px; border-left: 5px solid var(--accent-green);
         }
-        .level-row { display: flex; gap: 8px; margin: 15px 0; }
-        .level-btn {
-            flex: 1; padding: 12px; background: #222; border: 1px solid #333;
-            color: white; border-radius: 8px; font-weight: bold; cursor: pointer;
+        .label-small { color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 10px; display: block; }
+        .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .option-btn {
+            background: #333; border: 1px solid #444; color: white; padding: 12px 5px;
+            border-radius: 8px; font-weight: bold; cursor: pointer;
         }
-        .level-btn.active { background: var(--accent); color: black; border-color: var(--accent); }
-        .btn-play-bot {
-            width: 100%; padding: 16px; background: var(--accent); color: black;
-            border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; cursor: pointer;
+        .option-btn.active { background: #444; border: 2px solid var(--accent-green); color: var(--accent-green); }
+        
+        .play-main-btn {
+            width: 100%; padding: 15px; background: var(--accent-green); color: white;
+            border: none; border-radius: 10px; font-weight: bold; font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
         }
 
-        /* BOTTOM NAV */
-        .bottom-nav {
-            position: fixed; bottom: 0; width: 100%; height: 70px;
-            background: #111; display: flex; justify-content: space-around;
-            align-items: center; border-top: 1px solid #222;
+        /* BROADCAST */
+        .broadcast {
+            margin: 20px; background: #c69312; color: black; padding: 15px;
+            border-radius: 8px; font-weight: bold; font-size: 0.9rem;
         }
-        .nav-icon { color: #555; font-size: 1.3rem; }
-        .nav-icon.active { color: var(--accent); }
+
+        /* RECENT PLAYERS */
+        .section-title { padding: 0 20px; color: #888; font-size: 0.8rem; text-transform: uppercase; }
+        .player-list { padding: 10px 20px; }
+        .player-item {
+            background: var(--card-bg); padding: 15px; border-radius: 12px;
+            margin-bottom: 15px; border-left: 4px solid var(--primary);
+            position: relative;
+        }
+        .player-item h3 { margin: 0; color: var(--primary); font-size: 1.1rem; }
+        .player-item p { margin: 5px 0 0; color: #aaa; font-size: 0.85rem; }
+        .action-btns { position: absolute; right: 10px; top: 15px; display: flex; gap: 5px; }
+        .btn-edit { background: #444; color: white; border: none; padding: 5px 10px; border-radius: 4px; }
+        .btn-del { background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; }
+
+        /* FLOATING ACTION BUTTON */
+        .fab {
+            position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px;
+            background: var(--primary); border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; font-size: 2rem;
+            color: black; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: none;
+        }
     </style>
 </head>
 <body>
 
-    <div class="top-bar">
-        <div class="logo">CHESS ELOBETH</div>
-        <div class="currency">
-            <i class="fas fa-coins" style="color:#ffd700;"></i> <b>1,250</b>
+    <div class="header">
+        <div class="logo">CHESSELOBETH</div>
+        <div class="header-icons">
+            <i class="far fa-comment-dots"></i>
+            <div class="menu-container">
+                <button class="dots-btn" onclick="toggleMenu()"><i class="fas fa-ellipsis-v"></i></button>
+                <div id="myDropdown" class="dropdown-content">
+                    <a href="#" onclick="showSection('data')">Data Account</a>
+                    <a href="#" onclick="showSection('online')">Play Online</a>
+                    <a href="#" onclick="openBotModal()">Play Bot</a>
+                    <a href="#">Owner Action</a>
+                </div>
+            </div>
+            <img src="https://www.chess.com/bundles/web/images/user-image.svg" style="width:35px; border-radius:50%; border: 1px solid var(--primary);">
         </div>
     </div>
 
-    <div class="main-container">
-        <div class="profile-card">
-            <div class="avatar-frame">
-                <img src="https://www.chess.com/bundles/web/images/user-image.svg" id="pfp">
-            </div>
-            <div class="profile-info">
-                <h2 id="pName">Jovan</h2>
-                <p>Diamond Member • Rating 1250</p>
-            </div>
+    <div class="welcome">Welcome Jovan</div>
+
+    <div class="play-card">
+        <span class="label-small">Timer Set</span>
+        <div class="btn-grid">
+            <button class="option-btn">3Min</button>
+            <button class="option-btn">5Min</button>
+            <button class="option-btn active">10Min</button>
         </div>
-
-        <div class="section-label">Data Statistics</div>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <small>GAMES PLAYED</small>
-                <b>142</b>
-            </div>
-            <div class="stat-card">
-                <small>WIN RATE</small>
-                <b>64.5%</b>
-            </div>
+        <span class="label-small">Variant</span>
+        <div class="btn-grid">
+            <button class="option-btn active">Standard</button>
+            <button class="option-btn">Crazyhouse</button>
+            <button class="option-btn">All Rook</button>
         </div>
+        <button class="play-main-btn" onclick="alert('Searching opponent...')">
+            [ <i class="fas fa-search"></i> PLAY ONLINE ]
+        </button>
+    </div>
 
-        <div class="section-label">Actions & Modes</div>
-        <div class="action-container">
-            <div class="action-box">
-                <i class="fas fa-bolt"></i>
-                <div>
-                    <h4>Play Online</h4>
-                    <p>Find a random opponent globally</p>
-                </div>
-            </div>
+    <div class="broadcast">
+        Broadcast: Ini semua bukan data akun tapi catatan elo di Sekolah
+    </div>
 
-            <div class="bot-play-card">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <i class="fas fa-robot" style="color:var(--accent);"></i>
-                    <h4 style="margin:0;">Play vs Stockfish</h4>
-                </div>
-                <div class="level-row">
-                    <button class="level-btn active" onclick="selLvl(1, this)">1</button>
-                    <button class="level-btn" onclick="selLvl(5, this)">5</button>
-                    <button class="level-btn" onclick="selLvl(10, this)">10</button>
-                    <button class="level-btn" onclick="selLvl(15, this)">15</button>
-                    <button class="level-btn" onclick="selLvl(20, this)">20</button>
-                </div>
-                <button class="btn-play-bot" onclick="startBot()">PLAY BOT</button>
-            </div>
-
-            <div class="action-box">
-                <i class="fas fa-puzzle-piece"></i>
-                <div>
-                    <h4>Daily Puzzles</h4>
-                    <p>Earn coins by solving puzzles</p>
-                </div>
+    <div class="section-title">Recent Players</div>
+    <div class="player-list">
+        <div class="player-item">
+            <h3>[GM] Magnus Carlsen</h3>
+            <p>Elo: 2882 | Date: 10 March 2010</p>
+            <p style="color:#666">MagnusCarlsen</p>
+            <div class="action-btns">
+                <button class="btn-edit">Edit</button>
+                <button class="btn-del">Del</button>
             </div>
         </div>
     </div>
 
-    <div class="bottom-nav">
-        <i class="fas fa-home nav-icon active"></i>
-        <i class="fas fa-chess-board nav-icon"></i>
-        <i class="fas fa-trophy nav-icon"></i>
-        <i class="fas fa-user nav-icon"></i>
+    <button class="fab"><i class="fas fa-plus"></i></button>
+
+    <div id="botModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; justify-content:center; align-items:center;">
+        <div style="background:#222; padding:30px; border-radius:15px; width:80%; border:2px solid var(--primary);">
+            <h3 style="color:var(--primary); margin-top:0;">Select Bot Level</h3>
+            <div class="btn-grid" style="margin:20px 0;">
+                <button class="option-btn" onclick="goBot(1)">Lvl 1</button>
+                <button class="option-btn" onclick="goBot(10)">Lvl 10</button>
+                <button class="option-btn" onclick="goBot(20)">Lvl 20</button>
+            </div>
+            <button onclick="document.getElementById('botModal').style.display='none'" style="width:100%; padding:10px; background:#444; color:white; border:none; border-radius:5px;">CANCEL</button>
+        </div>
     </div>
 
     <script>
-        let currentLevel = 1;
-        function selLvl(l, b) {
-            currentLevel = l;
-            document.querySelectorAll('.level-btn').forEach(btn => btn.classList.remove('active'));
-            b.classList.add('active');
+        function toggleMenu() {
+            var dropdown = document.getElementById("myDropdown");
+            dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
         }
-        function startBot() {
-            const name = document.getElementById('pName').innerText;
-            window.location.href = `botgame.html?name=${encodeURIComponent(name)}&level=${currentLevel}`;
+
+        window.onclick = function(event) {
+            if (!event.target.matches('.dots-btn') && !event.target.matches('.fa-ellipsis-v')) {
+                document.getElementById("myDropdown").style.display = "none";
+            }
+        }
+
+        function openBotModal() {
+            document.getElementById('botModal').style.display = 'flex';
+        }
+
+        function goBot(lvl) {
+            window.location.href = `botgame.html?name=Jovan&level=${lvl}`;
         }
     </script>
 </body>
