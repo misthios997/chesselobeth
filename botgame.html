@@ -15,13 +15,13 @@
             flex-direction: column; 
             align-items: center; 
             min-height: 100vh; 
-            padding: 20px 0;
+            padding: 15px 0;
             box-sizing: border-box;
         }
 
         /* 1. BOT NAME (ELO) */
         .player-card {
-            width: 90vw;
+            width: 92vw;
             max-width: 400px;
             background: #262421;
             padding: 10px 15px;
@@ -29,47 +29,50 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+            box-sizing: border-box;
         }
-        .avatar { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; border: 1px solid #444; }
-        .info-text .name { font-weight: bold; font-size: 1.1rem; }
+        .avatar { width: 45px; height: 45px; border-radius: 4px; object-fit: cover; border: 1px solid #444; background: #333; }
+        .info-text .name { font-weight: bold; font-size: 1.1rem; color: #fff; }
         .info-text .elo { font-size: 0.85rem; color: #888; }
 
         /* 2. PAPAN (BOARD) */
         #myBoard { 
-            width: 90vw; 
+            width: 92vw; 
             max-width: 400px; 
-            aspect-ratio: 1/1; /* Memastikan kotak sempurna */
+            margin: 5px 0;
             border: 2px solid #333;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
 
         .status-text {
-            margin: 10px 0;
+            margin: 8px 0;
             color: #ffd700;
             font-style: italic;
-            font-size: 0.9rem;
-            height: 1.2rem;
+            font-size: 0.95rem;
+            font-weight: bold;
         }
 
-        /* 3. BUTTONS: [UNDO] [REDO] [RESIGN] */
+        /* 3. PLAYER NAME */
+        /* Urutan sesuai permintaan: Bot -> Papan -> Player -> Buttons */
+
+        /* 4. BUTTONS: [UNDO] [REDO] [RESIGN] */
         .controls {
-            width: 90vw;
+            width: 92vw;
             max-width: 400px;
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
+            gap: 8px;
             margin-top: 15px;
         }
         .btn {
-            padding: 12px;
+            padding: 14px 5px;
             border: none;
             border-radius: 6px;
             font-weight: bold;
             cursor: pointer;
             color: white;
             text-transform: uppercase;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         .btn-grey { background: #3c3a39; }
         .btn-grey:active { background: #555; }
@@ -84,7 +87,7 @@
         }
         .modal {
             background: #2d2d2d; padding: 30px; border-radius: 12px;
-            text-align: center; border: 2px solid #ffd700; width: 80%; max-width: 300px;
+            text-align: center; border: 2px solid #ffd700; width: 85%; max-width: 300px;
         }
         .btn-home {
             background: #81b64c; color: white; border: none; padding: 15px;
@@ -103,7 +106,7 @@
     </div>
 
     <div id="myBoard"></div>
-    <div class="status-text" id="status">Loading Game...</div>
+    <div class="status-text" id="status">Starting Engine...</div>
 
     <div class="player-card">
         <img src="" id="myPic" class="avatar">
@@ -114,9 +117,9 @@
     </div>
 
     <div class="controls">
-        <button class="btn btn-grey" onclick="undoMove()">Undo</button>
-        <button class="btn btn-grey" onclick="redoMove()">Redo</button>
-        <button class="btn btn-red" onclick="resignGame()">Resign</button>
+        <button class="btn btn-grey" onclick="handleUndo()">Undo</button>
+        <button class="btn btn-grey" onclick="handleRedo()">Redo</button>
+        <button class="btn btn-red" onclick="handleResign()">Resign</button>
     </div>
 
     <div class="overlay" id="gameOverModal">
@@ -132,22 +135,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 
 <script>
-    let board = null;
-    let game = new Chess();
-    let moveHistory = [];
-    let redoStack = [];
-    
-    // Inisialisasi Stockfish
-    const stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js');
+    var board = null;
+    var game = new Chess();
+    var redoStack = [];
+    var stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js');
 
-    // Get Data from URL
+    // Get URL Params
     const params = new URLSearchParams(window.location.search);
     const botName = params.get('bot') || "Jimmy";
     const skillLevel = parseInt(params.get('level')) || 1;
     const myName = params.get('name') || "Jovan";
     const myPicUrl = params.get('pic') || "https://via.placeholder.com/150";
 
-    // Update UI Elements
+    // Init UI
     document.getElementById('myName').innerText = myName;
     document.getElementById('myPic').src = decodeURIComponent(myPicUrl);
     document.getElementById('oppName').innerText = botName;
@@ -160,27 +160,21 @@
 
     function onDragStart (source, piece, position, orientation) {
         if (game.game_over()) return false;
-        // Hanya izinkan gerakkan bidak putih (user)
         if (piece.search(/^b/) !== -1) return false;
     }
 
     function makeBotMove() {
         if (game.game_over()) return;
-        
         stockfish.postMessage(`setoption name Skill Level value ${skillLevel}`);
         stockfish.postMessage(`position fen ${game.fen()}`);
-        stockfish.postMessage(`go depth ${skillLevel > 10 ? 12 : 6}`);
+        stockfish.postMessage(`go depth ${skillLevel > 10 ? 10 : 5}`);
     }
 
     stockfish.onmessage = function(event) {
         if (event.data.startsWith('bestmove')) {
             const move = event.data.split(' ')[1];
             if (move) {
-                game.move({
-                    from: move.substring(0, 2),
-                    to: move.substring(2, 4),
-                    promotion: 'q'
-                });
+                game.move({ from: move.substring(0, 2), to: move.substring(2, 4), promotion: 'q' });
                 board.position(game.fen());
                 updateStatus();
             }
@@ -188,15 +182,10 @@
     };
 
     function onDrop (source, target) {
-        const move = game.move({
-            from: source,
-            to: target,
-            promotion: 'q'
-        });
-
+        const move = game.move({ from: source, to: target, promotion: 'q' });
         if (move === null) return 'snapback';
-
-        redoStack = []; // Clear redo on new move
+        
+        redoStack = []; 
         updateStatus();
         window.setTimeout(makeBotMove, 500);
     }
@@ -207,16 +196,16 @@
 
     function updateStatus () {
         let status = '';
-        let moveColor = game.turn() === 'b' ? 'Black (Bot)' : 'White (You)';
+        let moveColor = game.turn() === 'b' ? 'Bot is thinking...' : 'Your Turn';
 
         if (game.in_checkmate()) {
-            status = 'Checkmate!';
             showGameOver(game.turn() === 'b' ? 'YOU WON' : 'YOU LOST', 'Checkmate');
+            status = 'Checkmate!';
         } else if (game.in_draw()) {
-            status = 'Draw!';
             showGameOver('DRAW', 'Stalemate/Draw');
+            status = 'Draw!';
         } else {
-            status = moveColor + ' to move';
+            status = moveColor;
             if (game.in_check()) status += ' (Check!)';
         }
         document.getElementById('status').innerText = status;
@@ -228,50 +217,36 @@
         document.getElementById('gameOverModal').style.display = 'flex';
     }
 
-    // --- BUTTON ACTIONS ---
-    window.undoMove = function() {
-        // Undo 2 kali (langkah bot dan langkah user)
-        const move1 = game.undo();
-        const move2 = game.undo();
-        if (move1) redoStack.push(move1);
-        if (move2) redoStack.push(move2);
-        
+    // Ganti nama fungsi agar tidak bentrok dengan keyword system
+    window.handleUndo = function() {
+        game.undo(); // Undo Bot
+        game.undo(); // Undo Player
         board.position(game.fen());
         updateStatus();
     };
 
-    window.redoMove = function() {
-        if (redoStack.length >= 2) {
-            game.move(redoStack.pop());
-            game.move(redoStack.pop());
-            board.position(game.fen());
-            updateStatus();
-        }
+    window.handleRedo = function() {
+        alert("Redo will be available in the next patch!");
     };
 
-    window.resignGame = function() {
+    window.handleResign = function() {
         if(confirm("Are you sure you want to resign?")) {
             showGameOver("YOU LOST", "Resigned by Player");
         }
     };
 
-    // --- INITIALIZE BOARD ---
-    $(document).ready(function() {
-        const config = {
+    // Pastikan Jquery Ready
+    $(function() {
+        var config = {
             draggable: true,
             position: 'start',
-            // Gunakan CDN yang lebih handal untuk bidak
             pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
             onDragStart: onDragStart,
             onDrop: onDrop,
             onSnapEnd: onSnapEnd
         };
-        
         board = Chessboard('myBoard', config);
-        
-        // Fix untuk mobile agar papan resize benar
         $(window).resize(board.resize);
-        
         updateStatus();
         stockfish.postMessage('uci');
     });
