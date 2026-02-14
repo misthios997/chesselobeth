@@ -16,9 +16,39 @@
         .name { font-weight: bold; font-size: 0.9rem; color: #fff; }
         .timer-display { background: #000; padding: 5px 10px; border-radius: 6px; font-family: monospace; font-size: 1.2rem; font-weight: bold; border: 1px solid #444; }
         .timer-display.active { border-color: var(--primary); color: var(--primary); }
-        .reserve-bar { background: rgba(0,0,0,0.5); height: 50px; margin: 5px 0; border-radius: 8px; display: flex; align-items: center; padding: 0 10px; gap: 5px; border: 1px dashed #555; overflow-x: auto; }
-        .reserve-piece { width: 35px; height: 35px; cursor: pointer; }
-        .reserve-piece.selected { background: rgba(255,215,0,0.4); border-radius: 5px; box-shadow: 0 0 10px var(--primary); }
+        
+        /* FIX BACKGROUND POCKET BIAR BIDAK HITAM KELIHATAN */
+        .reserve-bar { 
+            background: #3a3a3a; /* Ganti ke abu-abu lebih terang */
+            height: 55px; 
+            margin: 5px 0; 
+            border-radius: 8px; 
+            display: flex; 
+            align-items: center; 
+            padding: 0 10px; 
+            gap: 5px; 
+            border: 1px solid #555; 
+            overflow-x: auto;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .reserve-piece { 
+            width: 40px; 
+            height: 40px; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            /* Tambahin shadow putih biar bidak hitam punya outline */
+            filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 2px rgba(255,255,255,0.5));
+        }
+        
+        .reserve-piece.selected { 
+            background: rgba(255,215,0,0.5); 
+            border-radius: 5px; 
+            box-shadow: 0 0 15px var(--primary); 
+            transform: scale(1.1); 
+            filter: drop-shadow(0 0 2px #fff);
+        }
+
         #board { width: 100%; aspect-ratio: 1/1; border: 4px solid #333; border-radius: 4px; touch-action: none; }
         .btn-resign { width: 100%; padding: 14px; background: var(--danger); color: white; border: none; border-radius: 10px; font-weight: 900; cursor: pointer; margin-top: 10px; text-transform: uppercase; }
         .game-over-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
@@ -57,7 +87,7 @@
     </div>
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 
 <script type="module">
@@ -77,9 +107,7 @@
 
     let game = new Chess();
     let board = null;
-    let timerInt = null;
-    let timeLeft = { w: 600, b: 600 };
-    let pocket = { white: [], black: [] }; // Sinkron dengan DB
+    let pocket = { white: [], black: [] };
     let selectedPieceIdx = null;
 
     onAuthStateChanged(auth, (u) => {
@@ -94,25 +122,26 @@
         const oppRes = document.getElementById('oppReserve');
         myRes.innerHTML = ""; oppRes.innerHTML = "";
 
-        const myPieces = pocket[mySide];
-        const oppSide = mySide === 'white' ? 'black' : 'white';
-        const oppPieces = pocket[oppSide];
-
+        const myPieces = pocket[mySide] || [];
         myPieces.forEach((p, idx) => {
             const img = document.createElement('img');
-            img.src = pieceTheme.replace('{piece}', (mySide === 'white' ? 'w' : 'b') + p.toUpperCase());
+            const colorCode = mySide === 'white' ? 'w' : 'b';
+            img.src = pieceTheme.replace('{piece}', colorCode + p.toUpperCase());
             img.className = 'reserve-piece' + (selectedPieceIdx === idx ? ' selected' : '');
             img.onclick = () => {
                 if (game.turn() !== mySide.charAt(0)) return;
-                selectedPieceIdx = idx;
+                selectedPieceIdx = (selectedPieceIdx === idx) ? null : idx;
                 renderPocket();
             };
             myRes.appendChild(img);
         });
 
+        const oppSide = mySide === 'white' ? 'black' : 'white';
+        const oppPieces = pocket[oppSide] || [];
         oppPieces.forEach(p => {
             const img = document.createElement('img');
-            img.src = pieceTheme.replace('{piece}', (oppSide === 'white' ? 'w' : 'b') + p.toUpperCase());
+            const colorCode = oppSide === 'white' ? 'w' : 'b';
+            img.src = pieceTheme.replace('{piece}', colorCode + p.toUpperCase());
             img.className = 'reserve-piece';
             oppRes.appendChild(img);
         });
@@ -120,23 +149,17 @@
 
     async function handleDrop(square) {
         if (selectedPieceIdx === null) return;
+        if (game.get(square)) return; 
         
         const pieceType = pocket[mySide][selectedPieceIdx].toLowerCase();
+        const success = game.put({ type: pieceType, color: mySide.charAt(0) }, square);
         
-        // Coba taruh di papan
-        if (game.get(square)) return; // Harus kotak kosong
-        
-        const putSuccess = game.put({ type: pieceType, color: mySide.charAt(0) }, square);
-        if (putSuccess) {
-            // Hapus dari pocket
+        if (success) {
             pocket[mySide].splice(selectedPieceIdx, 1);
             selectedPieceIdx = null;
-
-            // Ganti Turn Manual
-            let fenArr = game.fen().split(' ');
-            fenArr[1] = fenArr[1] === 'w' ? 'b' : 'w';
-            game.load(fenArr.join(' '));
-
+            let f = game.fen().split(' ');
+            f[1] = f[1] === 'w' ? 'b' : 'w';
+            game.load(f.join(' '));
             board.position(game.fen());
             renderPocket();
             await sync();
@@ -146,8 +169,7 @@
     async function sync() {
         await updateDoc(doc(db, "rooms", roomId), { 
             lastFen: game.fen(), 
-            timeLeft: timeLeft,
-            pocket: pocket, // Simpan sisa pocket
+            pocket: pocket,
             lastMove: Date.now() 
         });
     }
@@ -157,7 +179,6 @@
         onSnapshot(ref, (s) => {
             const d = s.data();
             if(!d) return;
-
             if(mySide === 'white' && d.player2) {
                 document.getElementById('oppName').innerText = d.player2.name;
                 document.getElementById('oppPic').src = d.player2.photo || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
@@ -165,7 +186,6 @@
                 document.getElementById('oppName').innerText = d.player1.name;
                 document.getElementById('oppPic').src = d.player1.photo || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
             }
-
             if (d.pocket) pocket = d.pocket;
             if (d.lastFen && d.lastFen !== game.fen()) {
                 game.load(d.lastFen);
@@ -181,13 +201,10 @@
             onDrop: async (source, target) => {
                 let move = game.move({ from: source, to: target, promotion: 'q' });
                 if(!move) return 'snapback';
-
-                // LOGIC MAKAN: Jika makan, bidak lawan masuk pocket kita
                 if (move.captured) {
-                    const myNewColor = game.turn() === 'b' ? 'white' : 'black'; // Yang baru gerak
-                    pocket[myNewColor].push(move.captured === 'p' ? 'p' : move.captured);
+                    const whoMoved = game.turn() === 'b' ? 'white' : 'black';
+                    pocket[whoMoved].push(move.captured);
                 }
-
                 renderPocket();
                 await sync();
             }
@@ -205,7 +222,6 @@
     };
 
     function showGameOver(t, r) {
-        if (timerInt) clearInterval(timerInt);
         document.getElementById('goTitle').innerText = t;
         document.getElementById('goReason').innerText = r;
         document.getElementById('gameOverModal').style.display = 'flex';
