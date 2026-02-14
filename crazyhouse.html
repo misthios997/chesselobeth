@@ -15,7 +15,7 @@
         .ava { width: 40px; height: 40px; border-radius: 6px; background: #444; object-fit: cover; border: 1px solid var(--primary); }
         .name { font-weight: bold; font-size: 0.9rem; color: #fff; }
         .timer-display { background: #000; padding: 5px 10px; border-radius: 6px; font-family: monospace; font-size: 1.2rem; font-weight: bold; border: 1px solid #444; min-width: 65px; text-align: center; }
-        .timer-display.active { border-color: var(--primary); color: var(--primary); }
+        .timer-display.active { border-color: var(--primary); color: var(--primary); box-shadow: 0 0 10px var(--primary); }
         .reserve-bar { background: #333; height: 50px; margin: 5px 0; border-radius: 8px; display: flex; align-items: center; padding: 0 10px; gap: 5px; border: 1px solid #444; overflow-x: auto; }
         .reserve-piece { width: 38px; height: 38px; cursor: pointer; filter: drop-shadow(0 0 1px #fff); transition: 0.2s; }
         .reserve-piece.selected { background: rgba(255,215,0,0.4); border-radius: 5px; box-shadow: 0 0 10px var(--primary); transform: scale(1.1); }
@@ -76,7 +76,7 @@
     let pocket = { white: [], black: [] };
     let timeLeft = { w: 600, b: 600 };
     let selectedPieceIdx = null;
-    let timerInterval = null;
+    let isBoardLocked = false; // LOCK UTAMA
 
     onAuthStateChanged(auth, (u) => {
         if (!u) return window.location.href = "index.html";
@@ -85,32 +85,19 @@
         initMatch();
     });
 
-    function updateTimerDisplay() {
+    function updateUI() {
         const myT = document.getElementById('myTimer');
         const oppT = document.getElementById('oppTimer');
-        const wTime = Math.max(0, timeLeft.w);
-        const bTime = Math.max(0, timeLeft.b);
-        
         const f = (t) => `${Math.floor(t/60)}:${(t%60).toString().padStart(2,'0')}`;
         
         if(mySide === 'white') {
-            myT.innerText = f(wTime); oppT.innerText = f(bTime);
+            myT.innerText = f(timeLeft.w); oppT.innerText = f(timeLeft.b);
             game.turn() === 'w' ? myT.classList.add('active') : myT.classList.remove('active');
-            game.turn() === 'b' ? oppT.classList.add('active') : oppT.classList.remove('active');
         } else {
-            myT.innerText = f(bTime); oppT.innerText = f(wTime);
+            myT.innerText = f(timeLeft.b); oppT.innerText = f(timeLeft.w);
             game.turn() === 'b' ? myT.classList.add('active') : myT.classList.remove('active');
-            game.turn() === 'w' ? oppT.classList.add('active') : oppT.classList.remove('active');
         }
-    }
-
-    function startTimer() {
-        if(timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            timeLeft[game.turn()]--;
-            updateTimerDisplay();
-            if(timeLeft.w <= 0 || timeLeft.b <= 0) showGameOver("TIME OUT", "Match Ended");
-        }, 1000);
+        renderPocket();
     }
 
     function renderPocket() {
@@ -122,12 +109,16 @@
             const img = document.createElement('img');
             img.src = pieceTheme.replace('{piece}', (mySide === 'white' ? 'w' : 'b') + p.toUpperCase());
             img.className = 'reserve-piece' + (selectedPieceIdx === idx ? ' selected' : '');
-            img.onclick = () => { if(game.turn() === mySide.charAt(0)) { selectedPieceIdx = idx; renderPocket(); } };
+            img.onclick = () => { 
+                if(!isBoardLocked && game.turn() === mySide.charAt(0)) { 
+                    selectedPieceIdx = idx; renderPocket(); 
+                } 
+            };
             myRes.appendChild(img);
         });
 
         const oppColor = mySide === 'white' ? 'black' : 'white';
-        pocket[oppColor].forEach(p => {
+        (pocket[oppColor] || []).forEach(p => {
             const img = document.createElement('img');
             img.src = pieceTheme.replace('{piece}', (oppColor === 'white' ? 'w' : 'b') + p.toUpperCase());
             img.className = 'reserve-piece';
@@ -136,19 +127,31 @@
     }
 
     async function handleDrop(square) {
-        if (selectedPieceIdx === null || game.turn() !== mySide.charAt(0)) return;
-        const pieceType = pocket[mySide][selectedPieceIdx];
+        if (isBoardLocked || selectedPieceIdx === null || game.turn() !== mySide.charAt(0)) return;
         
-        // Crazyhouse drop logic via put
+        // VALIDASI DROP: Cek apakah kotak kosong & apakah Raja sedang Check
         if (game.get(square)) return;
-        const success = game.put({ type: pieceType, color: mySide.charAt(0) }, square);
         
-        if (success) {
+        const pieceType = pocket[mySide][selectedPieceIdx];
+        const moveAttempt = game.put({ type: pieceType, color: mySide.charAt(0) }, square);
+        
+        if (moveAttempt) {
+            // Setelah put, kita harus cek apakah posisi ini legal (tidak membiarkan Raja kena check)
+            // chess.js put() tidak otomatis cek legalitas check, jadi kita validasi manual
+            if (game.in_check()) {
+                game.remove(square); // Batalkan jika masih check
+                alert("Illegal Move: King is still in check!");
+                return;
+            }
+
+            isBoardLocked = true; // KUNCI PAPAN
             pocket[mySide].splice(selectedPieceIdx, 1);
             selectedPieceIdx = null;
-            // Switch turn manually after put
-            let f = game.fen().split(' '); f[1] = (f[1]==='w'?'b':'w');
-            game.load(f.join(' '));
+
+            let tokens = game.fen().split(' ');
+            tokens[1] = tokens[1] === 'w' ? 'b' : 'w'; // Ganti Turn
+            game.load(tokens.join(' '));
+            
             board.position(game.fen());
             await sync();
         }
@@ -158,18 +161,23 @@
         await updateDoc(doc(db, "rooms", roomId), { 
             lastFen: game.fen(), 
             pocket: pocket, 
-            timeLeft: timeLeft, 
-            lastMoveTime: Date.now() 
+            timeLeft: timeLeft,
+            lastMove: Date.now()
         });
     }
 
     function initMatch() {
         board = Chessboard('board', {
             draggable: true, position: 'start', orientation: mySide, pieceTheme: pieceTheme,
-            onDragStart: (s, p) => !game.game_over() && game.turn() === mySide.charAt(0) && p.charAt(0) === mySide.charAt(0),
+            onDragStart: (s, p) => {
+                if(isBoardLocked || game.game_over() || game.turn() !== mySide.charAt(0)) return false;
+                if(p.charAt(0) !== mySide.charAt(0)) return false;
+            },
             onDrop: async (source, target) => {
                 let move = game.move({ from: source, to: target, promotion: 'q' });
                 if (!move) return 'snapback';
+                
+                isBoardLocked = true; // KUNCI PAPAN
                 if (move.captured) {
                     const capturer = game.turn() === 'b' ? 'white' : 'black';
                     pocket[capturer].push(move.captured);
@@ -180,30 +188,39 @@
 
         $('#board').on('click', '.square-55d63', function() { handleDrop($(this).attr('data-square')); });
 
+        setInterval(() => {
+            if(!game.game_over() && !isBoardLocked) {
+                timeLeft[game.turn()]--;
+                updateUI();
+            }
+        }, 1000);
+
         onSnapshot(doc(db, "rooms", roomId), (s) => {
             const d = s.data(); if (!d) return;
+
             if(mySide==='white' && d.player2) { document.getElementById('oppName').innerText = d.player2.name; document.getElementById('oppPic').src = d.player2.photo; }
             if(mySide==='black' && d.player1) { document.getElementById('oppName').innerText = d.player1.name; document.getElementById('oppPic').src = d.player1.photo; }
             
             if (d.lastFen && d.lastFen !== game.fen()) {
                 game.load(d.lastFen);
                 board.position(d.lastFen);
-                startTimer();
+                isBoardLocked = false; // BUKA KUNCI SETELAH DATA MASUK
             }
+            
             if (d.pocket) pocket = d.pocket;
             if (d.timeLeft) timeLeft = d.timeLeft;
-            renderPocket();
-            updateTimerDisplay();
-            if (d.status === "resigned") showGameOver("MATCH ENDED", d.resignedBy + " resigned");
+            updateUI();
+            
+            if (d.status === "resigned") showGameOver("GAME OVER", d.resignedBy + " menyerah");
+            if (game.in_checkmate()) showGameOver("CHECKMATE", (game.turn()==='w'?'Black':'White') + " menang!");
         });
     }
 
     window.confirmResign = async () => {
-        if(confirm("Resign?")) await updateDoc(doc(db, "rooms", roomId), { status: "resigned", resignedBy: auth.currentUser.displayName });
+        if(confirm("Nyerah sekarang?")) await updateDoc(doc(db, "rooms", roomId), { status: "resigned", resignedBy: auth.currentUser.displayName });
     };
 
     function showGameOver(t, r) {
-        clearInterval(timerInterval);
         document.getElementById('goTitle').innerText = t;
         document.getElementById('goReason').innerText = r;
         document.getElementById('gameOverModal').style.display = 'flex';
