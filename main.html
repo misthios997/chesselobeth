@@ -64,6 +64,9 @@
         #bannedOverlay { position: fixed; inset: 0; background: #000; color: white; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 99999; text-align: center; padding: 20px; }
         #bannedOverlay h1 { color: #ff4d4d; font-size: 2rem; }
         #bannedOverlay p { font-size: 1.2rem; margin-top: 10px; }
+        
+        /* Update Status Text */
+        #updateNotify { text-align: center; font-size: 0.85rem; font-weight: bold; margin: 15px 0 0 0; color: #aaa; }
     </style>
 </head>
 <body>
@@ -93,6 +96,8 @@
             <img id="myAvatar" class="profile-trigger" src="" onclick="openAvatarModal()">
         </div>
     </header>
+
+    <div id="updateNotify">Update: Not Available</div>
 
     <div class="broadcast-container">
         <div id="broadcastBox"><i class="fas fa-bullhorn"></i> <span id="bcText">Loading message...</span></div>
@@ -161,8 +166,7 @@
             <hr style="border: 0.5px solid #444; margin: 20px 0;">
 
             <h3 style="color: var(--primary); margin-bottom: 0;">Set Update Status</h3>
-            <p id="currUpdateStatus" style="color:#aaa; font-size:0.8rem; margin:5px 0 0 0">Status: Checking...</p>
-            <button class="btn-gold" onclick="toggleUpdateStatus()">[ SET ]</button>
+            <button class="btn-gold" onclick="pushUpdate()">[ SET ]</button>
 
             <h3 style="color: var(--primary); margin-top: 20px; margin-bottom: 0;">Add Access</h3>
             <input type="text" id="accName" placeholder="Nama akun">
@@ -246,7 +250,7 @@
 
         let user = null, curName = "", myTitle = "", timerVal = 10, variant = "standard", botLvl = 1;
         let sInterval, roomId = null, unsubRoom = null;
-        window.updateActive = false; // Global var for update status
+        let serverVersion = 0;
 
         onAuthStateChanged(auth, async (u) => {
             if(!u) window.location.href = "index.html";
@@ -273,8 +277,10 @@
         window.openUpdateModal = () => {
             const m = document.getElementById('updateStatusModal');
             const c = document.getElementById('updateContent');
-            if(window.updateActive) {
-                c.innerHTML = '<h3 style="color:#81b64c; margin-bottom:20px;">Update Available:</h3><button class="btn-gold" style="background:var(--accent); color:white" onclick="location.reload()">[ Update ]</button>';
+            const localVersion = parseInt(localStorage.getItem('appVersion')) || 0;
+            
+            if(serverVersion > localVersion) {
+                c.innerHTML = '<h3 style="color:#81b64c; margin-bottom:20px;">Update Available:</h3><button class="btn-gold" style="background:var(--accent); color:white" onclick="performUpdate()">[ Update ]</button>';
             } else {
                 c.innerHTML = '<h3 style="color:#888">Update Not Available</h3>';
             }
@@ -282,10 +288,29 @@
             window.toggleDropdown();
         };
 
-        window.toggleUpdateStatus = async () => {
-            const newVal = !window.updateActive;
-            await setDoc(doc(db, "config", "settings"), { updateActive: newVal }, { merge: true });
+        window.performUpdate = () => {
+            localStorage.setItem('appVersion', serverVersion);
+            location.reload();
         };
+
+        window.pushUpdate = async () => {
+            await setDoc(doc(db, "config", "settings"), { latestVersion: Date.now() }, { merge: true });
+            alert("New Update Pushed!");
+            closeModals();
+        };
+
+        function checkUpdateDisplay() {
+            const localVersion = parseInt(localStorage.getItem('appVersion')) || 0;
+            const t = document.getElementById('updateNotify');
+            
+            if(serverVersion > localVersion) {
+                t.innerText = "Update: Available please check \"Update Status\" Menu";
+                t.style.color = "#81b64c";
+            } else {
+                t.innerText = "Update: Not Available";
+                t.style.color = "#aaa";
+            }
+        }
 
         // --- NEW OWNER ACTIONS ---
         window.addAccess = async () => {
@@ -342,12 +367,12 @@
 
         function loadData() {
             onSnapshot(doc(db, "config", "broadcastMsg"), (d) => { if(d.exists()) document.getElementById('bcText').innerText = d.data().text; });
-            // New Listener for Update Status
+            
+            // Version Listener
             onSnapshot(doc(db, "config", "settings"), (d) => { 
                 if(d.exists()) {
-                    window.updateActive = d.data().updateActive;
-                    const el = document.getElementById('currUpdateStatus');
-                    if(el) el.innerText = `Status: ${window.updateActive ? 'Available (ON)' : 'Not Available (OFF)'}`;
+                    serverVersion = d.data().latestVersion || 0;
+                    checkUpdateDisplay();
                 }
             });
 
