@@ -19,6 +19,7 @@
             background: #161512;
             color: white;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            touch-action: none;
         }
 
         body {
@@ -31,11 +32,11 @@
         }
 
         .game-container {
-            width: 100%;
-            max-width: 380px;
+            width: 95%;
+            max-width: 400px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 15px;
         }
 
         .player-box {
@@ -45,6 +46,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
         .avatar {
@@ -52,35 +54,39 @@
             height: 44px;
             border-radius: 4px;
             background: #333;
+            object-fit: cover;
         }
 
         .username { font-weight: bold; font-size: 1rem; }
         .elo { font-size: 0.8rem; color: #999; }
 
-        /* CONTAINER PAPAN */
-        #myBoard {
+        /* CONTAINER PAPAN DENGAN UKURAN PASTI */
+        #board-wrapper {
             width: 100%;
-            aspect-ratio: 1/1;
-            border: 2px solid #333;
-            touch-action: none; /* Mencegah scroll saat geser bidak */
+            display: flex;
+            justify-content: center;
         }
 
-        /* RESIGN BUTTON */
+        #myBoard {
+            border: 2px solid #333;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+        }
+
         .btn-resign {
             background: #b33939;
             color: white;
             border: none;
-            padding: 16px;
-            border-radius: 6px;
+            padding: 18px;
+            border-radius: 8px;
             font-weight: bold;
             width: 100%;
             cursor: pointer;
             text-transform: uppercase;
-            z-index: 100;
+            font-size: 1rem;
+            -webkit-tap-highlight-color: transparent;
         }
         .btn-resign:active { background: #ff4d4d; }
 
-        /* MODAL */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); display: none;
@@ -103,7 +109,9 @@
             </div>
         </div>
 
-        <div id="myBoard"></div>
+        <div id="board-wrapper">
+            <div id="myBoard"></div>
+        </div>
 
         <div class="player-box">
             <img src="" id="myPic" class="avatar">
@@ -120,7 +128,7 @@
         <div class="modal-content">
             <h2 id="goTitle" style="color:#ffd700; margin:0;">GAME OVER</h2>
             <p id="goReason" style="color: #ccc; margin: 15px 0;"></p>
-            <button style="width:100%; padding:15px; background:#81b64c; color:white; border:none; border-radius:6px; font-weight:bold;" onclick="window.location.href='main.html'">KE LOBBY</button>
+            <button style="width:100%; padding:15px; background:#81b64c; color:white; border:none; border-radius:8px; font-weight:bold;" onclick="window.location.href='main.html'">KE LOBBY</button>
         </div>
     </div>
 
@@ -142,7 +150,6 @@
         $('#myPic').attr('src', decodeURIComponent(pPic));
         $('#oppElo').text('Level ' + bLevel);
 
-        // Logic Engine
         stockfish.onmessage = function(e) {
             if (e.data.startsWith('bestmove')) {
                 const moveStr = e.data.split(' ')[1];
@@ -158,7 +165,7 @@
             if (game.game_over()) return;
             stockfish.postMessage('position fen ' + game.fen());
             stockfish.postMessage('setoption name Skill Level value ' + bLevel);
-            stockfish.postMessage('go depth 13');
+            stockfish.postMessage('go depth 10');
         }
 
         function onDragStart(source, piece) {
@@ -186,15 +193,19 @@
             $('#gameOverModal').css('display', 'flex');
         }
 
-        // Fix Resign Button
-        document.getElementById('btnResign').onclick = function() {
+        // Resign Button Fixed
+        $('#btnResign').on('click touchend', function(e) {
+            e.preventDefault();
             if(confirm("Nyerah?")) showModal("YOU LOSE", "Kamu menyerah");
-        };
+        });
 
         $(document).ready(function() {
-            // Inisialisasi Papan
+            // Hitung ukuran papan secara manual agar tidak hilang
+            var boardWidth = $('#board-wrapper').width();
+            
             board = Chessboard('myBoard', {
                 draggable: true,
+                width: boardWidth,
                 position: 'start',
                 onDragStart: onDragStart,
                 onDrop: onDrop,
@@ -202,13 +213,12 @@
                 pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
             });
 
-            // Re-render setelah sedikit delay untuk memastikan muncul di mobile
+            // Re-render paksa setelah 500ms sebagai asuransi
             setTimeout(function() {
                 board.resize();
-            }, 300);
+            }, 500);
 
             stockfish.postMessage('uci');
-            stockfish.postMessage('ucinewgame');
         });
     </script>
 </body>
