@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CHESSELOBETH - Lobby</title>
+    <title>CHESSELOBETH - Main</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary: #ffd700; --bg: #1a1a1a; --card: #2d2d2d; --text: #ffffff; --accent: #81b64c; --red: #ff4d4d; }
@@ -17,7 +17,7 @@
         .dots-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 5px; position: relative; }
         .red-dot { position: absolute; top: 5px; right: 5px; width: 10px; height: 10px; background: var(--red); border-radius: 50%; display: none; border: 2px solid #2d2d2d; }
         
-        .dropdown-menu { display: none; position: absolute; right: 0; top: 45px; background: #333; min-width: 200px; border-radius: 12px; z-index: 1001; border: 1px solid #444; overflow: hidden; }
+        .dropdown-menu { display: none; position: absolute; right: 0; top: 45px; background: #333; min-width: 220px; border-radius: 12px; z-index: 1001; border: 1px solid #444; overflow: hidden; }
         .dropdown-menu a { color: white; padding: 14px 20px; text-decoration: none; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #444; }
         .dropdown-menu a:hover { background: var(--primary); color: black; }
         
@@ -28,7 +28,6 @@
         .container { max-width: 600px; margin: 0 auto; padding: 10px 20px; }
         .welcome-text { font-size: 1.6rem; font-weight: bold; margin-bottom: 20px; color: var(--primary); }
         .play-card { background: var(--card); border-radius: 18px; padding: 25px; border-left: 6px solid var(--accent); margin-bottom: 25px; }
-        .label-group { font-size: 0.75rem; color: #aaa; text-transform: uppercase; font-weight: 800; margin-bottom: 12px; display: block; }
         .sel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
         .btn-opt { background: #3d3d3d; border: 1px solid #4d4d4d; color: white; padding: 14px 5px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-opt.active { background: rgba(129, 182, 76, 0.2); border-color: var(--accent); color: var(--accent); }
@@ -37,23 +36,20 @@
         .data-card { background: #262626; padding: 18px; margin-bottom: 15px; border-radius: 12px; border-left: 5px solid var(--primary); position: relative; }
         .admin-tools { position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; }
         
-        /* GENERAL LIST ITEM STYLES (Inbox, Friend, Search) */
         .list-item { background: #262626; padding: 15px; margin-bottom: 10px; border-radius: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .list-item img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+        .list-item img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; }
         .list-content { flex: 1; display: flex; flex-direction: column; }
         .list-actions { display: flex; gap: 5px; margin-top: 5px; width: 100%; }
         
-        .btn-mini { padding: 6px 10px; border-radius: 5px; border: none; color: white; cursor: pointer; font-size: 0.75rem; font-weight: bold; flex: 1; }
+        .btn-mini { padding: 8px 12px; border-radius: 5px; border: none; color: white; cursor: pointer; font-size: 0.75rem; font-weight: bold; flex: 1; }
         .btn-blue { background: #3498db; }
         .btn-green { background: var(--accent); }
         .btn-red { background: var(--red); }
         .btn-gray { background: #555; }
 
-        /* MODALS */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 4000; }
         .modal { background: #2d2d2d; padding: 25px; border-radius: 20px; width: 90%; max-width: 450px; max-height: 85vh; overflow-y: auto; }
         
-        /* CHATS */
         #chatOverlay, #pChatOverlay { position: fixed; bottom: 0; right: 0; width: 100%; height: 100%; background: var(--bg); display: none; flex-direction: column; z-index: 3000; }
         .chat-header { background: #2d2d2d; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; }
         #chatBox, #pChatBox { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
@@ -99,9 +95,10 @@
                 <div class="dropdown-menu" id="mainMenu">
                     <a href="#" onclick="switchSection('online')"><i class="fas fa-chess-board"></i> Play Online</a>
                     <a href="#" onclick="switchSection('bot')"><i class="fas fa-robot"></i> Play Bot</a>
-                    <a href="#" onclick="switchSection('elo')"><i class="fas fa-trophy"></i> Data Player</a>
                     <a href="#" onclick="openInbox()"><i class="fas fa-envelope"></i> Inbox</a>
-                    <a href="#" onclick="openFriends()"><i class="fas fa-users"></i> Friends</a>
+                    <a href="#" onclick="openAddFriend()"><i class="fas fa-user-plus"></i> Add Friend</a>
+                    <a href="#" onclick="openFriendList()"><i class="fas fa-users"></i> Friend List</a>
+                    <a href="#" onclick="switchSection('elo')"><i class="fas fa-trophy"></i> Data Player</a>
                     <a href="#" onclick="openUpdateModal()"><i class="fas fa-sync-alt"></i> Update Status</a>
                     <a href="#" id="ownerMenuBtn" style="display:none; color:var(--primary)" onclick="openOwnerTools()"><i class="fas fa-user-shield"></i> Owner Action</a>
                     <a href="#" onclick="logout()" style="color:#ff4d4d"><i class="fas fa-sign-out-alt"></i> Logout</a>
@@ -159,19 +156,26 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="friendsModal">
+    <div class="modal-overlay" id="addFriendModal">
         <div class="modal">
-            <h2 style="color:var(--primary)">Friends</h2>
-            <input type="text" id="friendSearchIn" placeholder="Search Name..." onkeyup="searchFriend()">
-            <div id="friendSearchResults" style="margin-top:10px;"></div>
-            
-            <hr style="border:0.5px solid #444; margin:15px 0;">
-            <h3>Friend List</h3>
-            <div id="friendListContent"></div>
+            <h2 style="color:var(--primary)">Add Friend</h2>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="friendSearchIn" placeholder="Search Name..." style="margin:0;">
+                <button class="btn-gold" style="width:auto; margin:0; padding:10px;" onclick="searchFriend()">Search</button>
+            </div>
+            <div id="friendSearchResults" style="margin-top:15px;">Result: None</div>
             
             <hr style="border:0.5px solid #444; margin:15px 0;">
             <h3>Recommendation</h3>
             <div id="friendRecsContent"></div>
+            <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="friendListModal">
+        <div class="modal">
+            <h2 style="color:var(--primary)">Friend List</h2>
+            <div id="friendListContent"></div>
             <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
         </div>
     </div>
@@ -212,18 +216,6 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="addModal">
-        <div class="modal">
-            <h2 style="color:var(--primary)">Add Player Data</h2>
-            <input type="text" id="inName" placeholder="Full Name">
-            <input type="number" id="inElo" placeholder="Elo Rating">
-            <input type="text" id="inDate" placeholder="Date">
-            <select id="inRank"><option value="None">No Rank</option><option value="GM">GM</option></select>
-            <button class="btn-gold" onclick="submitData()">SAVE</button>
-            <button class="btn-gold" style="background:#444" onclick="closeModals()">CLOSE</button>
-        </div>
-    </div>
-
     <div class="modal-overlay" id="ownerToolsModal">
         <div class="modal">
             <h2>Owner Actions</h2>
@@ -245,6 +237,18 @@
             <button class="btn-gold" style="background:var(--red)" onclick="banUser()">BAN!</button>
             <input type="text" id="unbanName" placeholder="Unban Name">
             <button class="btn-gold" style="background:var(--accent)" onclick="unbanUser()">UNBAN</button>
+            <button class="btn-gold" style="background:#444" onclick="closeModals()">CLOSE</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addModal">
+        <div class="modal">
+            <h2 style="color:var(--primary)">Add Player Data</h2>
+            <input type="text" id="inName" placeholder="Full Name">
+            <input type="number" id="inElo" placeholder="Elo Rating">
+            <input type="text" id="inDate" placeholder="Date">
+            <select id="inRank"><option value="None">No Rank</option><option value="GM">GM</option></select>
+            <button class="btn-gold" onclick="submitData()">SAVE</button>
             <button class="btn-gold" style="background:#444" onclick="closeModals()">CLOSE</button>
         </div>
     </div>
@@ -293,7 +297,6 @@
                 user = u; curName = u.displayName;
                 checkBanStatus(curName);
                 
-                // Save user for search capability
                 await setDoc(doc(db, "users", curName), { name: curName, photo: u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg" }, { merge: true });
 
                 const tDoc = await getDoc(doc(db, "titles", curName));
@@ -312,7 +315,7 @@
             }
         });
 
-        // --- INBOX & CHALLENGE LOGIC ---
+        // --- INBOX LOGIC ---
         function listenInbox() {
             onSnapshot(query(collection(db, "inbox"), where("to", "==", curName)), (s) => {
                 const list = document.getElementById('inboxContent'); list.innerHTML = "";
@@ -335,9 +338,18 @@
             });
         }
 
-        window.openInbox = () => { document.getElementById('inboxModal').style.display = 'flex'; window.toggleDropdown(); };
+        window.openInbox = async () => { 
+            document.getElementById('inboxModal').style.display = 'flex'; 
+            window.toggleDropdown();
+            // Clear red dot locally
+            document.getElementById('inboxDot').style.display = 'none';
+            // Mark as read in DB
+            const s = await getDocs(query(collection(db, "inbox"), where("to", "==", curName), where("read", "==", false)));
+            s.forEach(d => updateDoc(doc(db, "inbox", d.id), { read: true }));
+        };
         window.delInbox = async(id) => await deleteDoc(doc(db, "inbox", id));
 
+        // --- CHALLENGE LOGIC ---
         window.openChal = (name) => { document.getElementById('chalTarget').innerText = name; document.getElementById('challengeModal').style.display='flex'; };
         
         window.sendChallenge = async () => {
@@ -346,10 +358,8 @@
             const side = document.getElementById('chalSide').value;
             const vari = document.getElementById('chalVariant').value;
             
-            // Create pending challenge doc
             const chalRef = await addDoc(collection(db, "challenges"), { from: curName, to: to, status: "pending", timestamp: Date.now() });
             
-            // Send to Inbox
             await addDoc(collection(db, "inbox"), {
                 to: to, from: curName, type: 'challenge', 
                 timer, side, variant: vari, challengeId: chalRef.id, 
@@ -360,7 +370,6 @@
             document.getElementById('searchOverlay').style.display = 'flex';
             closeModals();
 
-            // Wait for acceptance
             unsubRoom = onSnapshot(chalRef, (s) => {
                 if(s.exists() && s.data().status === "accepted") {
                     window.location.href = `${vari}.html?id=${s.data().roomId}&side=${side}`;
@@ -372,13 +381,11 @@
             const mySide = oppSide === 'white' ? 'black' : 'white';
             const newRoomId = "CHAL_" + Date.now();
             
-            // Create Room
             await setDoc(doc(db, "rooms", newRoomId), {
                 player1: { name: opp }, player2: { name: curName }, 
                 status: "playing", variant: vari, timer: parseInt(timer)
             });
 
-            // Update Challenge Doc so Opponent Redirects
             const inboxDoc = await getDoc(doc(db, "inbox", inboxId));
             if(inboxDoc.exists()) {
                 const chalId = inboxDoc.data().challengeId;
@@ -389,10 +396,41 @@
             window.location.href = `${vari}.html?id=${newRoomId}&side=${mySide}`;
         };
 
-        // --- FRIEND SYSTEM ---
-        window.openFriends = () => { document.getElementById('friendsModal').style.display='flex'; loadFriends(); loadRecs(); window.toggleDropdown(); };
+        // --- ADD FRIEND & SEARCH LOGIC ---
+        window.openAddFriend = () => { document.getElementById('addFriendModal').style.display='flex'; loadRecs(); window.toggleDropdown(); };
         
-        async function loadFriends() {
+        window.searchFriend = async () => {
+            const val = document.getElementById('friendSearchIn').value;
+            const res = document.getElementById('friendSearchResults');
+            if(!val) { res.innerHTML = "Result: None"; return; }
+            const q = query(collection(db, "users"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'));
+            const s = await getDocs(q);
+            res.innerHTML = s.empty ? "Result: None" : "Result:";
+            s.forEach(d => {
+                if(d.data().name !== curName)
+                res.innerHTML += `<div class="list-item"><img src="${d.data().photo}"><b>${d.data().name}</b><div class="list-actions"><button class="btn-mini btn-blue" onclick="addFriend('${d.data().name}')">Add</button><button class="btn-mini" onclick="seeInfo('${d.data().name}')">Info</button></div></div>`;
+            });
+        };
+
+        async function loadRecs() {
+            const s = await getDocs(query(collection(db, "users"), limit(3)));
+            const l = document.getElementById('friendRecsContent'); l.innerHTML = "";
+            s.forEach(d => {
+                if(d.data().name !== curName) {
+                    l.innerHTML += `<div class="list-item"><b>${d.data().name}</b><button class="btn-mini btn-blue" onclick="addFriend('${d.data().name}')">Add</button><button class="btn-mini" onclick="seeInfo('${d.data().name}')">Info</button></div>`;
+                }
+            });
+        }
+
+        window.addFriend = async (name) => {
+            await addDoc(collection(db, "friends"), { user: curName, friend: name });
+            alert("Friend Added!");
+        };
+
+        // --- FRIEND LIST LOGIC ---
+        window.openFriendList = () => { document.getElementById('friendListModal').style.display='flex'; loadFriendList(); window.toggleDropdown(); };
+
+        async function loadFriendList() {
             const q = query(collection(db, "friends"), where("user", "==", curName));
             const s = await getDocs(q);
             const l = document.getElementById('friendListContent'); l.innerHTML = "";
@@ -409,34 +447,7 @@
             });
         }
 
-        async function loadRecs() {
-            const s = await getDocs(query(collection(db, "users"), limit(3)));
-            const l = document.getElementById('friendRecsContent'); l.innerHTML = "";
-            s.forEach(d => {
-                if(d.data().name !== curName) {
-                    l.innerHTML += `<div class="list-item"><b>${d.data().name}</b><button class="btn-mini btn-blue" onclick="addFriend('${d.data().name}')">Add</button><button class="btn-mini" onclick="seeInfo('${d.data().name}')">Info</button></div>`;
-                }
-            });
-        }
-
-        window.searchFriend = async () => {
-            const val = document.getElementById('friendSearchIn').value;
-            const res = document.getElementById('friendSearchResults');
-            if(!val) { res.innerHTML = "Result: None"; return; }
-            const q = query(collection(db, "users"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'));
-            const s = await getDocs(q);
-            res.innerHTML = s.empty ? "Result: None" : "Result:";
-            s.forEach(d => {
-                if(d.data().name !== curName)
-                res.innerHTML += `<div class="list-item"><img src="${d.data().photo}"><b>${d.data().name}</b><div class="list-actions"><button class="btn-mini btn-blue" onclick="addFriend('${d.data().name}')">Add</button><button class="btn-mini" onclick="seeInfo('${d.data().name}')">Info</button></div></div>`;
-            });
-        };
-
-        window.addFriend = async (name) => {
-            await addDoc(collection(db, "friends"), { user: curName, friend: name });
-            alert("Friend Added!");
-        };
-
+        // --- INFO & HISTORY ---
         window.seeInfo = async (name) => {
             const u = await getDoc(doc(db, "users", name));
             if(!u.exists()) return;
@@ -459,7 +470,7 @@
             document.getElementById('infoModal').style.display='flex';
         };
 
-        // --- PRIVATE CHAT (VIA FRIENDS) ---
+        // --- PRIVATE CHAT ---
         window.openPrivateChat = (target) => {
             document.getElementById('pChatTarget').innerText = target;
             document.getElementById('pChatOverlay').style.display = 'flex';
@@ -495,7 +506,7 @@
             closeModals();
         };
 
-        // --- EXISTING LOGIC (MATCHMAKING, BAN, ETC) ---
+        // --- EXISTING LOGIC ---
         window.setTimer = (v, b) => { timerVal = v; document.querySelectorAll('#timerGrid .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
         window.setVariant = (v, b) => { variant = v; document.querySelectorAll('#variantGrid .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
         window.setBotLvl = (v, b) => { botLvl = v; document.querySelectorAll('#botGrid .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
@@ -569,15 +580,17 @@
             const c = document.getElementById('updateContent');
             if(serverVersion > lv) c.innerHTML = `<h3 style="color:#81b64c">Update Available</h3><button class="btn-gold" onclick="localStorage.setItem('appVersion', ${serverVersion}); location.reload()">UPDATE</button>`;
             else c.innerHTML = `<h3 style="color:#aaa">Update Not Available</h3>`;
-            document.getElementById('updateStatusModal').style.display = 'flex'; toggleDropdown();
+            document.getElementById('updateStatusModal').style.display = 'flex'; window.toggleDropdown();
         };
 
-        // Standard Window Exports
         window.pushUpdate = async () => { await setDoc(doc(db, "config", "settings"), { latestVersion: Date.now() }, { merge: true }); alert("Pushed"); };
         window.addAccess = async () => { await setDoc(doc(db, "access", document.getElementById('accName').value), { hasAccess: true }); alert("Done"); };
         window.addTitle = async () => { await setDoc(doc(db, "titles", document.getElementById('titleName').value), { title: document.getElementById('titlePick').value }); alert("Done"); };
-        window.banUser = async () => { /* Ban Logic simplified */ await setDoc(doc(db, "bans", document.getElementById('banName').value), { name: document.getElementById('banName').value, expiry: Date.now() + 999999999 }); alert("Banned"); };
+        window.banUser = async () => { await setDoc(doc(db, "bans", document.getElementById('banName').value), { name: document.getElementById('banName').value, expiry: Date.now() + 999999999 }); alert("Banned"); };
         window.unbanUser = async () => { await deleteDoc(doc(db, "bans", document.getElementById('unbanName').value)); alert("Unbanned"); };
+        window.submitData = async () => { await addDoc(collection(db, "players"), { name: document.getElementById('inName').value, elo: document.getElementById('inElo').value, date: document.getElementById('inDate').value, rank: document.getElementById('inRank').value, timestamp: Date.now() }); closeModals(); };
+        window.updateBC = async () => { await setDoc(doc(db, "config", "broadcastMsg"), { text: document.getElementById('bcInput').value }); closeModals(); };
+        
         window.startBot = () => window.location.href = `botgame.html?lvl=${botLvl}`;
         window.openAvatarModal = () => document.getElementById('avatarModal').style.display = 'flex';
         window.selectAva = async (url) => { await updateProfile(auth.currentUser, { photoURL: url }); location.reload(); };
@@ -588,6 +601,8 @@
         window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
         window.toggleDropdown = () => { const m = document.getElementById('mainMenu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
         window.switchSection = (id) => { document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none'); document.getElementById('sec-' + id).style.display = 'block'; window.toggleDropdown(); };
+        
+        async function getDoc(ref) { const s = await getDocs(query(collection(db, ref.path.split('/')[0]), where("__name__", "==", ref.id))); return { exists: () => !s.empty, data: () => s.docs[0].data() }; }
     </script>
 </body>
 </html>
