@@ -33,7 +33,6 @@
         .btn-opt.active { background: rgba(129, 182, 76, 0.2); border-color: var(--accent); color: var(--accent); }
         .btn-main { background: var(--accent); color: white; width: 100%; padding: 18px; border: none; border-radius: 12px; font-weight: 900; font-size: 1.2rem; cursor: pointer; }
 
-        /* DATA CARDS (ELO PLAYER) */
         .data-card { background: #262626; padding: 18px; margin-bottom: 15px; border-radius: 12px; border-left: 5px solid var(--primary); position: relative; }
         .data-card h3 { margin: 0 0 5px 0; color: var(--primary); font-size: 1.1rem; }
         .data-card p { margin: 2px 0; color: #bbb; font-size: 0.9rem; }
@@ -41,7 +40,6 @@
         .btn-mini { padding: 6px 10px; border-radius: 5px; border: none; color: white; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
         .btn-del { background: #ff4d4d; }
 
-        /* CHAT FORMAT */
         #chatOverlay { position: fixed; bottom: 0; right: 0; width: 100%; height: 100%; background: var(--bg); display: none; flex-direction: column; z-index: 3000; }
         .chat-header { background: #2d2d2d; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; }
         #chatBox { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 15px; }
@@ -53,9 +51,8 @@
         .msg-bubble { background: #333; padding: 10px; border-radius: 12px; font-size: 0.9rem; color: white; }
         .msg-self .msg-bubble { background: var(--primary); color: black; }
 
-        /* MODALS */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 4000; }
-        .modal { background: #2d2d2d; padding: 25px; border-radius: 20px; width: 85%; max-width: 400px; }
+        .modal { background: #2d2d2d; padding: 25px; border-radius: 20px; width: 85%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
         .ava-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
         .ava-pick { width: 100%; aspect-ratio: 1/1; border-radius: 10px; border: 3px solid transparent; cursor: pointer; object-fit: cover; }
         .ava-pick:hover { border-color: var(--primary); }
@@ -63,9 +60,21 @@
         .btn-gold { background: var(--primary); color: black; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: 900; cursor: pointer; margin-top: 10px; }
         
         .fab { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--primary); color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 2rem; z-index: 900; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+
+        /* BANNED SCREEN */
+        #bannedOverlay { position: fixed; inset: 0; background: #000; color: white; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 99999; text-align: center; padding: 20px; }
+        #bannedOverlay h1 { color: #ff4d4d; font-size: 2rem; }
+        #bannedOverlay p { font-size: 1.2rem; margin-top: 10px; }
     </style>
 </head>
 <body>
+
+    <div id="bannedOverlay">
+        <i class="fas fa-user-slash" style="font-size: 5rem; color: #ff4d4d; margin-bottom: 20px;"></i>
+        <h1>You are Banned from Owner</h1>
+        <p id="banDetail"></p>
+        <button class="btn-gold" style="width: auto; padding: 10px 30px; margin-top: 30px;" onclick="location.reload()">REFRESH</button>
+    </div>
 
     <header>
         <div class="brand">CHESSELOBETH</div>
@@ -148,7 +157,24 @@
             <h2 style="color:var(--primary)">Owner Actions</h2>
             <textarea id="bcInput" rows="2" placeholder="Update broadcast..."></textarea>
             <button class="btn-gold" onclick="updateBC()">UPDATE BC</button>
-            <button class="btn-gold" style="background:#ff4d4d; color:white; margin-top:20px" onclick="resetAllChat()">RESET ALL CHAT</button>
+            
+            <hr style="border: 0.5px solid #444; margin: 20px 0;">
+            
+            <h3 style="color: #ff4d4d; margin-bottom: 0;">Ban Account</h3>
+            <input type="text" id="banName" placeholder="Nama akun">
+            <div style="display: flex; gap: 5px;">
+                <input type="number" id="banSec" placeholder="Detik" value="0">
+                <input type="number" id="banMin" placeholder="Menit" value="0">
+                <input type="number" id="banDay" placeholder="Hari" value="0">
+            </div>
+            <button class="btn-gold" style="background: #ff4d4d; color: white;" onclick="banUser()">[ BAN! ]</button>
+
+            <h3 style="color: var(--accent); margin-top: 20px; margin-bottom: 0;">Unban Account</h3>
+            <input type="text" id="unbanName" placeholder="Nama Akun">
+            <button class="btn-gold" style="background: var(--accent); color: white;" onclick="unbanUser()">[ UNBAN ]</button>
+
+            <hr style="border: 0.5px solid #444; margin: 20px 0;">
+            <button class="btn-gold" style="background:#ff4d4d; color:white;" onclick="resetAllChat()">RESET ALL CHAT</button>
             <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
         </div>
     </div>
@@ -198,6 +224,7 @@
             if(!u) window.location.href = "index.html";
             else {
                 user = u; curName = u.displayName;
+                checkBanStatus(curName);
                 document.getElementById('welcomeMsg').innerText = `Welcome, ${curName}`;
                 document.getElementById('myAvatar').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
                 if(curName === "Jovan") {
@@ -207,6 +234,48 @@
                 loadData();
             }
         });
+
+        // --- BAN CHECKER ---
+        async function checkBanStatus(name) {
+            const q = query(collection(db, "bans"), where("name", "==", name));
+            onSnapshot(q, (snap) => {
+                if(!snap.empty) {
+                    const d = snap.docs[0].data();
+                    if(Date.now() < d.expiry) {
+                        document.getElementById('banDetail').innerText = `For ${d.sec}Second, ${d.min}Minutes, ${d.day}Day`;
+                        document.getElementById('bannedOverlay').style.display = 'flex';
+                    } else {
+                        document.getElementById('bannedOverlay').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('bannedOverlay').style.display = 'none';
+                }
+            });
+        }
+
+        // --- OWNER BAN ACTIONS ---
+        window.banUser = async () => {
+            const name = document.getElementById('banName').value;
+            const s = parseInt(document.getElementById('banSec').value) || 0;
+            const m = parseInt(document.getElementById('banMin').value) || 0;
+            const d = parseInt(document.getElementById('banDay').value) || 0;
+            if(!name) return alert("Isi nama akun!");
+            
+            const durationMs = (s * 1000) + (m * 60000) + (d * 86400000);
+            const expiry = Date.now() + durationMs;
+
+            await setDoc(doc(db, "bans", name), { name, expiry, sec: s, min: m, day: d });
+            alert(`User ${name} berhasil di-ban!`);
+            closeModals();
+        };
+
+        window.unbanUser = async () => {
+            const name = document.getElementById('unbanName').value;
+            if(!name) return alert("Isi nama akun!");
+            await deleteDoc(doc(db, "bans", name));
+            alert(`User ${name} berhasil di-unban!`);
+            closeModals();
+        };
 
         function loadData() {
             onSnapshot(doc(db, "config", "broadcastMsg"), (d) => { if(d.exists()) document.getElementById('bcText').innerText = d.data().text; });
@@ -283,7 +352,6 @@
         window.updateBC = async () => { await setDoc(doc(db, "config", "broadcastMsg"), { text: document.getElementById('bcInput').value }); window.closeModals(); };
         window.resetAllChat = async () => { if(confirm("Clear all chat history?")) { const q = await getDocs(collection(db, "chats")); q.forEach(async (d) => await deleteDoc(doc(db, "chats", d.id))); } };
 
-        // Sync with botgame.html
         window.startBot = () => window.location.href = `botgame.html?lvl=${botLvl}`;
         window.openAvatarModal = () => document.getElementById('avatarModal').style.display = 'flex';
         window.selectAva = async (url) => { await updateProfile(auth.currentUser, { photoURL: url }); location.reload(); };
