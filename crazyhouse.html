@@ -7,54 +7,21 @@
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <style>
         :root { --primary: #ffd700; --bg: #1a1a1a; --card: #262421; --danger: #b33939; }
-        
-        html, body { 
-            overflow: hidden; 
-            position: fixed; 
-            width: 100%; 
-            height: 100%; 
-            overscroll-behavior: none;
-        }
-
+        html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; overscroll-behavior: none; }
         body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        
         .match-container { width: 95vw; max-width: 450px; margin-top: 10px; }
-
-        .player-card { 
-            background: var(--card); 
-            padding: 10px; 
-            border-radius: 10px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between;
-            margin: 5px 0;
-            border: 1px solid #333;
-        }
-        
+        .player-card { background: var(--card); padding: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; margin: 5px 0; border: 1px solid #333; }
         .p-info { display: flex; align-items: center; gap: 10px; }
         .ava { width: 40px; height: 40px; border-radius: 6px; background: #444; object-fit: cover; border: 1px solid var(--primary); }
         .name { font-weight: bold; font-size: 0.9rem; color: #fff; }
         .timer-display { background: #000; padding: 5px 10px; border-radius: 6px; font-family: monospace; font-size: 1.2rem; font-weight: bold; border: 1px solid #444; }
         .timer-display.active { border-color: var(--primary); color: var(--primary); }
-
-        .reserve-bar {
-            background: rgba(0,0,0,0.5);
-            height: 45px;
-            margin: 5px 0;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-            gap: 2px;
-            border: 1px dashed #555;
-            min-height: 45px;
-        }
-        .reserve-piece { width: 30px; height: 30px; filter: drop-shadow(0 0 2px black); }
-
+        .reserve-bar { background: rgba(0,0,0,0.5); height: 50px; margin: 5px 0; border-radius: 8px; display: flex; align-items: center; padding: 0 10px; gap: 5px; border: 1px dashed #555; overflow-x: auto; }
+        .reserve-piece { width: 35px; height: 35px; cursor: pointer; transition: 0.2s; }
+        .reserve-piece:active { transform: scale(1.2); }
+        .reserve-piece.selected { background: rgba(255,215,0,0.3); border-radius: 5px; }
         #board { width: 100%; aspect-ratio: 1/1; border: 4px solid #333; border-radius: 4px; touch-action: none; }
-
         .btn-resign { width: 100%; padding: 14px; background: var(--danger); color: white; border: none; border-radius: 10px; font-weight: 900; cursor: pointer; margin-top: 10px; text-transform: uppercase; }
-
         .game-over-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
         .go-box { background: #2d2d2d; padding: 30px; border-radius: 20px; text-align: center; border: 2px solid var(--primary); width: 80%; }
     </style>
@@ -64,26 +31,21 @@
     <div class="match-container">
         <div class="player-card">
             <div class="p-info">
-                <img src="https://i.ibb.co.com/8LpY5v7/avatar1.jpg" id="oppPic" class="ava">
+                <img src="" id="oppPic" class="ava">
                 <div class="name" id="oppName">Opponent...</div>
             </div>
             <div id="oppTimer" class="timer-display">10:00</div>
         </div>
-
         <div class="reserve-bar" id="oppReserve"></div>
-
         <div id="board"></div>
-
         <div class="reserve-bar" id="myReserve"></div>
-
         <div class="player-card">
             <div class="p-info">
-                <img src="https://i.ibb.co.com/8LpY5v7/avatar1.jpg" id="myPic" class="ava">
+                <img src="" id="myPic" class="ava">
                 <div class="name" id="myName">You</div>
             </div>
             <div id="myTimer" class="timer-display">10:00</div>
         </div>
-
         <button class="btn-resign" onclick="confirmResign()">RESIGN</button>
     </div>
 
@@ -109,19 +71,16 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    document.addEventListener('touchmove', (e) => {
-        if (e.target.closest('#board') || e.target.closest('.match-container')) e.preventDefault();
-    }, { passive: false });
-
     const params = new URLSearchParams(window.location.search);
     const roomId = params.get('id');
-    const mySide = params.get('side');
+    const mySide = params.get('side'); // 'white' or 'black'
     const pieceTheme = 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png';
 
     let game = new Chess();
     let board = null;
     let timerInt = null;
     let timeLeft = { w: 600, b: 600 };
+    let selectedPieceFromPocket = null;
     const defAva = "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
 
     onAuthStateChanged(auth, (u) => {
@@ -131,50 +90,76 @@
         initMatch();
     });
 
-    // HITUNG BIDAK YANG DIMAKAN MANUAL
+    // FIX POCKET LOGIC (BLACK & WHITE)
     function updatePocket() {
         const boardFen = game.fen().split(' ')[0];
         const counts = { p:8, n:2, b:2, r:2, q:1, P:8, N:2, B:2, R:2, Q:1 };
-        
-        // Kurangi dengan yang masih ada di papan
-        for (let char of boardFen) {
-            if (counts[char] !== undefined) counts[char]--;
-        }
+        for (let char of boardFen) { if (counts[char] !== undefined) counts[char]--; }
 
         const myRes = document.getElementById('myReserve');
         const oppRes = document.getElementById('oppReserve');
         myRes.innerHTML = ""; oppRes.innerHTML = "";
 
-        // Tampilkan bidak sisa (yang sudah dimakan)
         Object.keys(counts).forEach(p => {
             for(let i=0; i < counts[p]; i++) {
-                const isWhite = p === p.toUpperCase();
-                // Di Crazyhouse: Lu dapet bidak lawan dengan warna lo
-                const displayPiece = isWhite ? 'b' + p.toUpperCase() : 'w' + p.toUpperCase();
-                const belongsTo = isWhite ? 'black' : 'white'; 
+                const isWhitePiece = p === p.toUpperCase();
+                // Jika bidak putih dimakan, dia jadi milik Hitam (dan sebaliknya)
+                const owner = isWhitePiece ? 'black' : 'white';
+                const colorCode = owner === 'white' ? 'w' : 'b';
+                const pieceImg = colorCode + p.toUpperCase();
                 
-                const img = `<img src="${pieceTheme.replace('{piece}', displayPiece)}" class="reserve-piece">`;
+                const img = document.createElement('img');
+                img.src = pieceTheme.replace('{piece}', pieceImg);
+                img.className = 'reserve-piece';
                 
-                if (belongsTo === mySide) myRes.innerHTML += img;
-                else oppRes.innerHTML += img;
+                if (owner === mySide) {
+                    img.onclick = () => selectFromPocket(p.toUpperCase(), img);
+                    myRes.appendChild(img);
+                } else {
+                    oppRes.appendChild(img);
+                }
             }
         });
     }
 
-    function formatTime(s) {
-        let m = Math.floor(s / 60); let sc = s % 60;
-        return `${m}:${sc < 10 ? '0'+sc : sc}`;
+    // FIX DROP LOGIC
+    function selectFromPocket(type, el) {
+        if (game.turn() !== mySide.charAt(0)) return;
+        $('.reserve-piece').removeClass('selected');
+        $(el).addClass('selected');
+        selectedPieceFromPocket = type;
     }
 
-    function runTimer() {
-        if (timerInt) clearInterval(timerInt);
-        timerInt = setInterval(() => {
-            let turn = game.turn();
-            timeLeft[turn]--;
-            document.getElementById('myTimer').innerText = formatTime(mySide === 'white' ? timeLeft.w : timeLeft.b);
-            document.getElementById('oppTimer').innerText = formatTime(mySide === 'white' ? timeLeft.b : timeLeft.w);
-            if(timeLeft[turn] <= 0) showGameOver("TIME OUT", "Match Ended");
-        }, 1000);
+    async function handleSquareClick(square) {
+        if (!selectedPieceFromPocket) return;
+        
+        // Coba "Drop" bidak ke kotak
+        const piece = selectedPieceFromPocket.toLowerCase();
+        // Karena chess.js 0.10.3 standar tidak dukung .put() untuk drop crazyhouse secara legal, 
+        // kita paksa manipulasi FEN atau gunakan library khusus. 
+        // Simple fix: Gunakan .put() dan ganti turn.
+        const success = game.put({ type: piece, color: mySide.charAt(0) }, square);
+        
+        if (success) {
+            // Ganti giliran manual
+            let fenArr = game.fen().split(' ');
+            fenArr[1] = fenArr[1] === 'w' ? 'b' : 'w';
+            game.load(fenArr.join(' '));
+            
+            board.position(game.fen());
+            selectedPieceFromPocket = null;
+            $('.reserve-piece').removeClass('selected');
+            updatePocket();
+            await sync();
+        }
+    }
+
+    async function sync() {
+        await updateDoc(doc(db, "rooms", roomId), { 
+            lastFen: game.fen(), 
+            timeLeft: timeLeft,
+            lastMove: Date.now() 
+        });
     }
 
     async function initMatch() {
@@ -182,6 +167,8 @@
         onSnapshot(ref, (s) => {
             const d = s.data();
             if(!d) return;
+
+            // Info Lawan
             if(mySide === 'white' && d.player2) {
                 document.getElementById('oppName').innerText = d.player2.name;
                 document.getElementById('oppPic').src = d.player2.photo || defAva;
@@ -189,11 +176,17 @@
                 document.getElementById('oppName').innerText = d.player1.name;
                 document.getElementById('oppPic').src = d.player1.photo || defAva;
             }
+
             if(d.lastFen && d.lastFen !== game.fen()) {
                 game.load(d.lastFen);
                 board.position(d.lastFen);
                 updatePocket();
                 runTimer();
+            }
+
+            if(d.status === "resigned") {
+                const title = d.resignedBy === auth.currentUser.displayName ? "YOU RESIGNED" : "OPPONENT RESIGNED";
+                showGameOver(title, "Game Over");
             }
         });
 
@@ -205,9 +198,25 @@
                 if(!m) return 'snapback';
                 updatePocket();
                 runTimer();
-                await updateDoc(ref, { lastFen: game.fen(), timeLeft: timeLeft });
+                await sync();
             }
         });
+
+        // Listener buat drop bidak dari pocket
+        $('#board').on('click', '.square-55d63', function() {
+            const square = $(this).attr('data-square');
+            handleSquareClick(square);
+        });
+    }
+
+    function runTimer() {
+        if (timerInt) clearInterval(timerInt);
+        timerInt = setInterval(() => {
+            let turn = game.turn();
+            timeLeft[turn]--;
+            document.getElementById('myTimer').innerText = Math.floor(timeLeft[mySide.charAt(0)]/60) + ":" + (timeLeft[mySide.charAt(0)]%60).toString().padStart(2,'0');
+            document.getElementById('oppTimer').innerText = Math.floor(timeLeft[mySide.charAt(0)==='w'?'b':'w']/60) + ":" + (timeLeft[mySide.charAt(0)==='w'?'b':'w']%60).toString().padStart(2,'0');
+        }, 1000);
     }
 
     window.confirmResign = async () => {
