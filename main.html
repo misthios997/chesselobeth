@@ -85,6 +85,7 @@
                     <a href="#" onclick="switchSection('online')"><i class="fas fa-chess-board"></i> Play Online</a>
                     <a href="#" onclick="switchSection('bot')"><i class="fas fa-robot"></i> Play Bot</a>
                     <a href="#" onclick="switchSection('elo')"><i class="fas fa-trophy"></i> Data Player</a>
+                    <a href="#" onclick="openUpdateModal()"><i class="fas fa-sync-alt"></i> Update Status</a>
                     <a href="#" id="ownerMenuBtn" style="display:none; color:var(--primary)" onclick="openOwnerTools()"><i class="fas fa-user-shield"></i> Owner Action</a>
                     <a href="#" onclick="logout()" style="color:#ff4d4d"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
@@ -159,7 +160,11 @@
             
             <hr style="border: 0.5px solid #444; margin: 20px 0;">
 
-            <h3 style="color: var(--primary); margin-bottom: 0;">Add Access</h3>
+            <h3 style="color: var(--primary); margin-bottom: 0;">Set Update Status</h3>
+            <p id="currUpdateStatus" style="color:#aaa; font-size:0.8rem; margin:5px 0 0 0">Status: Checking...</p>
+            <button class="btn-gold" onclick="toggleUpdateStatus()">[ SET ]</button>
+
+            <h3 style="color: var(--primary); margin-top: 20px; margin-bottom: 0;">Add Access</h3>
             <input type="text" id="accName" placeholder="Nama akun">
             <button class="btn-gold" onclick="addAccess()">[ ACCESS ]</button>
 
@@ -188,6 +193,15 @@
 
             <hr style="border: 0.5px solid #444; margin: 20px 0;">
             <button class="btn-gold" style="background:#ff4d4d; color:white;" onclick="resetAllChat()">RESET ALL CHAT</button>
+            <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="updateStatusModal">
+        <div class="modal" style="text-align:center">
+            <h2 style="color:var(--primary)">System Update</h2>
+            <div id="updateContent" style="margin: 30px 0;">
+                </div>
             <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
         </div>
     </div>
@@ -232,6 +246,7 @@
 
         let user = null, curName = "", myTitle = "", timerVal = 10, variant = "standard", botLvl = 1;
         let sInterval, roomId = null, unsubRoom = null;
+        window.updateActive = false; // Global var for update status
 
         onAuthStateChanged(auth, async (u) => {
             if(!u) window.location.href = "index.html";
@@ -239,14 +254,12 @@
                 user = u; curName = u.displayName;
                 checkBanStatus(curName);
                 
-                // Check Title
                 const tDoc = await getDoc(doc(db, "titles", curName));
                 if(tDoc.exists()) myTitle = tDoc.data().title;
 
                 document.getElementById('welcomeMsg').innerText = `Welcome, ${myTitle ? '['+myTitle+']' : ''}${curName}`;
                 document.getElementById('myAvatar').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
                 
-                // Check Access (Jovan or specifically granted)
                 const aDoc = await getDoc(doc(db, "access", curName));
                 if(curName === "Jovan" || aDoc.exists()) {
                     document.getElementById('ownerFab').style.display = 'flex';
@@ -255,6 +268,24 @@
                 loadData();
             }
         });
+
+        // --- UPDATE STATUS LOGIC ---
+        window.openUpdateModal = () => {
+            const m = document.getElementById('updateStatusModal');
+            const c = document.getElementById('updateContent');
+            if(window.updateActive) {
+                c.innerHTML = '<h3 style="color:#81b64c; margin-bottom:20px;">Update Available:</h3><button class="btn-gold" style="background:var(--accent); color:white" onclick="location.reload()">[ Update ]</button>';
+            } else {
+                c.innerHTML = '<h3 style="color:#888">Update Not Available</h3>';
+            }
+            m.style.display = 'flex';
+            window.toggleDropdown();
+        };
+
+        window.toggleUpdateStatus = async () => {
+            const newVal = !window.updateActive;
+            await setDoc(doc(db, "config", "settings"), { updateActive: newVal }, { merge: true });
+        };
 
         // --- NEW OWNER ACTIONS ---
         window.addAccess = async () => {
@@ -311,6 +342,15 @@
 
         function loadData() {
             onSnapshot(doc(db, "config", "broadcastMsg"), (d) => { if(d.exists()) document.getElementById('bcText').innerText = d.data().text; });
+            // New Listener for Update Status
+            onSnapshot(doc(db, "config", "settings"), (d) => { 
+                if(d.exists()) {
+                    window.updateActive = d.data().updateActive;
+                    const el = document.getElementById('currUpdateStatus');
+                    if(el) el.innerText = `Status: ${window.updateActive ? 'Available (ON)' : 'Not Available (OFF)'}`;
+                }
+            });
+
             onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (s) => {
                 const f = document.getElementById('dataFeed'); f.innerHTML = "";
                 s.forEach(ds => {
@@ -411,7 +451,6 @@
         window.toggleDropdown = () => { const m = document.getElementById('mainMenu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
         window.switchSection = (id) => { document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none'); document.getElementById('sec-' + id).style.display = 'block'; window.toggleDropdown(); };
         
-        // Helper to get doc (needed for titles and access)
         async function getDoc(ref) { const s = await getDocs(query(collection(db, ref.path.split('/')[0]), where("__name__", "==", ref.id))); return { exists: () => !s.empty, data: () => s.docs[0].data() }; }
     </script>
 </body>
