@@ -22,70 +22,65 @@
         /* HEADER */
         .header {
             padding: 20px; display: flex; justify-content: space-between; align-items: center;
+            background: #1a1a1a; border-bottom: 1px solid #333;
         }
-        .logo { color: var(--primary); font-weight: bold; font-size: 1.4rem; }
+        .logo { color: var(--primary); font-weight: bold; font-size: 1.4rem; letter-spacing: 1px; }
         .header-icons { display: flex; gap: 15px; align-items: center; }
         
-        /* MENU DROPDOWN */
+        /* MENU DROPDOWN (TITIK TIGA) */
         .menu-container { position: relative; }
-        .dots-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        .dots-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 5px; }
         .dropdown-content {
-            display: none; position: absolute; right: 0; top: 30px; background: #333;
-            min-width: 150px; border-radius: 8px; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            display: none; position: absolute; right: 0; top: 40px; background: #333;
+            min-width: 180px; border-radius: 8px; z-index: 1000; box-shadow: 0 5px 20px rgba(0,0,0,0.6);
+            border: 1px solid #444;
         }
         .dropdown-content a {
             color: white; padding: 12px 16px; text-decoration: none; display: block; font-size: 0.9rem;
+            border-bottom: 1px solid #444;
         }
-        .dropdown-content a:hover { background: #444; border-radius: 8px; }
+        .dropdown-content a:last-child { border-bottom: none; }
+        .dropdown-content a:hover { background: var(--primary); color: black; }
 
-        /* WELCOME */
-        .welcome { padding: 0 20px; color: var(--primary); font-size: 1.5rem; margin-bottom: 20px; }
-
-        /* PLAY CARD */
-        .play-card {
-            margin: 20px; background: var(--card-bg); border-radius: 15px;
-            padding: 20px; border-left: 5px solid var(--accent-green);
-        }
-        .label-small { color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 10px; display: block; }
-        .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .option-btn {
-            background: #333; border: 1px solid #444; color: white; padding: 12px 5px;
-            border-radius: 8px; font-weight: bold; cursor: pointer;
-        }
-        .option-btn.active { background: #444; border: 2px solid var(--accent-green); color: var(--accent-green); }
+        /* WELCOME SECTION */
+        .welcome { padding: 20px 20px 10px; color: var(--primary); font-size: 1.5rem; font-weight: bold; }
         
-        .play-main-btn {
-            width: 100%; padding: 15px; background: var(--accent-green); color: white;
-            border: none; border-radius: 10px; font-weight: bold; font-size: 1.1rem;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-        }
-
         /* BROADCAST */
         .broadcast {
-            margin: 20px; background: #c69312; color: black; padding: 15px;
-            border-radius: 8px; font-weight: bold; font-size: 0.9rem;
+            margin: 10px 20px; background: var(--primary); color: black; padding: 12px;
+            border-radius: 8px; font-weight: bold; font-size: 0.85rem; line-height: 1.4;
         }
 
-        /* RECENT PLAYERS */
-        .section-title { padding: 0 20px; color: #888; font-size: 0.8rem; text-transform: uppercase; }
-        .player-list { padding: 10px 20px; }
+        /* DATA SECTION (STATS) */
+        .section-label { padding: 10px 20px; color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+        .stats-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
+        .stat-box { background: var(--card-bg); padding: 15px; border-radius: 12px; border-top: 3px solid var(--primary); }
+        .stat-box small { color: #888; font-size: 0.7rem; display: block; margin-bottom: 5px; }
+        .stat-box b { font-size: 1.2rem; color: var(--primary); }
+
+        /* RECENT PLAYERS (LIST) */
+        .player-list { padding: 10px 20px; margin-bottom: 80px; }
         .player-item {
             background: var(--card-bg); padding: 15px; border-radius: 12px;
-            margin-bottom: 15px; border-left: 4px solid var(--primary);
-            position: relative;
+            margin-bottom: 15px; border-left: 5px solid var(--primary);
+            position: relative; display: flex; flex-direction: column;
         }
         .player-item h3 { margin: 0; color: var(--primary); font-size: 1.1rem; }
-        .player-item p { margin: 5px 0 0; color: #aaa; font-size: 0.85rem; }
-        .action-btns { position: absolute; right: 10px; top: 15px; display: flex; gap: 5px; }
-        .btn-edit { background: #444; color: white; border: none; padding: 5px 10px; border-radius: 4px; }
-        .btn-del { background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; }
+        .player-item p { margin: 4px 0 0; color: #aaa; font-size: 0.8rem; }
+        
+        /* ACTION OWNER (EDIT/DEL) */
+        .action-btns { position: absolute; right: 12px; top: 15px; display: flex; gap: 8px; }
+        .btn-action { border: none; padding: 6px 10px; border-radius: 5px; font-size: 0.75rem; font-weight: bold; cursor: pointer; color: white; }
+        .btn-edit { background: #444; }
+        .btn-del { background: #b33939; }
 
-        /* FLOATING ACTION BUTTON */
+        /* FLOATING ACTION BUTTON (+) */
         .fab {
-            position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px;
+            position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px;
             background: var(--primary); border-radius: 50%; display: flex;
-            align-items: center; justify-content: center; font-size: 2rem;
-            color: black; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: none;
+            align-items: center; justify-content: center; font-size: 1.8rem;
+            color: black; box-shadow: 0 5px 15px rgba(0,0,0,0.5); border: none;
+            cursor: pointer; z-index: 99;
         }
     </style>
 </head>
@@ -94,80 +89,94 @@
     <div class="header">
         <div class="logo">CHESSELOBETH</div>
         <div class="header-icons">
-            <i class="far fa-comment-dots"></i>
+            <i class="far fa-comment-dots" style="font-size: 1.3rem;"></i>
             <div class="menu-container">
-                <button class="dots-btn" onclick="toggleMenu()"><i class="fas fa-ellipsis-v"></i></button>
+                <button class="dots-btn" onclick="toggleMenu()">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
                 <div id="myDropdown" class="dropdown-content">
-                    <a href="#" onclick="showSection('data')">Data Account</a>
-                    <a href="#" onclick="showSection('online')">Play Online</a>
+                    <a href="#" onclick="alert('Buka Data Account')">Data Account</a>
+                    <a href="#" onclick="alert('Mulai Play Online')">Play Online</a>
                     <a href="#" onclick="openBotModal()">Play Bot</a>
-                    <a href="#">Owner Action</a>
+                    <a href="#" style="color: var(--primary); font-weight: bold;">Owner Action</a>
                 </div>
             </div>
-            <img src="https://www.chess.com/bundles/web/images/user-image.svg" style="width:35px; border-radius:50%; border: 1px solid var(--primary);">
+            <img src="https://www.chess.com/bundles/web/images/user-image.svg" style="width:35px; border-radius:50%; border: 2px solid var(--primary);">
         </div>
     </div>
 
     <div class="welcome">Welcome Jovan</div>
 
-    <div class="play-card">
-        <span class="label-small">Timer Set</span>
-        <div class="btn-grid">
-            <button class="option-btn">3Min</button>
-            <button class="option-btn">5Min</button>
-            <button class="option-btn active">10Min</button>
-        </div>
-        <span class="label-small">Variant</span>
-        <div class="btn-grid">
-            <button class="option-btn active">Standard</button>
-            <button class="option-btn">Crazyhouse</button>
-            <button class="option-btn">All Rook</button>
-        </div>
-        <button class="play-main-btn" onclick="alert('Searching opponent...')">
-            [ <i class="fas fa-search"></i> PLAY ONLINE ]
-        </button>
-    </div>
-
     <div class="broadcast">
-        Broadcast: Ini semua bukan data akun tapi catatan elo di Sekolah
+        Broadcast: Ini semua bukan data akun tapi catatan elo di Sekolah. Semangat latihannya!
     </div>
 
-    <div class="section-title">Recent Players</div>
+    <div class="section-label">Your Statistics</div>
+    <div class="stats-container">
+        <div class="stat-box">
+            <small>CURRENT ELO</small>
+            <b>1250</b>
+        </div>
+        <div class="stat-box">
+            <small>WIN RATE</small>
+            <b>68%</b>
+        </div>
+    </div>
+
+    <div class="section-label" style="margin-top: 20px;">Recent Players</div>
     <div class="player-list">
         <div class="player-item">
             <h3>[GM] Magnus Carlsen</h3>
-            <p>Elo: 2882 | Date: 10 March 2010</p>
-            <p style="color:#666">MagnusCarlsen</p>
+            <p>Elo: 2882 | Date: 14 Feb 2026</p>
+            <p style="color: #666; font-size: 0.75rem;">Status: Win</p>
             <div class="action-btns">
-                <button class="btn-edit">Edit</button>
-                <button class="btn-del">Del</button>
+                <button class="btn-action btn-edit" onclick="alert('Edit Player')">Edit</button>
+                <button class="btn-action btn-del" onclick="confirm('Hapus data ini?')">Del</button>
+            </div>
+        </div>
+
+        <div class="player-item">
+            <h3>Jovan_9A</h3>
+            <p>Elo: 1250 | Date: 13 Feb 2026</p>
+            <p style="color: #666; font-size: 0.75rem;">Status: Playing</p>
+            <div class="action-btns">
+                <button class="btn-action btn-edit">Edit</button>
+                <button class="btn-action btn-del">Del</button>
             </div>
         </div>
     </div>
 
-    <button class="fab"><i class="fas fa-plus"></i></button>
+    <button class="fab" onclick="alert('Tambah Data Baru')">
+        <i class="fas fa-plus"></i>
+    </button>
 
-    <div id="botModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; justify-content:center; align-items:center;">
-        <div style="background:#222; padding:30px; border-radius:15px; width:80%; border:2px solid var(--primary);">
-            <h3 style="color:var(--primary); margin-top:0;">Select Bot Level</h3>
-            <div class="btn-grid" style="margin:20px 0;">
-                <button class="option-btn" onclick="goBot(1)">Lvl 1</button>
-                <button class="option-btn" onclick="goBot(10)">Lvl 10</button>
-                <button class="option-btn" onclick="goBot(20)">Lvl 20</button>
+    <div id="botModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:2000; justify-content:center; align-items:center;">
+        <div style="background:#222; padding:25px; border-radius:15px; width:85%; max-width:350px; border:2px solid var(--primary); text-align: center;">
+            <h3 style="color:var(--primary); margin-top:0;">Pilih Level Bot</h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0;">
+                <button onclick="goBot(1)" style="padding:15px; background:#333; color:white; border:1px solid #444; border-radius:8px; font-weight:bold;">Lvl 1</button>
+                <button onclick="goBot(10)" style="padding:15px; background:#333; color:white; border:1px solid #444; border-radius:8px; font-weight:bold;">Lvl 10</button>
+                <button onclick="goBot(20)" style="padding:15px; background:#333; color:white; border:1px solid #444; border-radius:8px; font-weight:bold;">Lvl 20</button>
             </div>
-            <button onclick="document.getElementById('botModal').style.display='none'" style="width:100%; padding:10px; background:#444; color:white; border:none; border-radius:5px;">CANCEL</button>
+            <button onclick="document.getElementById('botModal').style.display='none'" style="width:100%; padding:12px; background:#444; color:white; border:none; border-radius:8px;">CANCEL</button>
         </div>
     </div>
 
     <script>
         function toggleMenu() {
             var dropdown = document.getElementById("myDropdown");
-            dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+            if (dropdown.style.display === "block") {
+                dropdown.style.display = "none";
+            } else {
+                dropdown.style.display = "block";
+            }
         }
 
+        // Klik di luar menu untuk menutup
         window.onclick = function(event) {
             if (!event.target.matches('.dots-btn') && !event.target.matches('.fa-ellipsis-v')) {
-                document.getElementById("myDropdown").style.display = "none";
+                var dropdown = document.getElementById("myDropdown");
+                if (dropdown) dropdown.style.display = "none";
             }
         }
 
@@ -176,7 +185,7 @@
         }
 
         function goBot(lvl) {
-            window.location.href = `botgame.html?name=Jovan&level=${lvl}`;
+            window.location.href = `botgame.html?level=${lvl}&name=Jovan`;
         }
     </script>
 </body>
