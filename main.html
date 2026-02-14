@@ -52,7 +52,7 @@
         .msg-self .msg-bubble { background: var(--primary); color: black; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 4000; }
-        .modal { background: #2d2d2d; padding: 25px; border-radius: 20px; width: 85%; max-width: 400px; max-height: 80vh; overflow-y: auto; }
+        .modal { background: #2d2d2d; padding: 25px; border-radius: 20px; width: 85%; max-width: 400px; max-height: 85vh; overflow-y: auto; }
         .ava-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
         .ava-pick { width: 100%; aspect-ratio: 1/1; border-radius: 10px; border: 3px solid transparent; cursor: pointer; object-fit: cover; }
         .ava-pick:hover { border-color: var(--primary); }
@@ -61,7 +61,6 @@
         
         .fab { position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px; background: var(--primary); color: black; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 2rem; z-index: 900; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
 
-        /* BANNED SCREEN */
         #bannedOverlay { position: fixed; inset: 0; background: #000; color: white; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 99999; text-align: center; padding: 20px; }
         #bannedOverlay h1 { color: #ff4d4d; font-size: 2rem; }
         #bannedOverlay p { font-size: 1.2rem; margin-top: 10px; }
@@ -159,6 +158,20 @@
             <button class="btn-gold" onclick="updateBC()">UPDATE BC</button>
             
             <hr style="border: 0.5px solid #444; margin: 20px 0;">
+
+            <h3 style="color: var(--primary); margin-bottom: 0;">Add Access</h3>
+            <input type="text" id="accName" placeholder="Nama akun">
+            <button class="btn-gold" onclick="addAccess()">[ ACCESS ]</button>
+
+            <h3 style="color: var(--primary); margin-top:20px; margin-bottom: 0;">Add Title</h3>
+            <input type="text" id="titleName" placeholder="Nama akun">
+            <select id="titlePick">
+                <option value="CM">CM</option><option value="FM">FM</option>
+                <option value="IM">IM</option><option value="GM">GM</option>
+            </select>
+            <button class="btn-gold" onclick="addTitle()">[ GIVE TITLE ]</button>
+
+            <hr style="border: 0.5px solid #444; margin: 20px 0;">
             
             <h3 style="color: #ff4d4d; margin-bottom: 0;">Ban Account</h3>
             <input type="text" id="banName" placeholder="Nama akun">
@@ -217,23 +230,49 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let user = null, curName = "", timerVal = 10, variant = "standard", botLvl = 1;
+        let user = null, curName = "", myTitle = "", timerVal = 10, variant = "standard", botLvl = 1;
         let sInterval, roomId = null, unsubRoom = null;
 
-        onAuthStateChanged(auth, (u) => {
+        onAuthStateChanged(auth, async (u) => {
             if(!u) window.location.href = "index.html";
             else {
                 user = u; curName = u.displayName;
                 checkBanStatus(curName);
-                document.getElementById('welcomeMsg').innerText = `Welcome, ${curName}`;
+                
+                // Check Title
+                const tDoc = await getDoc(doc(db, "titles", curName));
+                if(tDoc.exists()) myTitle = tDoc.data().title;
+
+                document.getElementById('welcomeMsg').innerText = `Welcome, ${myTitle ? '['+myTitle+']' : ''}${curName}`;
                 document.getElementById('myAvatar').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
-                if(curName === "Jovan") {
+                
+                // Check Access (Jovan or specifically granted)
+                const aDoc = await getDoc(doc(db, "access", curName));
+                if(curName === "Jovan" || aDoc.exists()) {
                     document.getElementById('ownerFab').style.display = 'flex';
                     document.getElementById('ownerMenuBtn').style.display = 'flex';
                 }
                 loadData();
             }
         });
+
+        // --- NEW OWNER ACTIONS ---
+        window.addAccess = async () => {
+            const name = document.getElementById('accName').value;
+            if(!name) return alert("Isi nama!");
+            await setDoc(doc(db, "access", name), { hasAccess: true });
+            alert(`Akses diberikan ke ${name}`);
+            closeModals();
+        };
+
+        window.addTitle = async () => {
+            const name = document.getElementById('titleName').value;
+            const title = document.getElementById('titlePick').value;
+            if(!name) return alert("Isi nama!");
+            await setDoc(doc(db, "titles", name), { title: title });
+            alert(`Gelar ${title} diberikan ke ${name}`);
+            closeModals();
+        };
 
         // --- BAN CHECKER ---
         async function checkBanStatus(name) {
@@ -244,26 +283,19 @@
                     if(Date.now() < d.expiry) {
                         document.getElementById('banDetail').innerText = `For ${d.sec}Second, ${d.min}Minutes, ${d.day}Day`;
                         document.getElementById('bannedOverlay').style.display = 'flex';
-                    } else {
-                        document.getElementById('bannedOverlay').style.display = 'none';
-                    }
-                } else {
-                    document.getElementById('bannedOverlay').style.display = 'none';
-                }
+                    } else { document.getElementById('bannedOverlay').style.display = 'none'; }
+                } else { document.getElementById('bannedOverlay').style.display = 'none'; }
             });
         }
 
-        // --- OWNER BAN ACTIONS ---
         window.banUser = async () => {
             const name = document.getElementById('banName').value;
             const s = parseInt(document.getElementById('banSec').value) || 0;
             const m = parseInt(document.getElementById('banMin').value) || 0;
             const d = parseInt(document.getElementById('banDay').value) || 0;
             if(!name) return alert("Isi nama akun!");
-            
             const durationMs = (s * 1000) + (m * 60000) + (d * 86400000);
             const expiry = Date.now() + durationMs;
-
             await setDoc(doc(db, "bans", name), { name, expiry, sec: s, min: m, day: d });
             alert(`User ${name} berhasil di-ban!`);
             closeModals();
@@ -287,7 +319,7 @@
                     <div class="data-card">
                         <h3>${d.rank !== 'None' ? '['+d.rank+'] ' : ''}${d.name}</h3>
                         <p>Elo: ${d.elo} | Date: ${d.date}</p>
-                        ${curName === "Jovan" ? `<div class="admin-tools"><button class="btn-mini btn-del" onclick="window.delData('${ds.id}')">Del</button></div>` : ''}
+                        ${document.getElementById('ownerFab').style.display === 'flex' ? `<div class="admin-tools"><button class="btn-mini btn-del" onclick="window.delData('${ds.id}')">Del</button></div>` : ''}
                     </div>`;
                 });
             });
@@ -296,11 +328,12 @@
                 s.forEach(d => {
                     const m = d.data();
                     const isSelf = m.name === curName;
+                    const displayTitle = m.title ? `[${m.title}]` : '';
                     b.innerHTML += `
                     <div class="msg-wrap ${isSelf ? 'msg-self' : ''}">
                         <img src="${m.photo}" class="msg-ava">
                         <div class="msg-content">
-                            <span class="msg-name">${m.name}</span>
+                            <span class="msg-name">${displayTitle}(${m.name})</span>
                             <div class="msg-bubble">${m.text}</div>
                         </div>
                     </div>`;
@@ -308,6 +341,20 @@
                 b.scrollTop = b.scrollHeight;
             });
         }
+
+        window.sendChat = async () => { 
+            const i = document.getElementById('chatIn'); 
+            if(i.value.trim()){ 
+                await addDoc(collection(db, "chats"), { 
+                    name: curName, 
+                    title: myTitle,
+                    text: i.value, 
+                    photo: user.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg", 
+                    timestamp: Date.now() 
+                }); 
+                i.value = ""; 
+            }
+        };
 
         window.setTimer = (v, b) => { timerVal = v; document.querySelectorAll('#timerGrid .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
         window.setVariant = (v, b) => { variant = v; document.querySelectorAll('#variantGrid .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
@@ -320,10 +367,10 @@
             const snap = await getDocs(q);
             if(!snap.empty) {
                 roomId = snap.docs[0].id;
-                await updateDoc(doc(db, "rooms", roomId), { player2: { name: curName, photo: user.photoURL || "" }, status: "playing" });
+                await updateDoc(doc(db, "rooms", roomId), { player2: { name: curName, photo: user.photoURL || "", title: myTitle }, status: "playing" });
                 goGame(roomId, 'black');
             } else {
-                const nr = await addDoc(collection(db, "rooms"), { player1: { name: curName, photo: user.photoURL || "" }, status: "waiting", timer: timerVal, variant: variant, createdAt: Date.now() });
+                const nr = await addDoc(collection(db, "rooms"), { player1: { name: curName, photo: user.photoURL || "", title: myTitle }, status: "waiting", timer: timerVal, variant: variant, createdAt: Date.now() });
                 roomId = nr.id;
                 unsubRoom = onSnapshot(doc(db, "rooms", roomId), (s) => { if(s.exists() && s.data().status === "playing") goGame(roomId, 'white'); });
             }
@@ -359,16 +406,13 @@
         window.openAddModal = () => document.getElementById('addModal').style.display = 'flex';
         window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
         window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
-        window.sendChat = async () => { 
-            const i = document.getElementById('chatIn'); 
-            if(i.value.trim()){ 
-                await addDoc(collection(db, "chats"), { name: curName, text: i.value, photo: user.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg", timestamp: Date.now() }); 
-                i.value = ""; 
-            }
-        };
+        
         window.logout = () => signOut(auth).then(() => window.location.href = "index.html");
         window.toggleDropdown = () => { const m = document.getElementById('mainMenu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
         window.switchSection = (id) => { document.querySelectorAll('.section-view').forEach(s => s.style.display = 'none'); document.getElementById('sec-' + id).style.display = 'block'; window.toggleDropdown(); };
+        
+        // Helper to get doc (needed for titles and access)
+        async function getDoc(ref) { const s = await getDocs(query(collection(db, ref.path.split('/')[0]), where("__name__", "==", ref.id))); return { exists: () => !s.empty, data: () => s.docs[0].data() }; }
     </script>
 </body>
 </html>
