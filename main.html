@@ -7,18 +7,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary: #ffd700; --bg: #1a1a1a; --card: #2d2d2d; --text: #ffffff; --accent: #81b64c; --red: #ff4d4d; }
-        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; overflow-x: hidden; user-select: none; }
+        
         header { background: #2d2d2d; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 15px rgba(0,0,0,0.6); position: sticky; top: 0; z-index: 1000; }
         .brand { font-weight: 900; color: var(--primary); font-size: 1.4rem; letter-spacing: 1px; }
         .nav-right { display: flex; gap: 15px; align-items: center; }
         .dots-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 5px; position: relative; }
         .red-dot { position: absolute; top: 5px; right: 5px; width: 10px; height: 10px; background: var(--red); border-radius: 50%; display: none; border: 2px solid #2d2d2d; }
+        
         .dropdown-menu { display: none; position: absolute; right: 0; top: 45px; background: #333; min-width: 220px; border-radius: 12px; z-index: 1001; border: 1px solid #444; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        .dropdown-menu a { color: white; padding: 14px 20px; text-decoration: none; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #444; }
-        .dropdown-menu a:hover { background: var(--primary); color: black; }
+        .dropdown-menu a { color: white; padding: 14px 20px; text-decoration: none; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #444; font-size: 0.95rem; }
+        .dropdown-menu a:active { background: var(--primary); color: black; }
+        
         .profile-trigger { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--primary); cursor: pointer; object-fit: cover; }
         .broadcast-container { margin: 15px 20px; }
         #broadcastBox { background: linear-gradient(135deg, #b8860b, #daa520); color: black; padding: 15px; border-radius: 10px; font-weight: bold; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+        
         .container { max-width: 600px; margin: 0 auto; padding: 10px 20px; }
         .welcome-text { font-size: 1.6rem; font-weight: bold; margin-bottom: 20px; color: var(--primary); }
         .play-card { background: var(--card); border-radius: 18px; padding: 25px; border-left: 6px solid var(--accent); margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
@@ -27,8 +31,10 @@
         .btn-opt.active { background: rgba(129, 182, 76, 0.2); border-color: var(--accent); color: var(--accent); }
         .btn-main { background: var(--accent); color: white; width: 100%; padding: 18px; border: none; border-radius: 12px; font-weight: 900; font-size: 1.2rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .data-card { background: #262626; padding: 15px; margin-bottom: 10px; border-radius: 12px; border-left: 5px solid var(--primary); position: relative; }
+        .admin-tools { position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; }
         .list-item { background: #262626; padding: 12px; margin-bottom: 10px; border-radius: 10px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border: 1px solid #333; }
         .list-item img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid #555; }
+        .list-content { flex: 1; display: flex; flex-direction: column; font-size: 0.9rem; }
         .list-actions { display: flex; gap: 8px; margin-top: 8px; width: 100%; }
         .btn-mini { padding: 8px 12px; border-radius: 6px; border: none; color: white; cursor: pointer; font-size: 0.8rem; font-weight: bold; flex: 1; transition: 0.2s; }
         .btn-blue { background: #3498db; } .btn-green { background: var(--accent); } .btn-red { background: var(--red); } .btn-gray { background: #555; }
@@ -50,7 +56,10 @@
         .history-item { border-bottom: 1px solid #444; padding: 8px 0; font-size: 0.85rem; color: #ccc; }
         .ava-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
         .ava-pick { width: 100%; aspect-ratio: 1/1; border-radius: 10px; border: 3px solid transparent; cursor: pointer; object-fit: cover; }
-        .admin-tools { position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; }
+        
+        /* NEW: BUTTON SEE GAME */
+        .btn-see-game { width: 35px; height: 35px; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px solid #fff; cursor: pointer; }
+        .hist-row { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #262626; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid var(--primary); }
     </style>
 </head>
 <body>
@@ -72,6 +81,7 @@
                     <div id="inboxDot" class="red-dot"></div>
                 </button>
                 <div class="dropdown-menu" id="mainMenu">
+                    <a href="#" onclick="openProfile()"><i class="fas fa-user"></i> Profile</a>
                     <a href="#" onclick="switchSection('online')"><i class="fas fa-globe"></i> Play Online</a>
                     <a href="#" onclick="switchSection('bot')"><i class="fas fa-robot"></i> Play Bot</a>
                     <a href="learn.html" style="color:var(--primary)"><i class="fas fa-book-open"></i> Learn Chess</a>
@@ -130,6 +140,14 @@
 
     <button class="fab" id="ownerFab" onclick="openAddModal()"><i class="fas fa-plus"></i></button>
 
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal">
+            <h2 style="color:var(--primary)">My History</h2>
+            <div id="profileHistoryList" style="min-height:100px;"></div>
+            <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="inboxModal">
         <div class="modal">
             <h2 style="color:var(--primary)">Inbox</h2>
@@ -146,6 +164,7 @@
                 <button class="btn-gold" style="width:auto; margin:0; padding:10px;" onclick="searchFriend()">Search</button>
             </div>
             <div id="friendSearchResults" style="margin-top:15px; font-weight:bold; color:#aaa;">Result: None</div>
+            
             <hr style="border:0.5px solid #444; margin:15px 0;">
             <h3>Recommendation</h3>
             <div id="friendRecsContent"></div>
@@ -272,7 +291,6 @@
         let serverVersion = 0;
         let myFriends = [];
 
-        // -- WINDOW FUNCTIONS --
         window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
         window.toggleDropdown = () => { const m = document.getElementById('mainMenu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
         window.switchSection = (s) => { document.querySelectorAll('.section-view').forEach(v => v.style.display = 'none'); document.getElementById('sec-'+s).style.display = 'block'; window.toggleDropdown(); };
@@ -312,48 +330,41 @@
             }
         });
 
-        // --- DATA & FRIENDS ---
-        function loadData() {
-            // FIX: Load Recent Players Data Feed
-            onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (s) => {
-                const f = document.getElementById('dataFeed'); f.innerHTML = "";
-                s.forEach(ds => {
-                    const d = ds.data();
-                    f.innerHTML += `
-                    <div class="data-card">
-                        <h3>${d.rank !== 'None' ? '['+d.rank+'] ' : ''}${d.name}</h3>
-                        <p>Elo: ${d.elo} | Date: ${d.date}</p>
-                        ${document.getElementById('ownerFab').style.display === 'flex' ? `<div class="admin-tools"><button class="btn-mini btn-del" onclick="delData('${ds.id}')" style="background:#ff4d4d">Del</button></div>` : ''}
-                    </div>`;
-                });
-            });
-            // ... (rest of loadData)
-            onSnapshot(doc(db, "config", "broadcastMsg"), (d) => { if(d.exists()) document.getElementById('bcText').innerText = d.data().text; });
-            onSnapshot(doc(db, "config", "settings"), (d) => {
-                if(d.exists()) {
-                    serverVersion = d.data().latestVersion || 0;
-                    const lv = parseInt(localStorage.getItem('appVersion')) || 0;
-                    const n = document.getElementById('updateNotify');
-                    if(serverVersion > lv) { n.innerText = "Update: Available please check \"Update Status\" Menu"; n.style.color = "#81b64c"; }
-                    else { n.innerText = "Update: Not Available"; n.style.color = "#aaa"; }
+        // --- PROFILE HISTORY ---
+        window.openProfile = async () => {
+            document.getElementById('profileModal').style.display = 'flex'; window.toggleDropdown();
+            const q = query(collection(db, "history"), where("player", "==", curName), orderBy("timestamp", "desc"));
+            const snap = await getDocs(q);
+            const l = document.getElementById('profileHistoryList'); l.innerHTML = "";
+            snap.forEach(d => {
+                const h = d.data();
+                // Determine Result Symbol
+                let resSym = "(=)";
+                if(h.res.includes("CHECKMATE") || h.res.includes("Time")) {
+                    // Simplistic logic based on stored result string "White Wins" etc.
+                    // Ideally we store winner color. Assuming 'res' is like "CHECKMATE: White Wins!"
+                    // Use a visual trick for now or improve data structure later.
+                    if(h.res.toLowerCase().includes("win")) resSym = "(+)";
+                    else if(h.res.toLowerCase().includes("lost") || h.res.toLowerCase().includes("resigned")) resSym = "(-)";
                 }
+                
+                l.innerHTML += `
+                <div class="hist-row">
+                    <span>${h.player} vs ${h.opp} ${resSym}</span>
+                    <div class="btn-see-game" onclick="window.location.href='review.html?id=${d.id}'">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                </div>`;
             });
-            onSnapshot(query(collection(db, "chats"), orderBy("timestamp", "asc"), limit(50)), (s) => {
-                const b = document.getElementById('chatBox'); b.innerHTML = "";
-                s.forEach(d => {
-                    const m = d.data();
-                    b.innerHTML += `<div class="msg-wrap ${m.name === curName ? 'msg-self' : ''}"><img src="${m.photo}" class="msg-ava"><div class="msg-content"><span class="msg-name">${m.title?'['+m.title+']':''}${m.name}</span><div class="msg-bubble">${m.text}</div></div></div>`;
-                });
-                b.scrollTop = b.scrollHeight;
-            });
-        }
+        };
 
+        // --- DATA & FRIENDS ---
         async function loadMyFriends() {
             const q = query(collection(db, "friends"), where("user", "==", curName));
             onSnapshot(q, (s) => { myFriends = []; s.forEach(d => myFriends.push(d.data().friend)); });
         }
 
-        // --- INBOX ---
+        // --- INBOX LOGIC ---
         function listenInbox() {
             onSnapshot(query(collection(db, "inbox"), where("to", "==", curName)), (s) => {
                 const list = document.getElementById('inboxContent'); list.innerHTML = "";
@@ -400,7 +411,7 @@
             alert("Friend Added!");
         };
 
-        // --- SEARCH ---
+        // --- SEARCH & FRIENDS ---
         window.searchFriend = async () => {
             const val = document.getElementById('friendSearchIn').value;
             const res = document.getElementById('friendSearchResults');
@@ -434,7 +445,7 @@
             }
         };
 
-        // --- FRIEND LIST & MUTUAL DELETE ---
+        // --- FRIEND LIST ---
         async function loadFriendList() {
             const q = query(collection(db, "friends"), where("user", "==", curName));
             const s = await getDocs(q);
@@ -563,7 +574,6 @@
             }
         };
 
-        // --- MATCHMAKING ---
         window.startMatchmaking = async () => {
             document.getElementById('searchOverlay').style.display = 'flex';
             document.getElementById('searchTitle').innerText = "Searching...";
@@ -597,7 +607,6 @@
             window.location.href = `${v}.html?id=${id}&side=${side}`; 
         }
 
-        // --- OWNER & UPDATE ---
         window.openUpdateModal = () => {
             const lv = parseInt(localStorage.getItem('appVersion')) || 0;
             const c = document.getElementById('updateContent');
@@ -621,7 +630,42 @@
             });
         }
 
-        // Helper functions
+        function loadData() {
+            onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (s) => {
+                const f = document.getElementById('dataFeed'); f.innerHTML = "";
+                s.forEach(ds => {
+                    const d = ds.data();
+                    f.innerHTML += `
+                    <div class="data-card">
+                        <h3>${d.rank !== 'None' ? '['+d.rank+'] ' : ''}${d.name}</h3>
+                        <p>Elo: ${d.elo} | Date: ${d.date}</p>
+                        ${document.getElementById('ownerFab').style.display === 'flex' ? `<div class="admin-tools"><button class="btn-mini btn-del" onclick="delData('${ds.id}')" style="background:#ff4d4d">Del</button></div>` : ''}
+                    </div>`;
+                });
+            });
+            onSnapshot(doc(db, "config", "broadcastMsg"), (d) => {
+                const txt = d.exists() ? d.data().text : "Welcome to ChessEloBeth!";
+                document.getElementById('bcText').innerText = txt;
+            });
+            onSnapshot(doc(db, "config", "settings"), (d) => {
+                if(d.exists()) {
+                    serverVersion = d.data().latestVersion || 0;
+                    const lv = parseInt(localStorage.getItem('appVersion')) || 0;
+                    const n = document.getElementById('updateNotify');
+                    if(serverVersion > lv) { n.innerText = "Update: Available please check \"Update Status\" Menu"; n.style.color = "#81b64c"; }
+                    else { n.innerText = "Update: Not Available"; n.style.color = "#aaa"; }
+                }
+            });
+            onSnapshot(query(collection(db, "chats"), orderBy("timestamp", "asc"), limit(50)), (s) => {
+                const b = document.getElementById('chatBox'); b.innerHTML = "";
+                s.forEach(d => {
+                    const m = d.data();
+                    b.innerHTML += `<div class="msg-wrap ${m.name === curName ? 'msg-self' : ''}"><img src="${m.photo}" class="msg-ava"><div class="msg-content"><span class="msg-name">${m.title?'['+m.title+']':''}${m.name}</span><div class="msg-bubble">${m.text}</div></div></div>`;
+                });
+                b.scrollTop = b.scrollHeight;
+            });
+        }
+
         window.addAccess = async () => { await setDoc(doc(db, "access", document.getElementById('accName').value), { hasAccess: true }); alert("Done"); };
         window.addTitle = async () => { await setDoc(doc(db, "titles", document.getElementById('titleName').value), { title: document.getElementById('titlePick').value }); alert("Done"); };
         window.banUser = async () => { await setDoc(doc(db, "bans", document.getElementById('banName').value), { name: document.getElementById('banName').value, expiry: Date.now() + 999999999 }); alert("Banned"); };
