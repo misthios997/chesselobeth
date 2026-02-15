@@ -50,6 +50,7 @@
         .history-item { border-bottom: 1px solid #444; padding: 8px 0; font-size: 0.85rem; color: #ccc; }
         .ava-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
         .ava-pick { width: 100%; aspect-ratio: 1/1; border-radius: 10px; border: 3px solid transparent; cursor: pointer; object-fit: cover; }
+        .ava-pick:hover { border-color: var(--primary); }
     </style>
 </head>
 <body>
@@ -270,7 +271,7 @@
 
         let user, curName, myTitle = "", timerVal = 10, variant = "standard", botLvl = 1, sInterval, roomId, unsubRoom, unsubPChat;
         let serverVersion = 0;
-        let myFriends = []; // Local cache for friend names
+        let myFriends = [];
 
         // -- WINDOW FUNCTIONS --
         window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
@@ -300,37 +301,22 @@
             if(!u) window.location.href = "index.html";
             else {
                 user = u; curName = u.displayName;
-                
                 checkBanStatus(curName);
-                
-                // FORCE SAVE USER DATA ON LOGIN SO THEY APPEAR IN SEARCH
                 await setDoc(doc(db, "users", curName), { name: curName, photo: u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg" }, { merge: true });
-
                 const tDoc = await getDoc(doc(db, "titles", curName));
                 if(tDoc.exists()) { myTitle = tDoc.data().title; await updateDoc(doc(db, "users", curName), { title: myTitle }); }
-
                 document.getElementById('welcomeMsg').innerText = `Welcome, ${myTitle ? '['+myTitle+'] ' : ''}${curName}`;
                 document.getElementById('myAvatar').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
-                
                 const aDoc = await getDoc(doc(db, "access", curName));
-                if(curName === "Jovan" || aDoc.exists()) {
-                    document.getElementById('ownerFab').style.display = 'flex';
-                    document.getElementById('ownerMenuBtn').style.display = 'block';
-                }
-                
-                loadData();
-                listenInbox();
-                loadMyFriends(); // Load local cache of friends
+                if(curName === "Jovan" || aDoc.exists()) { document.getElementById('ownerFab').style.display = 'flex'; document.getElementById('ownerMenuBtn').style.display = 'block'; }
+                loadData(); listenInbox(); loadMyFriends();
             }
         });
 
-        // --- LOAD MY FRIENDS (Local Cache) ---
+        // --- LOAD FRIENDS ---
         async function loadMyFriends() {
             const q = query(collection(db, "friends"), where("user", "==", curName));
-            onSnapshot(q, (s) => {
-                myFriends = [];
-                s.forEach(d => myFriends.push(d.data().friend));
-            });
+            onSnapshot(q, (s) => { myFriends = []; s.forEach(d => myFriends.push(d.data().friend)); });
         }
 
         // --- INBOX LOGIC ---
@@ -384,7 +370,6 @@
         window.searchFriend = async () => {
             const val = document.getElementById('friendSearchIn').value;
             const res = document.getElementById('friendSearchResults');
-            
             if(!val) { res.innerHTML = "Result: None"; return; }
             
             let foundUsers = [];
@@ -419,7 +404,7 @@
             }
         };
 
-        // --- FRIEND LIST (WITH DELETE) ---
+        // --- FRIEND LIST (WITH MUTUAL DELETE) ---
         async function loadFriendList() {
             const q = query(collection(db, "friends"), where("user", "==", curName));
             const s = await getDocs(q);
@@ -432,20 +417,25 @@
                     <div class="list-actions">
                         <button class="btn-mini btn-green" onclick="openChal('${f}')">Challenge</button>
                         <button class="btn-mini btn-gray" onclick="seeInfo('${f}')">Info</button>
-                        <button class="btn-mini btn-red" onclick="deleteFriend('${d.id}', '${f}')">Delete</button>
+                        <button class="btn-mini btn-red" onclick="deleteFriend('${f}')">Delete</button>
                     </div>
                 </div>`;
             });
         }
 
-        window.deleteFriend = async (id, name) => {
-            if(confirm("Remove " + name + " from friends?")) {
-                await deleteDoc(doc(db, "friends", id));
-                // We should technically remove the reverse link too, but that requires finding the other doc ID. 
-                // For simplicity in this structure, we just remove my link. The friend will still see me but I won't see them.
-                // A better DB structure uses one doc for relationship, but this works for now.
-                loadFriendList(); // Refresh list
-            }
+        window.deleteFriend = async (friendName) => {
+            if(!confirm("Remove " + friendName + " from friends?")) return;
+            // 1. Delete my link
+            const q1 = query(collection(db, "friends"), where("user", "==", curName), where("friend", "==", friendName));
+            const snap1 = await getDocs(q1);
+            snap1.forEach(async (d) => await deleteDoc(doc(db, "friends", d.id)));
+            // 2. Delete their link
+            const q2 = query(collection(db, "friends"), where("user", "==", friendName), where("friend", "==", curName));
+            const snap2 = await getDocs(q2);
+            snap2.forEach(async (d) => await deleteDoc(doc(db, "friends", d.id)));
+            
+            alert("Friend removed.");
+            loadFriendList();
         };
 
         async function loadRecs() {
