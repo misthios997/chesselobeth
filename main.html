@@ -50,7 +50,7 @@
         .history-item { border-bottom: 1px solid #444; padding: 8px 0; font-size: 0.85rem; color: #ccc; }
         .ava-options { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
         .ava-pick { width: 100%; aspect-ratio: 1/1; border-radius: 10px; border: 3px solid transparent; cursor: pointer; object-fit: cover; }
-        .ava-pick:hover { border-color: var(--primary); }
+        .admin-tools { position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; }
     </style>
 </head>
 <body>
@@ -74,6 +74,7 @@
                 <div class="dropdown-menu" id="mainMenu">
                     <a href="#" onclick="switchSection('online')"><i class="fas fa-globe"></i> Play Online</a>
                     <a href="#" onclick="switchSection('bot')"><i class="fas fa-robot"></i> Play Bot</a>
+                    <a href="learn.html" style="color:var(--primary)"><i class="fas fa-book-open"></i> Learn Chess</a>
                     <a href="#" onclick="openInbox()"><i class="fas fa-envelope"></i> Inbox <span id="inboxCount"></span></a>
                     <a href="#" onclick="openAddFriend()"><i class="fas fa-search"></i> Add Friend</a>
                     <a href="#" onclick="openFriendList()"><i class="fas fa-users"></i> Friend List</a>
@@ -145,7 +146,6 @@
                 <button class="btn-gold" style="width:auto; margin:0; padding:10px;" onclick="searchFriend()">Search</button>
             </div>
             <div id="friendSearchResults" style="margin-top:15px; font-weight:bold; color:#aaa;">Result: None</div>
-            
             <hr style="border:0.5px solid #444; margin:15px 0;">
             <h3>Recommendation</h3>
             <div id="friendRecsContent"></div>
@@ -198,7 +198,6 @@
     </div>
 
     <div class="modal-overlay" id="updateStatusModal"><div class="modal" style="text-align:center"><h2>Update Status</h2><div id="updateContent"></div><button class="btn-gold" style="background:#444" onclick="closeModals()">CLOSE</button></div></div>
-
     <div class="modal-overlay" id="avatarModal"><div class="modal"><h2 style="text-align:center">Choose Avatar</h2><div class="ava-options"><img src="https://i.ibb.co.com/Fb6FJQ9g/54b19ada-d53e-4ee9-8882-9dfed1bf1396.jpg" class="ava-pick" onclick="selectAva(this.src)"><img src="https://i.ibb.co.com/jZhYZky2/68f9ebed-9db3-458f-aa15-b5b6dfc8566c.jpg" class="ava-pick" onclick="selectAva(this.src)"></div><button class="btn-gold" style="background:#444" onclick="closeModals()">CANCEL</button></div></div>
 
     <div class="modal-overlay" id="ownerToolsModal">
@@ -313,13 +312,48 @@
             }
         });
 
-        // --- LOAD FRIENDS ---
+        // --- DATA & FRIENDS ---
+        function loadData() {
+            // FIX: Load Recent Players Data Feed
+            onSnapshot(query(collection(db, "players"), orderBy("timestamp", "desc")), (s) => {
+                const f = document.getElementById('dataFeed'); f.innerHTML = "";
+                s.forEach(ds => {
+                    const d = ds.data();
+                    f.innerHTML += `
+                    <div class="data-card">
+                        <h3>${d.rank !== 'None' ? '['+d.rank+'] ' : ''}${d.name}</h3>
+                        <p>Elo: ${d.elo} | Date: ${d.date}</p>
+                        ${document.getElementById('ownerFab').style.display === 'flex' ? `<div class="admin-tools"><button class="btn-mini btn-del" onclick="delData('${ds.id}')" style="background:#ff4d4d">Del</button></div>` : ''}
+                    </div>`;
+                });
+            });
+            // ... (rest of loadData)
+            onSnapshot(doc(db, "config", "broadcastMsg"), (d) => { if(d.exists()) document.getElementById('bcText').innerText = d.data().text; });
+            onSnapshot(doc(db, "config", "settings"), (d) => {
+                if(d.exists()) {
+                    serverVersion = d.data().latestVersion || 0;
+                    const lv = parseInt(localStorage.getItem('appVersion')) || 0;
+                    const n = document.getElementById('updateNotify');
+                    if(serverVersion > lv) { n.innerText = "Update: Available please check \"Update Status\" Menu"; n.style.color = "#81b64c"; }
+                    else { n.innerText = "Update: Not Available"; n.style.color = "#aaa"; }
+                }
+            });
+            onSnapshot(query(collection(db, "chats"), orderBy("timestamp", "asc"), limit(50)), (s) => {
+                const b = document.getElementById('chatBox'); b.innerHTML = "";
+                s.forEach(d => {
+                    const m = d.data();
+                    b.innerHTML += `<div class="msg-wrap ${m.name === curName ? 'msg-self' : ''}"><img src="${m.photo}" class="msg-ava"><div class="msg-content"><span class="msg-name">${m.title?'['+m.title+']':''}${m.name}</span><div class="msg-bubble">${m.text}</div></div></div>`;
+                });
+                b.scrollTop = b.scrollHeight;
+            });
+        }
+
         async function loadMyFriends() {
             const q = query(collection(db, "friends"), where("user", "==", curName));
             onSnapshot(q, (s) => { myFriends = []; s.forEach(d => myFriends.push(d.data().friend)); });
         }
 
-        // --- INBOX LOGIC ---
+        // --- INBOX ---
         function listenInbox() {
             onSnapshot(query(collection(db, "inbox"), where("to", "==", curName)), (s) => {
                 const list = document.getElementById('inboxContent'); list.innerHTML = "";
@@ -366,7 +400,7 @@
             alert("Friend Added!");
         };
 
-        // --- SEARCH & FRIENDS (UPDATED LOGIC) ---
+        // --- SEARCH ---
         window.searchFriend = async () => {
             const val = document.getElementById('friendSearchIn').value;
             const res = document.getElementById('friendSearchResults');
@@ -389,22 +423,18 @@
                         const btn = isFriend 
                             ? `<button class="btn-mini btn-gray" disabled>Friend</button>` 
                             : `<button class="btn-mini btn-blue" onclick="addFriendRequest('${u.name}')">Add</button>`;
-                        
                         res.innerHTML += `
                         <div class="list-item">
                             <img src="${u.photo}">
                             <div class="list-content"><b>${u.name}</b></div>
-                            <div class="list-actions">
-                                ${btn}
-                                <button class="btn-mini btn-gray" onclick="seeInfo('${u.name}')">Info</button>
-                            </div>
+                            <div class="list-actions">${btn}<button class="btn-mini btn-gray" onclick="seeInfo('${u.name}')">Info</button></div>
                         </div>`;
                     }
                 });
             }
         };
 
-        // --- FRIEND LIST (WITH MUTUAL DELETE) ---
+        // --- FRIEND LIST & MUTUAL DELETE ---
         async function loadFriendList() {
             const q = query(collection(db, "friends"), where("user", "==", curName));
             const s = await getDocs(q);
@@ -425,11 +455,10 @@
 
         window.deleteFriend = async (friendName) => {
             if(!confirm("Remove " + friendName + " from friends?")) return;
-            // 1. Delete my link
             const q1 = query(collection(db, "friends"), where("user", "==", curName), where("friend", "==", friendName));
             const snap1 = await getDocs(q1);
             snap1.forEach(async (d) => await deleteDoc(doc(db, "friends", d.id)));
-            // 2. Delete their link
+            
             const q2 = query(collection(db, "friends"), where("user", "==", friendName), where("friend", "==", curName));
             const snap2 = await getDocs(q2);
             snap2.forEach(async (d) => await deleteDoc(doc(db, "friends", d.id)));
@@ -438,6 +467,7 @@
             loadFriendList();
         };
 
+        // --- INFO & CHALLENGE ---
         async function loadRecs() {
             const s = await getDocs(query(collection(db, "users"), limit(3)));
             const l = document.getElementById('friendRecsContent'); l.innerHTML = "";
@@ -448,7 +478,6 @@
             });
         }
 
-        // --- INFO & CHALLENGE ---
         window.seeInfo = async (name) => {
             const u = await getDoc(doc(db, "users", name));
             if(!u.exists()) return;
@@ -464,7 +493,6 @@
             });
             const isFriend = myFriends.includes(name);
             const btn = isFriend ? `<button class="btn-gold" disabled style="background:#555">Already Friend</button>` : `<button class="btn-gold" onclick="addFriendRequest('${name}')">Add Friend</button>`;
-            
             document.getElementById('infoActions').innerHTML = `${btn} <button class="btn-gold" style="background:#3498db; margin-top:10px" onclick="openPrivateChat('${name}')">Chat Privately</button>`;
             document.getElementById('infoModal').style.display='flex';
         };
@@ -476,11 +504,8 @@
             const chalRef = await addDoc(collection(db, "challenges"), { from: curName, to: to, status: "pending", timestamp: Date.now() });
             await addDoc(collection(db, "inbox"), {
                 to: to, from: curName, type: 'challenge', 
-                timer: document.getElementById('chalTimer').value, 
-                side: document.getElementById('chalSide').value, 
-                variant: document.getElementById('chalVariant').value, 
-                challengeId: chalRef.id, 
-                timestamp: Date.now(), read: false
+                timer: document.getElementById('chalTimer').value, side: document.getElementById('chalSide').value, variant: document.getElementById('chalVariant').value, 
+                challengeId: chalRef.id, timestamp: Date.now(), read: false
             });
             document.getElementById('searchTitle').innerText = "Waiting for Friend...";
             document.getElementById('searchOverlay').style.display = 'flex';
@@ -596,36 +621,14 @@
             });
         }
 
-        function loadData() {
-            onSnapshot(doc(db, "config", "broadcastMsg"), (d) => {
-                const txt = d.exists() ? d.data().text : "Welcome to ChessEloBeth!";
-                document.getElementById('bcText').innerText = txt;
-            });
-            onSnapshot(doc(db, "config", "settings"), (d) => {
-                if(d.exists()) {
-                    serverVersion = d.data().latestVersion || 0;
-                    const lv = parseInt(localStorage.getItem('appVersion')) || 0;
-                    const n = document.getElementById('updateNotify');
-                    if(serverVersion > lv) { n.innerText = "Update: Available please check \"Update Status\" Menu"; n.style.color = "#81b64c"; }
-                    else { n.innerText = "Update: Not Available"; n.style.color = "#aaa"; }
-                }
-            });
-            onSnapshot(query(collection(db, "chats"), orderBy("timestamp", "asc"), limit(50)), (s) => {
-                const b = document.getElementById('chatBox'); b.innerHTML = "";
-                s.forEach(d => {
-                    const m = d.data();
-                    b.innerHTML += `<div class="msg-wrap ${m.name === curName ? 'msg-self' : ''}"><img src="${m.photo}" class="msg-ava"><div class="msg-content"><span class="msg-name">${m.title?'['+m.title+']':''}${m.name}</span><div class="msg-bubble">${m.text}</div></div></div>`;
-                });
-                b.scrollTop = b.scrollHeight;
-            });
-        }
-
+        // Helper functions
         window.addAccess = async () => { await setDoc(doc(db, "access", document.getElementById('accName').value), { hasAccess: true }); alert("Done"); };
         window.addTitle = async () => { await setDoc(doc(db, "titles", document.getElementById('titleName').value), { title: document.getElementById('titlePick').value }); alert("Done"); };
         window.banUser = async () => { await setDoc(doc(db, "bans", document.getElementById('banName').value), { name: document.getElementById('banName').value, expiry: Date.now() + 999999999 }); alert("Banned"); };
         window.unbanUser = async () => { await deleteDoc(doc(db, "bans", document.getElementById('unbanName').value)); alert("Unbanned"); };
         window.submitData = async () => { await addDoc(collection(db, "players"), { name: document.getElementById('inName').value, elo: document.getElementById('inElo').value, date: document.getElementById('inDate').value, rank: document.getElementById('inRank').value, timestamp: Date.now() }); closeModals(); };
         window.updateBC = async () => { await setDoc(doc(db, "config", "broadcastMsg"), { text: document.getElementById('bcInput').value }); closeModals(); };
+        window.delData = async (id) => { if(confirm("Delete data?")) await deleteDoc(doc(db, "players", id)); };
         window.selectAva = async (url) => { await updateProfile(auth.currentUser, { photoURL: url }); location.reload(); };
     </script>
 </body>
