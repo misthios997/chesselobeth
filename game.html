@@ -27,13 +27,11 @@
         .btn-chat { background: var(--primary); color: black; flex: 0.3; position: relative; }
         .chat-notif { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; background: red; border-radius: 50%; border: 2px solid #fff; display: none; }
 
-        /* MODAL PROMOSI (FIXED) */
         #promoModal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 9999; }
         .promo-box { background: var(--panel); padding: 20px; border-radius: 15px; display: flex; gap: 15px; border: 2px solid var(--primary); box-shadow: 0 0 20px rgba(0,0,0,0.8); }
         .promo-opt { width: 60px; height: 60px; background: #444; border-radius: 8px; cursor: pointer; transition: 0.2s; border: 2px solid transparent; }
         .promo-opt:hover { border-color: var(--primary); transform: scale(1.1); }
 
-        /* CHAT */
         #gameChatOverlay { position: fixed; inset: 0; background: var(--bg); display: none; flex-direction: column; z-index: 5000; }
         .chat-header { background: var(--panel); padding: 15px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid #333; }
         #chatBox { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
@@ -119,7 +117,7 @@
         const pieceTheme = 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png';
 
         let game = new Chess();
-        let board, curName, isChatOpen=false, isMoving=false, pendingMove=null, gameEnded=false;
+        let board, curName, isChatOpen=false, isMoving=false, pendingMove=null, gameEnded=false, historySaved=false;
         let timeLeft = { w: 600, b: 600 };
 
         onAuthStateChanged(auth, (u) => {
@@ -138,17 +136,11 @@
                 onDrop: (source, target) => {
                     const moveObj = { from: source, to: target };
                     const piece = game.get(source);
-                    
-                    // PROMOTION CHECK
                     if (piece.type === 'p' && ((myColor === 'w' && target[1] === '8') || (myColor === 'b' && target[1] === '1'))) {
-                        pendingMove = moveObj;
-                        showPromoModal();
-                        return 'snapback'; // Kembalikan bidak dulu sampai user milih
+                        pendingMove = moveObj; showPromoModal(); return 'snapback';
                     }
-
                     const move = game.move(moveObj);
                     if (!move) return 'snapback';
-                    
                     board.position(game.fen());
                     sync();
                 }
@@ -164,7 +156,7 @@
 
                 if (d.lastFen && d.lastFen !== game.fen()) {
                     game.load(d.lastFen);
-                    board.position(d.lastFen); // UPDATE VISUAL PAPAN DARI DATABASE
+                    board.position(d.lastFen);
                 }
                 if (d.timeLeft) timeLeft = d.timeLeft;
                 updateUI();
@@ -174,8 +166,7 @@
 
         function showPromoModal() {
             const pieces = ['q', 'r', 'b', 'n'];
-            const container = document.getElementById('promoPieces');
-            container.innerHTML = '';
+            const container = document.getElementById('promoPieces'); container.innerHTML = '';
             pieces.forEach(p => {
                 const img = document.createElement('img');
                 img.src = pieceTheme.replace('{piece}', myColor + p.toUpperCase());
@@ -188,9 +179,7 @@
 
         async function selectPromo(p) {
             document.getElementById('promoModal').style.display = 'none';
-            // EKSEKUSI PROMOSI DI LOGIC
             game.move({ from: pendingMove.from, to: pendingMove.to, promotion: p });
-            // UPDATE VISUAL PAPAN SECARA PAKSA (BIAR PION BERUBAH JADI RATU)
             board.position(game.fen());
             await sync();
             pendingMove = null;
@@ -206,7 +195,6 @@
             const f = (t) => `${Math.floor(t/60)}:${(t%60).toString().padStart(2,'0')}`;
             const myT = document.getElementById('myTimer');
             const oppT = document.getElementById('oppTimer');
-            
             if(mySide === 'white') {
                 myT.innerText = f(timeLeft.w); oppT.innerText = f(timeLeft.b);
                 game.turn() === 'w' ? myT.classList.add('active') : myT.classList.remove('active');
@@ -228,24 +216,31 @@
             }
         }, 1000);
 
+        // --- FIXED GAME OVER LOGIC (SAVES PGN) ---
         function checkGameOver(d) {
             let t="", r="";
             if(d.status==='resigned') { t="GAME OVER"; r=`${d.resignedBy} Resigned`; }
             else if(d.status==='timeout') { t="TIME OUT"; r=`${d.loser==='w'?'White':'Black'} Lost`; }
+            else if(d.status==='finished') { t="GAME OVER"; r=`${d.winner} Won`; }
             else if(game.in_checkmate()) { t="CHECKMATE"; r=`${game.turn()==='w'?'Black':'White'} Wins!`; }
+            else if(game.in_draw()) { t="DRAW"; r="Draw"; }
             
             if(t && !gameEnded) {
-                gameEnded=true;
-                document.getElementById('goTitle').innerText=t;
-                document.getElementById('goReason').innerText=r;
-                document.getElementById('gameOverModal').style.display='flex';
+                gameEnded = true;
+                document.getElementById('goTitle').innerText = t;
+                document.getElementById('goReason').innerText = r;
+                document.getElementById('gameOverModal').style.display = 'flex';
                 
-                if(d.status !== 'recorded' && game.turn() === myColor) {
+                // SAVE HISTORY FOR MYSELF
+                if(!historySaved) {
                     addDoc(collection(db, "history"), { 
-                        player: curName, opp: document.getElementById('oppName').innerText, 
-                        res: t, timestamp: Date.now() 
+                        player: curName, 
+                        opp: document.getElementById('oppName').innerText, 
+                        res: t,
+                        pgn: game.pgn(), // THIS IS KEY FOR REVIEW
+                        timestamp: Date.now() 
                     });
-                    updateDoc(doc(db, "rooms", roomId), { status: 'recorded' });
+                    historySaved = true;
                 }
             }
         }
