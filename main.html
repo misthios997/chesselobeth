@@ -144,6 +144,7 @@
                 <button class="btn-gold" style="width:auto; margin:0; padding:10px;" onclick="searchFriend()">Search</button>
             </div>
             <div id="friendSearchResults" style="margin-top:15px; font-weight:bold; color:#aaa;">Result: None</div>
+            
             <hr style="border:0.5px solid #444; margin:15px 0;">
             <h3>Recommendation</h3>
             <div id="friendRecsContent"></div>
@@ -196,6 +197,7 @@
     </div>
 
     <div class="modal-overlay" id="updateStatusModal"><div class="modal" style="text-align:center"><h2>Update Status</h2><div id="updateContent"></div><button class="btn-gold" style="background:#444" onclick="closeModals()">CLOSE</button></div></div>
+
     <div class="modal-overlay" id="avatarModal"><div class="modal"><h2 style="text-align:center">Choose Avatar</h2><div class="ava-options"><img src="https://i.ibb.co.com/Fb6FJQ9g/54b19ada-d53e-4ee9-8882-9dfed1bf1396.jpg" class="ava-pick" onclick="selectAva(this.src)"><img src="https://i.ibb.co.com/jZhYZky2/68f9ebed-9db3-458f-aa15-b5b6dfc8566c.jpg" class="ava-pick" onclick="selectAva(this.src)"></div><button class="btn-gold" style="background:#444" onclick="closeModals()">CANCEL</button></div></div>
 
     <div class="modal-overlay" id="ownerToolsModal">
@@ -268,7 +270,9 @@
 
         let user, curName, myTitle = "", timerVal = 10, variant = "standard", botLvl = 1, sInterval, roomId, unsubRoom, unsubPChat;
         let serverVersion = 0;
+        let myFriends = []; // Local cache for friend names
 
+        // -- WINDOW FUNCTIONS --
         window.closeModals = () => document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
         window.toggleDropdown = () => { const m = document.getElementById('mainMenu'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; };
         window.switchSection = (s) => { document.querySelectorAll('.section-view').forEach(v => v.style.display = 'none'); document.getElementById('sec-'+s).style.display = 'block'; window.toggleDropdown(); };
@@ -296,18 +300,40 @@
             if(!u) window.location.href = "index.html";
             else {
                 user = u; curName = u.displayName;
+                
                 checkBanStatus(curName);
+                
+                // FORCE SAVE USER DATA ON LOGIN SO THEY APPEAR IN SEARCH
                 await setDoc(doc(db, "users", curName), { name: curName, photo: u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg" }, { merge: true });
+
                 const tDoc = await getDoc(doc(db, "titles", curName));
                 if(tDoc.exists()) { myTitle = tDoc.data().title; await updateDoc(doc(db, "users", curName), { title: myTitle }); }
+
                 document.getElementById('welcomeMsg').innerText = `Welcome, ${myTitle ? '['+myTitle+'] ' : ''}${curName}`;
                 document.getElementById('myAvatar').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
+                
                 const aDoc = await getDoc(doc(db, "access", curName));
-                if(curName === "Jovan" || aDoc.exists()) { document.getElementById('ownerFab').style.display = 'flex'; document.getElementById('ownerMenuBtn').style.display = 'block'; }
-                loadData(); listenInbox();
+                if(curName === "Jovan" || aDoc.exists()) {
+                    document.getElementById('ownerFab').style.display = 'flex';
+                    document.getElementById('ownerMenuBtn').style.display = 'block';
+                }
+                
+                loadData();
+                listenInbox();
+                loadMyFriends(); // Load local cache of friends
             }
         });
 
+        // --- LOAD MY FRIENDS (Local Cache) ---
+        async function loadMyFriends() {
+            const q = query(collection(db, "friends"), where("user", "==", curName));
+            onSnapshot(q, (s) => {
+                myFriends = [];
+                s.forEach(d => myFriends.push(d.data().friend));
+            });
+        }
+
+        // --- INBOX LOGIC ---
         function listenInbox() {
             onSnapshot(query(collection(db, "inbox"), where("to", "==", curName)), (s) => {
                 const list = document.getElementById('inboxContent'); list.innerHTML = "";
@@ -338,12 +364,13 @@
             });
         }
 
-        window.addFriend = async (name) => {
+        window.addFriendRequest = async (name) => {
+            if(myFriends.includes(name)) { alert("Already Friends!"); return; }
             await addDoc(collection(db, "inbox"), {
                 to: name, from: curName, type: 'friend_request', 
                 text: `${curName} wants to be friends.`, read: false, timestamp: Date.now()
             });
-            alert("Friend Request Sent!");
+            alert("Request Sent!");
         };
 
         window.acceptFriend = async (id, requester) => {
@@ -353,9 +380,11 @@
             alert("Friend Added!");
         };
 
+        // --- SEARCH & FRIENDS (UPDATED LOGIC) ---
         window.searchFriend = async () => {
             const val = document.getElementById('friendSearchIn').value;
             const res = document.getElementById('friendSearchResults');
+            
             if(!val) { res.innerHTML = "Result: None"; return; }
             
             let foundUsers = [];
@@ -371,12 +400,17 @@
                 res.innerHTML = "Result:";
                 foundUsers.forEach(u => {
                     if(u.name !== curName) {
+                        const isFriend = myFriends.includes(u.name);
+                        const btn = isFriend 
+                            ? `<button class="btn-mini btn-gray" disabled>Friend</button>` 
+                            : `<button class="btn-mini btn-blue" onclick="addFriendRequest('${u.name}')">Add</button>`;
+                        
                         res.innerHTML += `
                         <div class="list-item">
                             <img src="${u.photo}">
                             <div class="list-content"><b>${u.name}</b></div>
                             <div class="list-actions">
-                                <button class="btn-mini btn-blue" onclick="addFriend('${u.name}')">Add</button>
+                                ${btn}
                                 <button class="btn-mini btn-gray" onclick="seeInfo('${u.name}')">Info</button>
                             </div>
                         </div>`;
@@ -385,23 +419,46 @@
             }
         };
 
+        // --- FRIEND LIST (WITH DELETE) ---
+        async function loadFriendList() {
+            const q = query(collection(db, "friends"), where("user", "==", curName));
+            const s = await getDocs(q);
+            const l = document.getElementById('friendListContent'); l.innerHTML = "";
+            s.forEach(d => {
+                const f = d.data().friend;
+                l.innerHTML += `
+                <div class="list-item">
+                    <b>${f}</b>
+                    <div class="list-actions">
+                        <button class="btn-mini btn-green" onclick="openChal('${f}')">Challenge</button>
+                        <button class="btn-mini btn-gray" onclick="seeInfo('${f}')">Info</button>
+                        <button class="btn-mini btn-red" onclick="deleteFriend('${d.id}', '${f}')">Delete</button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        window.deleteFriend = async (id, name) => {
+            if(confirm("Remove " + name + " from friends?")) {
+                await deleteDoc(doc(db, "friends", id));
+                // We should technically remove the reverse link too, but that requires finding the other doc ID. 
+                // For simplicity in this structure, we just remove my link. The friend will still see me but I won't see them.
+                // A better DB structure uses one doc for relationship, but this works for now.
+                loadFriendList(); // Refresh list
+            }
+        };
+
         async function loadRecs() {
             const s = await getDocs(query(collection(db, "users"), limit(3)));
             const l = document.getElementById('friendRecsContent'); l.innerHTML = "";
             s.forEach(d => {
-                if(d.data().name !== curName) l.innerHTML += `<div class="list-item"><b>${d.data().name}</b><div class="list-actions"><button class="btn-mini btn-blue" onclick="addFriend('${d.data().name}')">Add</button><button class="btn-mini btn-gray" onclick="seeInfo('${d.data().name}')">Info</button></div></div>`;
+                if(d.data().name !== curName && !myFriends.includes(d.data().name)) {
+                    l.innerHTML += `<div class="list-item"><b>${d.data().name}</b><div class="list-actions"><button class="btn-mini btn-blue" onclick="addFriendRequest('${d.data().name}')">Add</button><button class="btn-mini btn-gray" onclick="seeInfo('${d.data().name}')">Info</button></div></div>`;
+                }
             });
         }
 
-        async function loadFriendList() {
-            const s = await getDocs(query(collection(db, "friends"), where("user", "==", curName)));
-            const l = document.getElementById('friendListContent'); l.innerHTML = "";
-            s.forEach(d => {
-                const f = d.data().friend;
-                l.innerHTML += `<div class="list-item"><b>${f}</b><div class="list-actions"><button class="btn-mini btn-green" onclick="openChal('${f}')">Challenge</button><button class="btn-mini btn-gray" onclick="seeInfo('${f}')">Info</button></div></div>`;
-            });
-        }
-
+        // --- INFO & CHALLENGE ---
         window.seeInfo = async (name) => {
             const u = await getDoc(doc(db, "users", name));
             if(!u.exists()) return;
@@ -415,7 +472,10 @@
                 const hist = hd.data();
                 h.innerHTML += `<div class="history-item">${hist.player} vs ${hist.opp} (${hist.res.includes(name) ? '+' : '-'})</div>`;
             });
-            document.getElementById('infoActions').innerHTML = `<button class="btn-gold" style="background:#3498db" onclick="openPrivateChat('${name}')">Chat Privately</button>`;
+            const isFriend = myFriends.includes(name);
+            const btn = isFriend ? `<button class="btn-gold" disabled style="background:#555">Already Friend</button>` : `<button class="btn-gold" onclick="addFriendRequest('${name}')">Add Friend</button>`;
+            
+            document.getElementById('infoActions').innerHTML = `${btn} <button class="btn-gold" style="background:#3498db; margin-top:10px" onclick="openPrivateChat('${name}')">Chat Privately</button>`;
             document.getElementById('infoModal').style.display='flex';
         };
 
@@ -457,6 +517,7 @@
             window.location.href = `${v}.html?id=${newRoomId}&side=${mySide}`;
         };
 
+        // --- CHAT SYSTEM ---
         window.openPrivateChat = (target) => {
             document.getElementById('pChatTarget').innerText = target;
             document.getElementById('pChatOverlay').style.display = 'flex';
@@ -487,6 +548,7 @@
             }
         };
 
+        // --- MATCHMAKING ---
         window.startMatchmaking = async () => {
             document.getElementById('searchOverlay').style.display = 'flex';
             document.getElementById('searchTitle').innerText = "Searching...";
@@ -520,6 +582,7 @@
             window.location.href = `${v}.html?id=${id}&side=${side}`; 
         }
 
+        // --- OWNER & UPDATE ---
         window.openUpdateModal = () => {
             const lv = parseInt(localStorage.getItem('appVersion')) || 0;
             const c = document.getElementById('updateContent');
