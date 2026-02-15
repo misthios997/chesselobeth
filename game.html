@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CHESSELOBETH - Standard</title>
+    <title>CHESSELOBETH - Game</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <style>
         :root { --primary: #ffd700; --bg: #121212; --panel: #1e1e1e; --text: #fff; --red: #ff4d4d; }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
         
         .game-wrapper { width: 100%; max-width: 450px; display: flex; flex-direction: column; gap: 8px; padding: 10px 0; }
         
-        .player-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 15px; background: var(--panel); border-radius: 8px; border: 1px solid #333; }
+        .player-bar { display: flex; align-items: center; justify-content: space-between; padding: 8px 15px; background: var(--panel); border-radius: 8px; margin: 0 10px; border: 1px solid #333; }
         .user-info { display: flex; align-items: center; gap: 10px; }
         .avatar { width: 40px; height: 40px; border-radius: 6px; background: #333; object-fit: cover; border: 2px solid var(--primary); }
-        .username { font-weight: bold; font-size: 0.95rem; }
+        .username { font-weight: bold; font-size: 0.95rem; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .timer { font-family: monospace; font-size: 1.4rem; font-weight: 900; background: #000; padding: 4px 10px; border-radius: 6px; color: #888; border: 1px solid #333; min-width: 65px; text-align: center; }
         .timer.active { background: #fff; color: #000; border-color: var(--primary); box-shadow: 0 0 8px var(--primary); }
 
@@ -27,23 +27,22 @@
         .btn-chat { background: var(--primary); color: black; flex: 0.3; position: relative; }
         .chat-notif { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; background: red; border-radius: 50%; border: 2px solid #fff; display: none; }
 
-        #promoModal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 9999; }
-        .promo-box { background: var(--panel); padding: 20px; border-radius: 15px; display: flex; gap: 15px; border: 2px solid var(--primary); box-shadow: 0 0 20px rgba(0,0,0,0.8); }
-        .promo-opt { width: 60px; height: 60px; background: #444; border-radius: 8px; cursor: pointer; transition: 0.2s; border: 2px solid transparent; }
-        .promo-opt:hover { border-color: var(--primary); transform: scale(1.1); }
-
+        /* MODALS & OVERLAYS */
         #gameChatOverlay { position: fixed; inset: 0; background: var(--bg); display: none; flex-direction: column; z-index: 5000; }
         .chat-header { background: var(--panel); padding: 15px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid #333; }
         #chatBox { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 10px; border-radius: 12px; font-size: 0.9rem; }
+        .msg { max-width: 80%; padding: 10px; border-radius: 12px; font-size: 0.9rem; line-height: 1.4; }
         .msg-me { align-self: flex-end; background: var(--primary); color: black; }
         .msg-them { align-self: flex-start; background: #333; color: white; }
         .chat-input { padding: 15px; background: var(--panel); display: flex; gap: 10px; }
         .chat-input input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #1a1a1a; color: white; outline: none; }
 
-        .game-over-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 8000; }
+        #promoModal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 6000; }
+        .promo-box { background: var(--panel); padding: 20px; border-radius: 15px; display: flex; gap: 10px; border: 2px solid var(--primary); }
+        .promo-opt { width: 55px; height: 55px; background: #444; border-radius: 8px; cursor: pointer; }
+
+        .game-over-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 7000; }
         .go-box { background: var(--panel); padding: 30px; border-radius: 20px; text-align: center; border: 2px solid var(--primary); width: 80%; max-width: 350px; }
-        .go-btn { background: var(--primary); border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; color: #000; font-size: 1rem; margin-top:15px; }
     </style>
 </head>
 <body>
@@ -76,10 +75,6 @@
         </div>
     </div>
 
-    <div id="promoModal">
-        <div class="promo-box" id="promoPieces"></div>
-    </div>
-
     <div id="gameChatOverlay">
         <div class="chat-header">
             <button onclick="toggleGameChat(false)" style="background:none; border:none; color:white; font-size:1.5rem;"><i class="fas fa-arrow-left"></i></button>
@@ -92,8 +87,13 @@
         </div>
     </div>
 
+    <div id="promoModal"><div class="promo-box" id="promoPieces"></div></div>
     <div class="game-over-overlay" id="gameOverModal">
-        <div class="go-box"><h1 id="goTitle" style="color:var(--primary)">GAME OVER</h1><p id="goReason" style="color:#ccc"></p><button class="go-btn" onclick="window.location.href='main.html'">LOBBY</button></div>
+        <div class="go-box">
+            <h1 id="goTitle" style="margin:0 0 10px 0; color:var(--primary)">GAME OVER</h1>
+            <p id="goReason" style="color:#ccc; margin-bottom:20px;"></p>
+            <button class="btn" style="background:var(--primary); color:black; width:100%" onclick="window.location.href='main.html'">BACK TO LOBBY</button>
+        </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
@@ -102,7 +102,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, onSnapshot, updateDoc, collection, addDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, collection, addDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = { apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", authDomain: "chesselobeth.firebaseapp.com", projectId: "chesselobeth", storageBucket: "chesselobeth.firebasestorage.app", messagingSenderId: "829508204106", appId: "1:829508204106:web:e8952c359f63d49646d8b3" };
@@ -120,16 +120,17 @@
         let board, curName, isChatOpen=false, isMoving=false, pendingMove=null, gameEnded=false, historySaved=false;
         let timeLeft = { w: 600, b: 600 };
 
-        onAuthStateChanged(auth, (u) => {
+        onAuthStateChanged(auth, async (u) => {
             if(!u) window.location.href = "index.html";
             curName = u.displayName;
             document.getElementById('myName').innerText = curName;
             document.getElementById('myAva').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
-            initMatch();
+            
+            initGame();
             listenChat();
         });
 
-        function initMatch() {
+        function initGame() {
             board = Chessboard('board', {
                 draggable: true, position: 'start', orientation: mySide, pieceTheme: pieceTheme,
                 onDragStart: (s, p) => !gameEnded && !isMoving && game.turn() === myColor && p.charAt(0) === myColor,
@@ -150,8 +151,8 @@
                 const d = s.data(); if (!d) return;
                 
                 let oppName = "Opponent";
-                if(mySide==='white' && d.player2) oppName = d.player2.name;
-                else if(mySide==='black' && d.player1) oppName = d.player1.name;
+                if(mySide==='white' && d.player2 && d.player2.name) oppName = d.player2.name;
+                if(mySide==='black' && d.player1 && d.player1.name) oppName = d.player1.name;
                 document.getElementById('oppName').innerText = oppName;
 
                 if (d.lastFen && d.lastFen !== game.fen()) {
@@ -179,7 +180,7 @@
 
         async function selectPromo(p) {
             document.getElementById('promoModal').style.display = 'none';
-            game.move({ from: pendingMove.from, to: pendingMove.to, promotion: p });
+            game.move({ ...pendingMove, promotion: p });
             board.position(game.fen());
             await sync();
             pendingMove = null;
@@ -193,17 +194,8 @@
 
         function updateUI() {
             const f = (t) => `${Math.floor(t/60)}:${(t%60).toString().padStart(2,'0')}`;
-            const myT = document.getElementById('myTimer');
-            const oppT = document.getElementById('oppTimer');
-            if(mySide === 'white') {
-                myT.innerText = f(timeLeft.w); oppT.innerText = f(timeLeft.b);
-                game.turn() === 'w' ? myT.classList.add('active') : myT.classList.remove('active');
-                game.turn() === 'b' ? oppT.classList.add('active') : oppT.classList.remove('active');
-            } else {
-                myT.innerText = f(timeLeft.b); oppT.innerText = f(timeLeft.w);
-                game.turn() === 'b' ? myT.classList.add('active') : myT.classList.remove('active');
-                game.turn() === 'w' ? oppT.classList.add('active') : oppT.classList.remove('active');
-            }
+            document.getElementById('myTimer').innerText = f(mySide === 'white' ? timeLeft.w : timeLeft.b);
+            document.getElementById('oppTimer').innerText = f(mySide === 'white' ? timeLeft.b : timeLeft.w);
         }
 
         setInterval(() => {
@@ -216,28 +208,43 @@
             }
         }, 1000);
 
-        // --- FIXED GAME OVER LOGIC (SAVES PGN) ---
         function checkGameOver(d) {
-            let t="", r="";
-            if(d.status==='resigned') { t="GAME OVER"; r=`${d.resignedBy} Resigned`; }
-            else if(d.status==='timeout') { t="TIME OUT"; r=`${d.loser==='w'?'White':'Black'} Lost`; }
-            else if(d.status==='finished') { t="GAME OVER"; r=`${d.winner} Won`; }
-            else if(game.in_checkmate()) { t="CHECKMATE"; r=`${game.turn()==='w'?'Black':'White'} Wins!`; }
-            else if(game.in_draw()) { t="DRAW"; r="Draw"; }
+            let t = "", r = "";
             
-            if(t && !gameEnded) {
+            if (d.status === 'resigned') {
+                t = "GAME OVER";
+                r = d.resignedBy + " Resigned";
+            } else if (d.status === 'timeout') {
+                t = "TIME OUT";
+                r = (d.loser === 'w' ? 'White' : 'Black') + " ran out of time";
+            } else if (game.in_checkmate()) {
+                t = "CHECKMATE";
+                r = (game.turn() === 'w' ? 'Black' : 'White') + " Wins!";
+            } else if (game.in_draw()) {
+                t = "DRAW";
+                r = "Game ended in a draw";
+            }
+
+            if (t) {
                 gameEnded = true;
+                isMoving = true;
                 document.getElementById('goTitle').innerText = t;
                 document.getElementById('goReason').innerText = r;
                 document.getElementById('gameOverModal').style.display = 'flex';
                 
-                // SAVE HISTORY FOR MYSELF
+                // --- FIX HISTORY SAVING ---
+                // Save individually per client
                 if(!historySaved) {
+                    let resultForHistory = r; // Default result string
+                    if(t === "CHECKMATE") resultForHistory = r;
+                    else if(t === "TIME OUT") resultForHistory = r;
+                    else if(t === "DRAW") resultForHistory = "Draw";
+                    
                     addDoc(collection(db, "history"), { 
                         player: curName, 
                         opp: document.getElementById('oppName').innerText, 
-                        res: t,
-                        pgn: game.pgn(), // THIS IS KEY FOR REVIEW
+                        res: resultForHistory, 
+                        pgn: game.pgn(), 
                         timestamp: Date.now() 
                     });
                     historySaved = true;
@@ -245,11 +252,12 @@
             }
         }
 
-        window.toggleGameChat = (s) => { 
-            isChatOpen=s; document.getElementById('gameChatOverlay').style.display = s?'flex':'none'; 
-            if(s) { document.getElementById('chatNotif').style.display='none'; document.getElementById('chatBox').scrollTop=99999; }
+        window.toggleGameChat = (show) => {
+            isChatOpen = show;
+            document.getElementById('gameChatOverlay').style.display = show ? 'flex' : 'none';
+            if(show) { document.getElementById('chatNotif').style.display = 'none'; document.getElementById('chatBox').scrollTop = 99999; }
         };
-        
+
         function listenChat() {
             onSnapshot(query(collection(db, "rooms", roomId, "chats"), orderBy("timestamp", "asc")), (s) => {
                 const b = document.getElementById('chatBox'); b.innerHTML = "";
@@ -258,18 +266,21 @@
                     b.innerHTML += `<div class="msg ${m.sender === curName ? 'msg-me' : 'msg-them'}">${m.text}</div>`;
                 });
                 b.scrollTop = b.scrollHeight;
-                if(!isChatOpen && !s.empty) document.getElementById('chatNotif').style.display='block';
+                if(!isChatOpen && !s.empty) document.getElementById('chatNotif').style.display = 'block';
             });
         }
 
         window.sendGameChat = async () => {
-            const i = document.getElementById('chatIn'); if(!i.value.trim()) return;
-            await addDoc(collection(db, "rooms", roomId, "chats"), { sender: curName, text: i.value, timestamp: Date.now() });
-            i.value = "";
+            const input = document.getElementById('chatIn');
+            if(!input.value.trim()) return;
+            await addDoc(collection(db, "rooms", roomId, "chats"), { sender: curName, text: input.value, timestamp: Date.now() });
+            input.value = "";
         };
 
         window.resignGame = async () => {
-            if(confirm("Resign?")) await updateDoc(doc(db, "rooms", roomId), { status: "resigned", resignedBy: curName });
+            if(confirm("Are you sure you want to resign?")) {
+                await updateDoc(doc(db, "rooms", roomId), { status: "resigned", resignedBy: auth.currentUser.displayName });
+            }
         };
     </script>
 </body>
