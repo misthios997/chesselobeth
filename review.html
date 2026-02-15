@@ -14,41 +14,25 @@
         #board { width: 100%; max-width: 400px; margin-bottom: 20px; }
         .controls { display: flex; gap: 10px; margin-bottom: 20px; }
         .btn-nav { background: var(--panel); border: 1px solid #444; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; }
-        .btn-nav:hover { background: #444; }
         .info-box { background: var(--panel); padding: 15px; border-radius: 10px; width: 100%; max-width: 400px; margin-bottom: 10px; }
         .btn-action { background: var(--primary); color: black; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-
-    <div class="header">
-        <button class="btn-back" onclick="window.location.href='main.html'"><i class="fas fa-arrow-left"></i></button>
-        <h2 style="margin:0;">Game Review</h2>
-    </div>
-
+    <div class="header"><button class="btn-back" onclick="window.location.href='main.html'"><i class="fas fa-arrow-left"></i></button><h2 style="margin:0">Game Review</h2></div>
     <div id="board"></div>
-
     <div class="controls">
         <button class="btn-nav" onclick="first()"><i class="fas fa-angle-double-left"></i></button>
         <button class="btn-nav" onclick="prev()"><i class="fas fa-angle-left"></i></button>
         <button class="btn-nav" onclick="next()"><i class="fas fa-angle-right"></i></button>
         <button class="btn-nav" onclick="last()"><i class="fas fa-angle-double-right"></i></button>
     </div>
-
-    <div class="info-box">
-        <div id="status">White to move</div>
-        <div id="bestMove" style="color:var(--primary); margin-top:5px;">Best Move: Calculating...</div>
-    </div>
-
-    <div class="info-box" style="display:flex; justify-content:space-between; align-items:center;">
-        <span>PGN Data</span>
-        <button class="btn-action" onclick="copyPGN()">Copy PGN</button>
-    </div>
+    <div class="info-box"><div id="status">Loading...</div><div id="bestMove" style="color:var(--primary);margin-top:5px"></div></div>
+    <div class="info-box" style="display:flex;justify-content:space-between;align-items:center;"><span>PGN Data</span><button class="btn-action" onclick="copyPGN()">Copy PGN</button></div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -58,84 +42,46 @@
         const db = getFirestore(app);
 
         const gameId = new URLSearchParams(window.location.search).get('id');
-        let game = new Chess();
-        let board = null;
-        let history = [];
-        let currentStep = -1;
-        let pgnString = "";
+        let game = new Chess(), board, history = [], currentStep = -1, pgnString = "";
 
-        // Stockfish Setup
-        const stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');
-        stockfish.onmessage = function(event) {
-            if (event.data.startsWith('bestmove')) {
-                const move = event.data.split(' ')[1];
-                document.getElementById('bestMove').innerText = "Best Move: " + move;
-            }
-        };
+        // BLOB STOCKFISH FIX
+        const blob = new Blob([`importScripts('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');`], {type: 'application/javascript'});
+        const stockfish = new Worker(URL.createObjectURL(blob));
+        stockfish.onmessage = (e) => { if(e.data.startsWith('bestmove')) document.getElementById('bestMove').innerText = "Best: " + e.data.split(' ')[1]; };
 
         function initBoard() {
-            board = Chessboard('board', {
-                position: 'start',
-                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
-            });
+            // Force width for mobile
+            $('#board').css('width', Math.min(window.innerWidth - 40, 400) + 'px');
+            board = Chessboard('board', { position: 'start', pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png' });
             loadGame();
         }
 
         async function loadGame() {
             if(!gameId) return;
             const d = await getDoc(doc(db, "history", gameId));
-            if (d.exists()) {
-                const data = d.data();
-                // IMPORTANT: Since previous games didn't save PGN, this might be empty for old games.
-                // Assuming new games will save 'pgn' field in history.
-                if(data.pgn) {
-                    pgnString = data.pgn;
-                    game.load_pgn(data.pgn);
-                    history = game.history({ verbose: true });
-                    game.reset(); // Go back to start
-                    updateBoard();
-                } else {
-                    document.getElementById('status').innerText = "No move data available for this game.";
-                }
-            }
+            if (d.exists() && d.data().pgn) {
+                pgnString = d.data().pgn;
+                game.load_pgn(pgnString);
+                history = game.history({ verbose: true });
+                game.reset(); board.position('start');
+                updateBoard();
+            } else { document.getElementById('status').innerText = "No moves found."; }
         }
 
         function updateBoard() {
             board.position(game.fen());
             document.getElementById('status').innerText = game.turn() === 'w' ? "White to move" : "Black to move";
-            
-            // Ask Stockfish
             stockfish.postMessage('position fen ' + game.fen());
             stockfish.postMessage('go depth 10');
         }
 
-        window.next = () => {
-            if (currentStep < history.length - 1) {
-                currentStep++;
-                game.move(history[currentStep]);
-                updateBoard();
-            }
-        };
-
-        window.prev = () => {
-            if (currentStep >= 0) {
-                game.undo();
-                currentStep--;
-                updateBoard();
-            }
-        };
-
+        window.next = () => { if (currentStep < history.length - 1) { currentStep++; game.move(history[currentStep]); updateBoard(); } };
+        window.prev = () => { if (currentStep >= 0) { game.undo(); currentStep--; updateBoard(); } };
         window.first = () => { game.reset(); currentStep = -1; updateBoard(); };
-        window.last = () => { 
-            while(currentStep < history.length - 1) { currentStep++; game.move(history[currentStep]); }
-            updateBoard();
-        };
+        window.last = () => { while(currentStep < history.length - 1) { currentStep++; game.move(history[currentStep]); } updateBoard(); };
+        window.copyPGN = () => { navigator.clipboard.writeText(pgnString).then(() => alert("Copied!")); };
 
-        window.copyPGN = () => {
-            navigator.clipboard.writeText(pgnString).then(() => alert("PGN Copied!"));
-        };
-
-        initBoard();
+        $(document).ready(initBoard);
     </script>
 </body>
 </html>
