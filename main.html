@@ -174,6 +174,10 @@
                 <button class="btn-gold" style="width:auto; margin:0; padding:10px;" onclick="searchFriend()">Search</button>
             </div>
             <div id="friendSearchResults" style="margin-top:15px; font-weight:bold; color:#aaa;">Result: None</div>
+            
+            <hr style="border:0.5px solid #444; margin:15px 0;">
+            <h3>Recommendation</h3>
+            <div id="friendRecsContent"></div>
             <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
         </div>
     </div>
@@ -182,9 +186,6 @@
         <div class="modal">
             <h2 style="color:var(--primary)">Friend List</h2>
             <div id="friendListContent"></div>
-            <hr style="border:0.5px solid #444; margin:15px 0;">
-            <h3 style="color:#aaa; font-size:0.9rem;">Recommendation</h3>
-            <div id="friendRecsContent"></div>
             <button class="btn-gold" style="background:#444; color:white" onclick="closeModals()">CLOSE</button>
         </div>
     </div>
@@ -256,7 +257,7 @@
     <div id="chatOverlay">
         <div class="chat-header"><b>LIVE CHAT</b><button onclick="toggleChat(false)" style="background:none; border:none; color:white; font-size:1.5rem">&times;</button></div>
         <div id="chatBox"></div>
-        <div class="chat-input-bar" style="padding:15px; display:flex; gap:10px; background:#2d2d2d;">
+        <div style="padding:15px; display:flex; gap:10px; background:#2d2d2d;">
             <input type="text" id="chatIn" style="flex:1; margin:0;" placeholder="Type..." onkeypress="if(event.key==='Enter')sendChat()">
             <button onclick="sendChat()" style="background:var(--primary); border:none; padding:10px 20px; border-radius:8px; font-weight:bold;">SEND</button>
         </div>
@@ -312,8 +313,8 @@
             s.forEach(d => updateDoc(doc(db, "inbox", d.id), { read: true }));
         };
         window.delInbox = async(id) => await deleteDoc(doc(db, "inbox", id));
-        window.openAddFriend = () => { document.getElementById('addFriendModal').style.display='flex'; window.toggleDropdown(); };
-        window.openFriendList = () => { document.getElementById('friendListModal').style.display='flex'; loadFriendList(); loadRecs(); window.toggleDropdown(); };
+        window.openAddFriend = () => { document.getElementById('addFriendModal').style.display='flex'; loadRecs(); window.toggleDropdown(); };
+        window.openFriendList = () => { document.getElementById('friendListModal').style.display='flex'; loadFriendList(); window.toggleDropdown(); };
         window.openOwnerTools = () => { document.getElementById('ownerToolsModal').style.display = 'flex'; window.toggleDropdown(); };
         window.openAddModal = () => document.getElementById('addModal').style.display = 'flex';
         window.openAvatarModal = () => document.getElementById('avatarModal').style.display = 'flex';
@@ -329,6 +330,7 @@
             if(!u) window.location.href = "index.html";
             else {
                 user = u; curName = u.displayName;
+                
                 checkBanStatus(curName);
                 
                 // SAVE USER FOR SEARCH
@@ -371,6 +373,7 @@
                     list.innerHTML += `<div class="list-item" style="display:block">${content}</div>`;
                 });
                 document.getElementById('inboxDot').style.display = hasUnread ? 'block' : 'none';
+                document.getElementById('inboxCount').innerText = hasUnread ? '(!)' : '';
             });
         }
 
@@ -381,25 +384,36 @@
             
             if(!val) { res.innerHTML = "Result: None"; return; }
             
-            // Fix: Simple exact search or range search
+            let foundUsers = [];
+            
+            // 1. Prefix Search
             const q = query(collection(db, "users"), where("name", ">=", val), where("name", "<=", val + '\uf8ff'));
             const s = await getDocs(q);
-            
-            res.innerHTML = s.empty ? "Result: None" : "Result:";
-            s.forEach(d => {
-                const u = d.data();
-                if(u.name !== curName) {
-                    res.innerHTML += `
-                    <div class="list-item">
-                        <img src="${u.photo}">
-                        <div class="list-content"><b>${u.name}</b></div>
-                        <div class="list-actions">
-                            <button class="btn-mini btn-blue" onclick="addFriend('${u.name}')">Add</button>
-                            <button class="btn-mini btn-gray" onclick="seeInfo('${u.name}')">Info</button>
-                        </div>
-                    </div>`;
-                }
-            });
+            s.forEach(d => foundUsers.push(d.data()));
+
+            // 2. Direct Search (Force exact)
+            const dDoc = await getDoc(doc(db, "users", val));
+            if(dDoc.exists()) {
+                if(!foundUsers.some(u => u.name === dDoc.data().name)) foundUsers.push(dDoc.data());
+            }
+
+            if(foundUsers.length === 0) res.innerHTML = "Result: None";
+            else {
+                res.innerHTML = "Result:";
+                foundUsers.forEach(u => {
+                    if(u.name !== curName) {
+                        res.innerHTML += `
+                        <div class="list-item">
+                            <img src="${u.photo}">
+                            <div class="list-content"><b>${u.name}</b></div>
+                            <div class="list-actions">
+                                <button class="btn-mini btn-blue" onclick="addFriend('${u.name}')">Add</button>
+                                <button class="btn-mini btn-gray" onclick="seeInfo('${u.name}')">Info</button>
+                            </div>
+                        </div>`;
+                    }
+                });
+            }
         };
 
         window.addFriend = async (name) => {
@@ -466,7 +480,7 @@
 
             unsubRoom = onSnapshot(chalRef, (s) => {
                 if(s.exists() && s.data().status === "accepted") {
-                    // Redirect to game.html (NOT standard.html)
+                    // Redirect to game.html or crazyhouse.html
                     const v = s.data().variant === 'crazyhouse' ? 'crazyhouse' : 'game';
                     window.location.href = `${v}.html?id=${s.data().roomId}&side=${document.getElementById('chalSide').value}`;
                 }
@@ -489,7 +503,7 @@
             }
 
             await deleteDoc(doc(db, "inbox", inboxId));
-            // Redirect to game.html
+            // Redirect to game.html or crazyhouse.html
             const v = vari === 'crazyhouse' ? 'crazyhouse' : 'game';
             window.location.href = `${v}.html?id=${newRoomId}&side=${mySide}`;
         };
@@ -556,7 +570,7 @@
 
         function goGame(id, side) { 
             clearInterval(sInterval); if(unsubRoom) unsubRoom(); 
-            // Fix: Redirect to game.html
+            // Fix: Redirect to correct page
             const v = variant === 'crazyhouse' ? 'crazyhouse' : 'game';
             window.location.href = `${v}.html?id=${id}&side=${side}`; 
         }
