@@ -9,30 +9,61 @@
     <style>
         :root { --primary: #ffd700; --bg: #1a1a1a; --panel: #2d2d2d; --text: #fff; }
         body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
         .header { width: 100%; max-width: 450px; display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
         .btn-back { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
-        #board { width: 100%; max-width: 400px; margin-bottom: 20px; }
-        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
-        .btn-nav { background: var(--panel); border: 1px solid #444; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; }
-        .info-box { background: var(--panel); padding: 15px; border-radius: 10px; width: 100%; max-width: 400px; margin-bottom: 10px; }
-        .btn-action { background: var(--primary); color: black; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        
+        .players-info { width: 100%; max-width: 450px; display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; font-size: 1.1rem; }
+        
+        #board { width: 100%; max-width: 450px; margin-bottom: 20px; }
+        
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; width: 100%; max-width: 450px; justify-content: center; }
+        .btn-nav { background: var(--panel); border: 1px solid #444; color: white; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; flex: 1; transition: 0.2s; }
+        .btn-nav:hover { background: #444; border-color: var(--primary); color: var(--primary); }
+        .btn-nav:active { transform: scale(0.95); }
+
+        .info-box { background: var(--panel); padding: 15px; border-radius: 10px; width: 100%; max-width: 450px; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-left: 4px solid var(--primary); }
+        .btn-action { background: var(--primary); color: black; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        
+        #status { font-size: 1rem; font-weight: bold; }
+        #bestMove { font-family: monospace; font-size: 1.1rem; margin-top: 5px; color: #81b64c; }
     </style>
 </head>
 <body>
-    <div class="header"><button class="btn-back" onclick="window.location.href='main.html'"><i class="fas fa-arrow-left"></i></button><h2 style="margin:0">Game Review</h2></div>
+
+    <div class="header">
+        <button class="btn-back" onclick="window.location.href='main.html'"><i class="fas fa-arrow-left"></i></button>
+        <h2 style="margin:0">Game Review</h2>
+    </div>
+
+    <div class="players-info">
+        <span id="pBlack">Black</span>
+        <span id="pWhite">White</span>
+    </div>
+
     <div id="board"></div>
+
     <div class="controls">
         <button class="btn-nav" onclick="first()"><i class="fas fa-angle-double-left"></i></button>
         <button class="btn-nav" onclick="prev()"><i class="fas fa-angle-left"></i></button>
         <button class="btn-nav" onclick="next()"><i class="fas fa-angle-right"></i></button>
         <button class="btn-nav" onclick="last()"><i class="fas fa-angle-double-right"></i></button>
     </div>
-    <div class="info-box"><div id="status">Loading...</div><div id="bestMove" style="color:var(--primary);margin-top:5px"></div></div>
-    <div class="info-box" style="display:flex;justify-content:space-between;align-items:center;"><span>PGN Data</span><button class="btn-action" onclick="copyPGN()">Copy PGN</button></div>
+
+    <div class="info-box">
+        <div id="status">Loading game data...</div>
+        <div id="bestMove">Stockfish: Calculating...</div>
+    </div>
+
+    <div class="info-box" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>Game PGN</span>
+        <button class="btn-action" onclick="copyPGN()">COPY PGN</button>
+    </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -42,45 +73,137 @@
         const db = getFirestore(app);
 
         const gameId = new URLSearchParams(window.location.search).get('id');
-        let game = new Chess(), board, history = [], currentStep = -1, pgnString = "";
+        let game = new Chess();
+        let board = null;
+        let moveHistory = []; // Array of SAN strings (e4, Nf3)
+        let currentStep = -1;
+        let fullPgn = "";
 
-        // BLOB STOCKFISH FIX
+        // STOCKFISH WORKER (BLOB METHOD)
         const blob = new Blob([`importScripts('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');`], {type: 'application/javascript'});
         const stockfish = new Worker(URL.createObjectURL(blob));
-        stockfish.onmessage = (e) => { if(e.data.startsWith('bestmove')) document.getElementById('bestMove').innerText = "Best: " + e.data.split(' ')[1]; };
+        
+        stockfish.onmessage = function(event) {
+            if (event.data.startsWith('bestmove')) {
+                const move = event.data.split(' ')[1];
+                if(move) document.getElementById('bestMove').innerText = "Best Move: " + move;
+            }
+        };
 
         function initBoard() {
-            // Force width for mobile
-            $('#board').css('width', Math.min(window.innerWidth - 40, 400) + 'px');
-            board = Chessboard('board', { position: 'start', pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png' });
-            loadGame();
+            // Responsive Width Fix
+            const w = Math.min(window.innerWidth - 40, 450);
+            $('#board').css('width', w + 'px');
+
+            board = Chessboard('board', {
+                position: 'start',
+                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+            });
+            loadGameData();
         }
 
-        async function loadGame() {
-            if(!gameId) return;
-            const d = await getDoc(doc(db, "history", gameId));
-            if (d.exists() && d.data().pgn) {
-                pgnString = d.data().pgn;
-                game.load_pgn(pgnString);
-                history = game.history({ verbose: true });
-                game.reset(); board.position('start');
-                updateBoard();
-            } else { document.getElementById('status').innerText = "No moves found."; }
+        async function loadGameData() {
+            if(!gameId) { document.getElementById('status').innerText = "Error: No Game ID"; return; }
+            
+            try {
+                const docSnap = await getDoc(doc(db, "history", gameId));
+                
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    
+                    // Set Player Names
+                    // Assuming 'player' is me, 'opp' is opponent. Need to logic who is white/black later if stored.
+                    // For now displaying simple names.
+                    document.getElementById('pWhite').innerText = "White"; // Placeholder
+                    document.getElementById('pBlack').innerText = "Black"; // Placeholder
+                    
+                    if (data.pgn) {
+                        fullPgn = data.pgn;
+                        
+                        // 1. Load PGN to validate and get history
+                        const loaded = game.load_pgn(fullPgn);
+                        if (!loaded) {
+                            document.getElementById('status').innerText = "Error parsing PGN.";
+                            return;
+                        }
+
+                        // 2. Extract clean moves (SAN)
+                        moveHistory = game.history(); 
+                        
+                        // 3. Reset board to start for replay
+                        game.reset();
+                        board.position('start');
+                        
+                        updateStatus();
+                    } else {
+                        document.getElementById('status').innerText = "No move data (PGN) found.";
+                    }
+                } else {
+                    document.getElementById('status').innerText = "Game not found.";
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('status').innerText = "Error loading data.";
+            }
         }
 
-        function updateBoard() {
-            board.position(game.fen());
-            document.getElementById('status').innerText = game.turn() === 'w' ? "White to move" : "Black to move";
+        function updateStatus() {
+            const moveNum = Math.floor((currentStep + 1) / 2) + 1;
+            const turn = game.turn() === 'w' ? "White" : "Black";
+            document.getElementById('status').innerText = `Move ${moveNum}: ${turn} to move`;
+            
+            // Stockfish Eval
             stockfish.postMessage('position fen ' + game.fen());
-            stockfish.postMessage('go depth 10');
+            stockfish.postMessage('go depth 15');
         }
 
-        window.next = () => { if (currentStep < history.length - 1) { currentStep++; game.move(history[currentStep]); updateBoard(); } };
-        window.prev = () => { if (currentStep >= 0) { game.undo(); currentStep--; updateBoard(); } };
-        window.first = () => { game.reset(); currentStep = -1; updateBoard(); };
-        window.last = () => { while(currentStep < history.length - 1) { currentStep++; game.move(history[currentStep]); } updateBoard(); };
-        window.copyPGN = () => { navigator.clipboard.writeText(pgnString).then(() => alert("Copied!")); };
+        // --- NAVIGATION LOGIC (FIXED) ---
+        window.next = () => {
+            if (currentStep < moveHistory.length - 1) {
+                currentStep++;
+                // Move using SAN string (e.g., "e4") - This is the fix!
+                game.move(moveHistory[currentStep]); 
+                board.position(game.fen());
+                updateStatus();
+            }
+        };
 
+        window.prev = () => {
+            if (currentStep >= 0) {
+                game.undo();
+                currentStep--;
+                board.position(game.fen());
+                updateStatus();
+            }
+        };
+
+        window.first = () => {
+            game.reset();
+            currentStep = -1;
+            board.position('start');
+            updateStatus();
+        };
+
+        window.last = () => {
+            // Fast forward
+            while (currentStep < moveHistory.length - 1) {
+                currentStep++;
+                game.move(moveHistory[currentStep]);
+            }
+            board.position(game.fen());
+            updateStatus();
+        };
+
+        window.copyPGN = () => {
+            if (!fullPgn) return alert("No PGN available");
+            navigator.clipboard.writeText(fullPgn).then(() => {
+                alert("PGN Copied to Clipboard!");
+            }).catch(err => {
+                alert("Failed to copy");
+            });
+        };
+
+        // Initialize
         $(document).ready(initBoard);
     </script>
 </body>
