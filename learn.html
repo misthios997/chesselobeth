@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CHESSELOBETH - Learn</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    <style>
+        :root { --primary: #ffd700; --bg: #1a1a1a; --card: #2d2d2d; --text: #ffffff; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        .header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .btn-back { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        .title { font-weight: 900; font-size: 1.5rem; color: var(--primary); }
+        
+        .list-container { display: flex; flex-direction: column; gap: 10px; }
+        .open-card { background: var(--card); padding: 15px; border-radius: 10px; cursor: pointer; border-left: 5px solid var(--primary); transition: 0.2s; }
+        .open-card:hover { transform: translateY(-3px); background: #333; }
+        .open-name { font-weight: bold; font-size: 1.1rem; }
+        .open-meta { font-size: 0.85rem; color: #aaa; margin-top: 5px; }
+        
+        #detailView { display: none; flex-direction: column; align-items: center; }
+        #board { width: 100%; max-width: 400px; margin: 20px 0; }
+        .desc-box { background: var(--card); padding: 20px; border-radius: 10px; margin-top: 10px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <button class="btn-back" onclick="goBack()"><i class="fas fa-arrow-left"></i></button>
+        <div class="title" id="pageTitle">Learn Openings</div>
+    </div>
+
+    <div class="list-container" id="listView">
+        </div>
+
+    <div id="detailView">
+        <h2 id="detailTitle" style="color:var(--primary)"></h2>
+        <div id="board"></div>
+        <div class="desc-box" id="detailDesc"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+    <script>
+        const openings = [
+            { name: "Italian Game", creator: "Gioachino Greco", level: 3, fen: "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 5 4", desc: "Permainan Italia adalah salah satu pembukaan catur tertua yang tercatat. Dimulai dengan 1.e4 e5 2.Nf3 Nc6 3.Bc4. Tujuannya adalah mengontrol pusat dengan cepat dan menempatkan Gajah di petak aktif c4." },
+            { name: "Ruy Lopez", creator: "Ruy López de Segura", level: 6, fen: "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3", desc: "Ruy Lopez atau Pembukaan Spanyol adalah salah satu pembukaan paling populer di level Grandmaster. Ciri khasnya adalah langkah 3.Bb5, menekan Kuda hitam yang menjaga pion e5." },
+            { name: "Sicilian Defense", creator: "Giulio Polerio", level: 8, fen: "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2", desc: "Pertahanan Sisilia (1.e4 c5) adalah respons paling agresif terhadap 1.e4. Hitam langsung menantang kendali pusat putih dari sayap, menciptakan permainan yang tidak seimbang dan tajam." },
+            { name: "London System", creator: "James Mason", level: 2, fen: "rnbqkb1r/ppp1pppp/5n2/3p4/3P1B2/5N2/PPP1PPPP/RN1QKB1R b KQkq - 3 3", desc: "London System adalah pembukaan yang solid dan sistematis untuk Putih (1.d4 d5 2.Bf4). Tidak memerlukan hafalan teori yang dalam, lebih mengandalkan pemahaman struktur bidak." },
+            { name: "Caro-Kann Defense", creator: "Horatio Caro & Marcus Kann", level: 4, fen: "rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2", desc: "Caro-Kann (1.e4 c6) dikenal sebagai pertahanan yang sangat solid dan sulit ditembus. Hitam mendukung pion d5 tanpa memblokir Gajah terang seperti di French Defense." },
+            { name: "French Defense", creator: "Correspondence Match London vs Paris", level: 5, fen: "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2", desc: "Pertahanan Prancis (1.e4 e6) mengarah pada struktur pion yang tertutup dan strategis. Hitam membiarkan Putih menguasai ruang di awal untuk menyerang balik pusat nantinnya." },
+            { name: "Queen's Gambit", creator: "Unknown (Popularized by Greco)", level: 6, fen: "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq - 0 2", desc: "Gambit Menteri (1.d4 d5 2.c4) bukan gambit sejati karena Putih bisa merebut kembali pionnya. Tujuannya adalah menukar pion sayap (c) dengan pion pusat (d) hitam untuk mendominasi tengah." }
+        ];
+
+        const list = document.getElementById('listView');
+        openings.forEach((op, index) => {
+            const div = document.createElement('div');
+            div.className = 'open-card';
+            div.onclick = () => showDetail(index);
+            div.innerHTML = `
+                <div class="open-name">${op.name}</div>
+                <div class="open-meta">${op.creator}</div>
+                <div class="open-meta" style="color:${op.level > 5 ? '#ff4d4d' : '#81b64c'}">Hard Level: ${op.level}/10</div>
+            `;
+            list.appendChild(div);
+        });
+
+        let board = null;
+
+        function showDetail(idx) {
+            const op = openings[idx];
+            document.getElementById('listView').style.display = 'none';
+            document.getElementById('detailView').style.display = 'flex';
+            document.getElementById('pageTitle').innerText = op.name;
+            
+            document.getElementById('detailTitle').innerText = op.name;
+            document.getElementById('detailDesc').innerText = op.desc;
+
+            if(board) board.destroy();
+            board = Chessboard('board', {
+                position: op.fen,
+                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png'
+            });
+        }
+
+        function goBack() {
+            if(document.getElementById('detailView').style.display === 'flex') {
+                document.getElementById('detailView').style.display = 'none';
+                document.getElementById('listView').style.display = 'flex';
+                document.getElementById('pageTitle').innerText = 'Learn Openings';
+            } else {
+                window.location.href = 'main.html';
+            }
+        }
+    </script>
+</body>
+</html>
