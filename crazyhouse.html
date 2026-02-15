@@ -43,21 +43,12 @@
 </head>
 <body>
     <div class="game-wrapper">
-        <div class="player-bar">
-            <div class="user-info"><img src="" class="avatar" id="oppAva"><div class="username" id="oppName">Opponent</div></div>
-            <div class="timer" id="oppTimer">10:00</div>
-        </div>
+        <div class="player-bar"><div class="user-info"><img src="" class="avatar" id="oppAva"><div class="username" id="oppName">Opponent</div></div><div class="timer" id="oppTimer">10:00</div></div>
         <div class="pocket" id="oppPocket"></div>
         <div id="board"></div>
         <div class="pocket" id="myPocket"></div>
-        <div class="player-bar">
-            <div class="user-info"><img src="" class="avatar" id="myAva"><div class="username" id="myName">Me</div></div>
-            <div class="timer" id="myTimer">10:00</div>
-        </div>
-        <div class="controls">
-            <button class="btn btn-resign" onclick="resignGame()">RESIGN</button>
-            <button class="btn btn-chat" onclick="toggleGameChat(true)"><i class="fas fa-comment-dots"></i><div id="chatNotif" class="chat-notif"></div></button>
-        </div>
+        <div class="player-bar"><div class="user-info"><img src="" class="avatar" id="myAva"><div class="username" id="myName">Me</div></div><div class="timer" id="myTimer">10:00</div></div>
+        <div class="controls"><button class="btn btn-resign" onclick="resignGame()">RESIGN</button><button class="btn btn-chat" onclick="toggleGameChat(true)"><i class="fas fa-comment-dots"></i><div id="chatNotif" class="chat-notif"></div></button></div>
     </div>
     <div id="promoModal"><div class="promo-box" id="promoPieces"></div></div>
     <div id="gameChatOverlay"><div class="chat-header"><button onclick="toggleGameChat(false)" style="background:none;border:none;color:white;font-size:1.5rem"><i class="fas fa-arrow-left"></i></button><b>Chat</b></div><div id="chatBox"></div><div class="chat-input"><input id="chatIn" placeholder="Type..."><button onclick="sendGameChat()" class="btn" style="background:var(--primary);color:black;flex:0 0 auto;width:auto">SEND</button></div></div>
@@ -116,7 +107,9 @@
                 document.getElementById('oppName').innerText = oppName;
                 document.getElementById('oppAva').src = "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
 
-                if (d.lastFen && d.lastFen !== game.fen()) { game.load(d.lastFen); board.position(d.lastFen); }
+                if(d.pgn) { game.load_pgn(d.pgn); board.position(game.fen()); } // LOAD PGN FIRST
+                else if (d.lastFen && d.lastFen !== game.fen()) { game.load(d.lastFen); board.position(d.lastFen); }
+                
                 if (d.pocket) pocket = d.pocket;
                 if (d.timeLeft) timeLeft = d.timeLeft;
                 renderPocket(); updateUI(); checkGameOver(d);
@@ -151,7 +144,6 @@
             if (isMoving || selectedPocketIdx === null || game.turn() !== myColor) return;
             if (game.get(square)) return;
             const type = pocket[myColor][selectedPocketIdx];
-            // Check illegal move
             const test = new Chess(game.fen()); test.put({ type: type, color: myColor }, square);
             const fenParts = test.fen().split(' '); fenParts[1] = (myColor==='w'?'b':'w');
             const val = new Chess(fenParts.join(' '));
@@ -163,7 +155,7 @@
             board.position(game.fen()); await sync(); isMoving = false;
         }
 
-        async function sync() { isMoving=true; await updateDoc(doc(db, "rooms", roomId), { lastFen: game.fen(), pocket: pocket, timeLeft: timeLeft, lastMove: Date.now() }); isMoving=false; }
+        async function sync() { isMoving=true; await updateDoc(doc(db, "rooms", roomId), { lastFen: game.fen(), pgn: game.pgn(), pocket: pocket, timeLeft: timeLeft, lastMove: Date.now() }); isMoving=false; }
 
         function updateUI() {
             const f = (t) => `${Math.floor(t/60)}:${(t%60).toString().padStart(2,'0')}`;
@@ -187,6 +179,7 @@
             if(d.status==='resigned') { t="GAME OVER"; r=`${d.resignedBy} Resigned`; }
             else if(d.status==='timeout') { t="TIME OUT"; r=`${d.loser==='w'?'White':'Black'} Lost`; }
             else if(game.in_checkmate()) { t="CHECKMATE"; r=`${game.turn()==='w'?'Black':'White'} Wins!`; }
+            else if(game.in_draw()) { t="DRAW"; r="Draw"; }
             
             if(t && !gameEnded) {
                 gameEnded = true;
@@ -194,10 +187,9 @@
                 document.getElementById('goReason').innerText = r;
                 document.getElementById('gameOverModal').style.display = 'flex';
                 
-                // SAVE HISTORY INDIVIDUALLY (FIXED)
                 if(!historySaved) {
-                    const myHistID = roomId + "_" + curName;
-                    setDoc(doc(db, "history", myHistID), { 
+                    const uniqueId = roomId + "_" + curName;
+                    setDoc(doc(db, "history", uniqueId), { 
                         player: curName, 
                         opp: document.getElementById('oppName').innerText, 
                         res: r,
