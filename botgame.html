@@ -15,14 +15,14 @@
         .avatar { width: 40px; height: 40px; border-radius: 6px; background: #333; object-fit: cover; border: 2px solid var(--primary); }
         .username { font-weight: bold; font-size: 0.95rem; }
         #board { width: 100%; aspect-ratio: 1/1; }
+        .highlight-check { box-shadow: inset 0 0 30px #ff0000 !important; }
         .controls { display: flex; gap: 10px; padding: 0 10px; }
         .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; background: var(--primary); color: black; }
         .btn-exit { background: #ff4d4d; color: white; }
         
-        /* MODAL GAME OVER */
         .game-over-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 8000; }
         .go-box { background: var(--panel); padding: 30px; border-radius: 20px; text-align: center; border: 2px solid var(--primary); width: 80%; max-width: 350px; }
-        .go-btn { background: var(--primary); border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; color: #000; font-size: 1rem; margin-top:15px; }
+        .go-btn { background: var(--primary); border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; color: #000; font-size: 1rem; margin-top:10px; }
     </style>
 </head>
 <body>
@@ -49,7 +49,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, setDoc, doc, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", authDomain: "chesselobeth.firebaseapp.com", projectId: "chesselobeth", storageBucket: "chesselobeth.firebasestorage.app", messagingSenderId: "829508204106", appId: "1:829508204106:web:e8952c359f63d49646d8b3" };
         const app = initializeApp(firebaseConfig);
@@ -61,7 +61,16 @@
 
         let game = new Chess(), board, curName="";
         
-        // NEO THEME
+        // SOUNDS
+        const sounds = {
+            move: new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-self.mp3'),
+            capture: new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3'),
+            check: new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-check.mp3'),
+            castle: new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/castle.mp3'),
+            promote: new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/promote.mp3'),
+            notify: new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/notify.mp3')
+        };
+
         const pieceTheme = (piece) => 'https://www.chess.com/chess-themes/pieces/neo/300/' + piece.toLowerCase() + '.png';
 
         const blob = new Blob([`importScripts('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');`], {type: 'application/javascript'});
@@ -73,6 +82,7 @@
             document.getElementById('myName').innerText = u.displayName;
             document.getElementById('myAva').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
             initGame();
+            sounds.notify.play().catch(()=>{});
         });
 
         function initGame() {
@@ -83,10 +93,38 @@
                     const move = game.move({ from: source, to: target, promotion: 'q' });
                     if (!move) return 'snapback';
                     board.position(game.fen());
+                    playMoveSound(move);
+                    highlightCheck();
                     checkGameOver();
                     if(!game.game_over()) makeBotMove();
                 }
             });
+        }
+
+        function playMoveSound(move) {
+            if (game.in_check()) sounds.check.play();
+            else if (move.flags.includes('p')) sounds.promote.play();
+            else if (move.flags.includes('k') || move.flags.includes('q')) sounds.castle.play();
+            else if (move.captured) sounds.capture.play();
+            else sounds.move.play();
+        }
+
+        function highlightCheck() {
+            $('.square-55d63').removeClass('highlight-check'); 
+            if (game.in_check()) {
+                const boardConfig = game.board();
+                const turn = game.turn();
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        const p = boardConfig[r][c];
+                        if (p && p.type === 'k' && p.color === turn) {
+                            const files = ['a','b','c','d','e','f','g','h'];
+                            const ranks = ['8','7','6','5','4','3','2','1'];
+                            $('.square-' + files[c] + ranks[r]).addClass('highlight-check');
+                        }
+                    }
+                }
+            }
         }
 
         function makeBotMove() {
@@ -98,8 +136,10 @@
         stockfish.onmessage = function(event) {
             if (event.data.startsWith('bestmove')) {
                 const move = event.data.split(' ')[1];
-                game.move(move, { sloppy: true });
+                const m = game.move(move, { sloppy: true });
                 board.position(game.fen());
+                playMoveSound(m);
+                highlightCheck();
                 checkGameOver();
             }
         };
@@ -111,11 +151,12 @@
                 else if(game.in_draw()) { t="DRAW"; r="Draw"; }
                 else if(game.in_stalemate()) { t="STALEMATE"; r="Draw"; }
                 
+                sounds.notify.play();
                 document.getElementById('goTitle').innerText = t;
                 document.getElementById('goReason').innerText = r;
                 document.getElementById('gameOverModal').style.display = 'flex';
 
-                // SAVE BOT GAME TO HISTORY
+                // SAVE BOT GAME
                 const botGameId = "bot_" + Date.now();
                 await setDoc(doc(db, "history", botGameId), {
                     player: curName,
@@ -125,12 +166,11 @@
                     timestamp: Date.now()
                 });
 
-                // LINK BUTTON
                 document.getElementById('btnSeeGame').onclick = () => window.location.href = `review.html?id=${botGameId}`;
             }
         }
 
-        window.undoMove = () => { game.undo(); game.undo(); board.position(game.fen()); };
+        window.undoMove = () => { game.undo(); game.undo(); board.position(game.fen()); highlightCheck(); };
     </script>
 </body>
 </html>
