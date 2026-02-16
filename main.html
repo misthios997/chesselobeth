@@ -700,10 +700,6 @@
                         <i class="fas fa-robot"></i> Play Bot
                     </a>
                     
-                    <a href="gamereview.html" style="color:var(--accent-color)">
-                        <i class="fas fa-chart-line"></i> Game Review
-                    </a>
-                    
                     <a href="learn.html" style="color:var(--primary-color)">
                         <i class="fas fa-book-open"></i> Learn Chess
                     </a>
@@ -1153,7 +1149,24 @@
             });
         }
 
-        // --- 7. INBOX SYSTEM ---
+        // --- 7. INBOX SYSTEM (FIXED BUTTON RESPONSIVENESS) ---
+        window.openInbox = () => { 
+            // 1. Open Modal Immediately
+            document.getElementById('inboxModal').style.display = 'flex'; 
+            
+            // 2. Hide Menu
+            document.getElementById('mainMenu').style.display = 'none';
+            
+            // 3. Hide Dot
+            document.getElementById('inboxDot').style.display = 'none';
+            
+            // 4. Async update database (Mark as read)
+            if(curName) {
+                getDocs(query(collection(db, "inbox"), where("to", "==", curName), where("read", "==", false)))
+                .then(s => s.forEach(d => updateDoc(doc(db, "inbox", d.id), { read: true })));
+            }
+        };
+
         function listenInbox() {
             onSnapshot(query(collection(db, "inbox"), where("to", "==", curName)), (s) => {
                 const list = document.getElementById('inboxContent'); list.innerHTML = "";
@@ -1250,14 +1263,11 @@
 
         // --- 9. CHAT SYSTEM ---
         window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
+        window.sendChat = async () => { const i = document.getElementById('chatIn'); if(i.value.trim()){ await addDoc(collection(db, "chats"), { name: curName, title: myTitle, text: i.value, photo: user.photoURL, timestamp: Date.now() }); i.value = ""; } };
         
-        window.sendChat = async () => { 
-            const i = document.getElementById('chatIn'); if(i.value.trim()){ 
-                await addDoc(collection(db, "chats"), { name: curName, title: myTitle, text: i.value, photo: user.photoURL, timestamp: Date.now() }); i.value = ""; 
-            } 
-        };
-
+        // CHAT PRIVATELY FIX
         window.openPrivateChat = (target) => {
+            document.getElementById('infoModal').style.display = 'none'; // Close info modal first
             document.getElementById('pChatTarget').innerText = target;
             document.getElementById('pChatOverlay').style.display = 'flex';
             const chatID = [curName, target].sort().join("_");
@@ -1307,7 +1317,10 @@
             });
             const isFriend = myFriends.includes(name);
             const btn = isFriend ? `<button class="btn-gold" disabled style="background:#555">Already Friend</button>` : `<button class="btn-gold" onclick="addFriendRequest('${name}')">Add Friend</button>`;
+            
+            // FIX: Using window.openPrivateChat directly in HTML string
             document.getElementById('infoActions').innerHTML = `${btn} <button class="btn-gold" style="background:#3498db; margin-top:10px" onclick="openPrivateChat('${name}')">Chat Privately</button>`;
+            
             document.getElementById('infoModal').style.display='flex';
         };
 
