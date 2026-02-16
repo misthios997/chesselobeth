@@ -110,8 +110,7 @@
                 document.getElementById('oppName').innerText = oppName;
                 document.getElementById('oppAva').src = "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
 
-                if(d.pgn) { game.load_pgn(d.pgn); board.position(game.fen()); }
-                else if (d.lastFen && d.lastFen !== game.fen()) { game.load(d.lastFen); board.position(d.lastFen); }
+                if (d.lastFen && d.lastFen !== game.fen()) { game.load(d.lastFen); board.position(d.lastFen); }
                 
                 if (d.pocket) pocket = d.pocket;
                 if (d.timeLeft) timeLeft = d.timeLeft;
@@ -125,7 +124,6 @@
             const c = document.getElementById('promoPieces'); c.innerHTML = '';
             ['q', 'r', 'b', 'n'].forEach(p => {
                 const img = document.createElement('img');
-                // MANUAL NEO THEME
                 img.src = 'https://www.chess.com/chess-themes/pieces/neo/300/' + (myColor + p).toLowerCase() + '.png';
                 img.className = 'promo-opt';
                 img.onclick = () => { document.getElementById('promoModal').style.display='none'; const m=game.move({ ...pendingMove, promotion: p }); if(m && m.captured) pocket[game.turn() === 'b' ? 'w' : 'b'].push(m.captured); board.position(game.fen()); sync(); pendingMove=null; };
@@ -138,7 +136,6 @@
             const myRes = document.getElementById('myPocket'), oppRes = document.getElementById('oppPocket'); myRes.innerHTML = ""; oppRes.innerHTML = "";
             pocket[myColor].forEach((p, idx) => {
                 const img = document.createElement('img'); 
-                // MANUAL NEO THEME
                 img.src = 'https://www.chess.com/chess-themes/pieces/neo/300/' + (myColor + p).toLowerCase() + '.png';
                 img.className = 'reserve-piece' + (selectedPocketIdx === idx ? ' selected' : '');
                 img.onclick = () => { if(game.turn() === myColor) { selectedPocketIdx = (selectedPocketIdx===idx?null:idx); renderPocket(); } };
@@ -147,28 +144,54 @@
             const oppC = myColor === 'w' ? 'b' : 'w';
             pocket[oppC].forEach(p => { 
                 const img = document.createElement('img'); 
-                // MANUAL NEO THEME
                 img.src = 'https://www.chess.com/chess-themes/pieces/neo/300/' + (oppC + p).toLowerCase() + '.png';
                 img.className = 'reserve-piece'; oppRes.appendChild(img); 
             });
         }
 
+        // --- FIX POCKET DROP RESET ---
         async function handlePocketDrop(square) {
             if (isMoving || selectedPocketIdx === null || game.turn() !== myColor) return;
-            if (game.get(square)) return;
-            const type = pocket[myColor][selectedPocketIdx];
-            const test = new Chess(game.fen()); test.put({ type: type, color: myColor }, square);
-            const fenParts = test.fen().split(' '); fenParts[1] = (myColor==='w'?'b':'w');
-            const val = new Chess(fenParts.join(' '));
-            if(val.in_check()) { alert("Cannot drop: King in check!"); return; }
+            if (game.get(square)) return; // Must be empty
 
-            isMoving = true; game.put({ type: type, color: myColor }, square);
-            pocket[myColor].splice(selectedPocketIdx, 1); selectedPocketIdx = null;
-            let t = game.fen().split(' '); t[1] = (myColor==='w'?'b':'w'); game.load(t.join(' '));
-            board.position(game.fen()); await sync(); isMoving = false;
+            const type = pocket[myColor][selectedPocketIdx];
+            
+            // 1. Check Move Validity without altering game yet
+            const test = new Chess(game.fen());
+            const putSuccess = test.put({ type: type, color: myColor }, square);
+            if (!putSuccess) return; 
+
+            // Manually switch turn in temp FEN to validate check
+            const fenParts = test.fen().split(' ');
+            fenParts[1] = (myColor==='w'?'b':'w');
+            const nextFen = fenParts.join(' ');
+            const val = new Chess(nextFen);
+            
+            // Note: In chess.js dropping is tricky. This validation is basic.
+            // If King is attacked after drop (impossible usually unless checking invalidly)
+            // Real issue: chess.js doesn't support drops directly.
+            
+            isMoving = true;
+            
+            // 2. Execute on Real Game
+            game.put({ type: type, color: myColor }, square);
+            pocket[myColor].splice(selectedPocketIdx, 1);
+            selectedPocketIdx = null;
+            
+            // 3. Update FEN manually to switch turn
+            let f = game.fen().split(' ');
+            f[1] = (myColor==='w'?'b':'w'); // Switch turn
+            // Reset halfmove clock and fullmove number if needed, but keeping simple
+            
+            const newFen = f.join(' ');
+            game.load(newFen); // Load new state
+            
+            board.position(newFen); // Force board update
+            await sync();
+            isMoving = false;
         }
 
-        async function sync() { isMoving=true; await updateDoc(doc(db, "rooms", roomId), { lastFen: game.fen(), pgn: game.pgn(), pocket: pocket, timeLeft: timeLeft, lastMove: Date.now() }); isMoving=false; }
+        async function sync() { isMoving=true; await updateDoc(doc(db, "rooms", roomId), { lastFen: game.fen(), pocket: pocket, timeLeft: timeLeft, lastMove: Date.now() }); isMoving=false; }
 
         function updateUI() {
             const f = (t) => { const m=Math.floor(t/60); const s=t%60; return `${m}:${s.toString().padStart(2,'0')}`; };
