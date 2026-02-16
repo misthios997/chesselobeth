@@ -14,6 +14,7 @@
             --primary: #ffd700;
             --premium: #00d2ff;
             --green: #81b64c;
+            --danger: #ff4d4d;
         }
 
         body {
@@ -45,6 +46,20 @@
 
         .premium-icon { font-size: 4rem; color: var(--premium); margin-bottom: 15px; text-shadow: 0 0 15px rgba(0, 210, 255, 0.6); }
         h1 { margin: 10px 0; color: var(--premium); }
+
+        /* CSS STATUS BARU */
+        .status-display {
+            background: rgba(0,0,0,0.3);
+            padding: 12px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-weight: bold;
+            font-size: 0.95rem;
+            border: 1px solid #444;
+            letter-spacing: 0.5px;
+        }
+        .status-active { color: var(--green); border-color: var(--green); background: rgba(129, 182, 76, 0.1); }
+        .status-inactive { color: var(--danger); border-color: var(--danger); background: rgba(255, 77, 77, 0.1); }
         
         .benefits-list { text-align: left; margin: 25px 0; list-style: none; padding: 0; }
         .benefits-list li { padding: 12px 0; border-bottom: 1px solid #444; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
@@ -68,7 +83,6 @@
         }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
 
-        /* UI PURA-PURA VIDEO PLAYER (OVERLAY) */
         #rewardOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); z-index: 9999; display: none;
@@ -90,6 +104,11 @@
         }
 
         .status-text { color: #aaa; font-size: 0.9rem; margin-top: 10px; }
+        
+        .instruction-box {
+            margin-top: 20px; padding-top: 15px; border-top: 1px solid #444;
+            color: var(--primary); font-size: 0.85rem; line-height: 1.5; font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -103,6 +122,9 @@
     <div class="premium-card">
         <i class="fas fa-gem premium-icon"></i>
         <h1>Premium Status</h1>
+
+        <div id="premiumStatus" class="status-display">Checking status...</div>
+
         <p style="color:#aaa">Unlock Learn Mode & Unlimited Bot</p>
 
         <ul class="benefits-list">
@@ -119,6 +141,10 @@
         <button class="btn-watch" onclick="startRewardedAd()">
             <i class="fas fa-play-circle"></i> WATCH VIDEO
         </button>
+
+        <div class="instruction-box">
+            <i class="fas fa-info-circle"></i> Click the Button "Watch Video" and wait in the new tab for 15 second. After it, Close the new tab and back to chesselobeth Website!
+        </div>
     </div>
 
     <div id="rewardOverlay">
@@ -138,18 +164,46 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // --- DIRECT LINK MONETAG TERBARU ---
         const DIRECT_LINK = "https://omg10.com/4/10617130"; 
         
         let curName = "";
 
-        onAuthStateChanged(auth, (u) => {
+        onAuthStateChanged(auth, async (u) => {
             if(!u) window.location.href = "index.html";
             curName = u.displayName;
+            checkStatus(); // Cek status pas load
         });
 
+        // FUNGSI CEK STATUS PREMIUM
+        async function checkStatus() {
+            const statusDiv = document.getElementById('premiumStatus');
+            try {
+                const uDoc = await getDoc(doc(db, "users", curName));
+                if (uDoc.exists()) {
+                    const data = uDoc.data();
+                    // Cek apakah premium dan apakah waktunya masih ada
+                    if (data.isPremium && data.premiumUntil > Date.now()) {
+                        const date = new Date(data.premiumUntil);
+                        // Format Tanggal: 17/02/2026 20:30
+                        const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        
+                        statusDiv.innerHTML = `Your Premium Expired:<br><span style="color:white">${dateStr}</span>`;
+                        statusDiv.className = "status-display status-active";
+                    } else {
+                        statusDiv.innerText = "You are not Premium User";
+                        statusDiv.className = "status-display status-inactive";
+                    }
+                } else {
+                    statusDiv.innerText = "You are not Premium User";
+                    statusDiv.className = "status-display status-inactive";
+                }
+            } catch (e) {
+                console.error(e);
+                statusDiv.innerText = "Status: Unknown";
+            }
+        }
+
         window.startRewardedAd = () => {
-            // 1. Tampilkan UI Loading
             const overlay = document.getElementById('rewardOverlay');
             const status = document.getElementById('adStatus');
             const timerDiv = document.getElementById('timerCircle');
@@ -158,16 +212,14 @@
             overlay.style.display = 'flex';
             status.innerText = "Opening Ad...";
 
-            // 2. Delay 1.5 detik biar kerasa 'loading', baru buka iklan
             setTimeout(() => {
                 window.open(DIRECT_LINK, '_blank');
                 
-                // 3. Ganti UI jadi Timer Hitung Mundur
                 loader.style.display = 'none';
                 timerDiv.style.display = 'flex';
                 status.innerText = "Verifying View...";
                 
-                let timeLeft = 15; // Timer 15 detik
+                let timeLeft = 15;
                 timerDiv.innerText = timeLeft;
                 
                 const interval = setInterval(() => {
@@ -204,21 +256,4 @@
                     premiumUntil: finalExpiry
                 }, { merge: true });
 
-                alert("SUCCESS! 💎 Premium activated for 24 Hours.");
-                window.location.href = "main.html";
-            } catch (e) {
-                alert("Error saving data: " + e.message);
-                document.getElementById('rewardOverlay').style.display = 'none';
-            }
-        }
-    </script>
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-            .then(() => console.log('Monetag Ready'))
-            .catch(err => console.error('Monetag Error:', err));
-        }
-    </script>
-</body>
-</html>
+                alert("SUCCESS! 💎 Premium
