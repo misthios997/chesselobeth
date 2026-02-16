@@ -22,6 +22,7 @@
             --danger-color: #ff4d4d;        /* Red for Errors/Delete */
             --secondary-text: #888888;      /* Grey Text */
             --info-color: #3498db;          /* Blue for Info */
+            --premium-color: #00d2ff;       /* Cyan for Premium */
             
             /* Spacing & Sizes */
             --header-height: 60px;
@@ -700,6 +701,10 @@
                         <i class="fas fa-robot"></i> Play Bot
                     </a>
                     
+                    <a href="premium.html" style="color:var(--premium-color); font-weight:bold;">
+                        <i class="fas fa-gem"></i> Premium
+                    </a>
+                    
                     <a href="learn.html" style="color:var(--primary-color)">
                         <i class="fas fa-book-open"></i> Learn Chess
                     </a>
@@ -922,6 +927,17 @@
             
             <button class="btn-gold" onclick="pushUpdate()">[ SET UPDATE STATUS ]</button>
             
+            <hr style="border-color:#444; margin:20px 0;">
+            
+            <h3 style="color:var(--premium-color); margin-bottom:10px;">Premium Management</h3>
+            <input type="text" id="premName" placeholder="User Name">
+            <input type="number" id="premDays" placeholder="Days (e.g. 30)">
+            <button class="btn-gold" style="background:var(--premium-color); color:black" onclick="setUserPremium()">SET PREMIUM</button>
+            
+            <div style="margin-top:10px"></div>
+            <input type="text" id="removePremName" placeholder="User Name">
+            <button class="btn-gold" style="background:#ff4d4d; color:white" onclick="removeUserPremium()">REMOVE PREMIUM</button>
+
             <hr style="border-color:#444; margin:20px 0;">
             
             <input type="text" id="banName" placeholder="Ban Name">
@@ -1331,6 +1347,7 @@
         window.unbanUser = async () => { await deleteDoc(doc(db, "bans", document.getElementById('unbanName').value)); alert("Unbanned"); };
         window.submitData = async () => { await addDoc(collection(db, "players"), { name: document.getElementById('inName').value, elo: document.getElementById('inElo').value, date: document.getElementById('inDate').value, rank: document.getElementById('inRank').value, timestamp: Date.now() }); closeModals(); };
         window.updateBC = async () => { await setDoc(doc(db, "config", "broadcastMsg"), { text: document.getElementById('bcInput').value }); closeModals(); };
+        
         window.pushUpdate = async () => { await setDoc(doc(db, "config", "settings"), { latestVersion: Date.now() }, { merge: true }); alert("Pushed"); };
         window.sendGlobalNotif = async () => {
             const txt = document.getElementById('notifAllIn').value;
@@ -1338,6 +1355,27 @@
             us.forEach(async (u) => { await addDoc(collection(db, "inbox"), { to: u.data().name, type: 'system', text: txt, read: false, timestamp: Date.now() }); });
             alert("Sent!"); closeModals();
         };
+
+        // PREMIUM FUNCTIONS
+        window.setUserPremium = async () => {
+            const name = document.getElementById('premName').value;
+            const days = parseInt(document.getElementById('premDays').value);
+            if(!name || !days) return alert("Fill all fields");
+            
+            const expiry = Date.now() + (days * 24 * 60 * 60 * 1000);
+            
+            await setDoc(doc(db, "users", name), { isPremium: true, premiumUntil: expiry }, {merge: true});
+            alert(`User ${name} is now Premium for ${days} days!`);
+        };
+
+        window.removeUserPremium = async () => {
+            const name = document.getElementById('removePremName').value;
+            if(!name) return alert("Fill name");
+            
+            await updateDoc(doc(db, "users", name), { isPremium: false, premiumUntil: 0 });
+            alert(`Premium removed from ${name}`);
+        };
+
         window.delData = async (id) => { if(confirm("Delete data?")) await deleteDoc(doc(db, "players", id)); };
         window.openAvatarModal = () => document.getElementById('avatarModal').style.display = 'flex';
         window.selectAva = async (url) => { await updateProfile(auth.currentUser, { photoURL: url }); location.reload(); };
