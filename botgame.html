@@ -37,6 +37,7 @@
         <div class="go-box">
             <h1 id="goTitle" style="color:var(--primary)">GAME OVER</h1>
             <p id="goReason" style="color:#ccc"></p>
+            <button class="go-btn" id="btnSeeGame" style="background:#81b64c; color:white;">SEE YOUR GAME</button>
             <button class="go-btn" onclick="window.location.href='main.html'">BACK TO LOBBY</button>
             <button class="go-btn" onclick="location.reload()" style="background:#444; color:white; margin-top:10px;">REMATCH</button>
         </div>
@@ -48,15 +49,17 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, setDoc, doc, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", authDomain: "chesselobeth.firebaseapp.com", projectId: "chesselobeth", storageBucket: "chesselobeth.firebasestorage.app", messagingSenderId: "829508204106", appId: "1:829508204106:web:e8952c359f63d49646d8b3" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
         const lvl = new URLSearchParams(window.location.search).get('lvl') || 1;
         document.getElementById('botName').innerText = `Stockfish (Lvl ${lvl})`;
 
-        let game = new Chess(), board;
+        let game = new Chess(), board, curName="";
         
         // NEO THEME
         const pieceTheme = (piece) => 'https://www.chess.com/chess-themes/pieces/neo/300/' + piece.toLowerCase() + '.png';
@@ -66,6 +69,7 @@
 
         onAuthStateChanged(auth, (u) => {
             if(!u) window.location.href = "index.html";
+            curName = u.displayName;
             document.getElementById('myName').innerText = u.displayName;
             document.getElementById('myAva').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
             initGame();
@@ -100,7 +104,7 @@
             }
         };
 
-        function checkGameOver() {
+        async function checkGameOver() {
             if(game.game_over()) {
                 let t = "GAME OVER", r = "";
                 if(game.in_checkmate()) { t="CHECKMATE"; r=(game.turn()==='w'?"Stockfish Wins":"You Win!"); }
@@ -110,6 +114,19 @@
                 document.getElementById('goTitle').innerText = t;
                 document.getElementById('goReason').innerText = r;
                 document.getElementById('gameOverModal').style.display = 'flex';
+
+                // SAVE BOT GAME TO HISTORY
+                const botGameId = "bot_" + Date.now();
+                await setDoc(doc(db, "history", botGameId), {
+                    player: curName,
+                    opp: `Stockfish (Lvl ${lvl})`,
+                    res: r,
+                    pgn: game.pgn(),
+                    timestamp: Date.now()
+                });
+
+                // LINK BUTTON
+                document.getElementById('btnSeeGame').onclick = () => window.location.href = `review.html?id=${botGameId}`;
             }
         }
 
