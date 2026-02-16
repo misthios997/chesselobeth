@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Upgrade to Premium</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --card: #2d2d2d;
+            --text: #ffffff;
+            --primary: #ffd700;
+            --premium: #00d2ff;
+            --gray: #888;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .header {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .btn-back {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .premium-card {
+            background: linear-gradient(145deg, #2d2d2d, #1f1f1f);
+            border: 2px solid var(--premium);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .premium-icon {
+            font-size: 4rem;
+            color: var(--premium);
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px rgba(0, 210, 255, 0.6);
+        }
+
+        h1 { margin: 10px 0; color: var(--premium); }
+        
+        .benefits-list {
+            text-align: left;
+            margin: 25px 0;
+            list-style: none;
+            padding: 0;
+        }
+
+        .benefits-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid #444;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .benefits-list li i { color: var(--primary); width: 25px; }
+
+        .ad-section {
+            background: #333;
+            padding: 20px;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .btn-watch {
+            background: var(--premium);
+            color: black;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            border-radius: 10px;
+            font-weight: 900;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            transition: 0.2s;
+        }
+
+        .btn-watch:active { transform: scale(0.98); }
+
+        /* ADS SIMULATION MODAL */
+        #adOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; z-index: 9999; display: none;
+            flex-direction: column; justify-content: center; align-items: center;
+        }
+        #adTimer { font-size: 2rem; color: white; margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <button class="btn-back" onclick="window.location.href='main.html'">
+            <i class="fas fa-arrow-left"></i> Back
+        </button>
+    </div>
+
+    <div class="premium-card">
+        <i class="fas fa-gem premium-icon"></i>
+        <h1>Premium Access</h1>
+        <p style="color:#aaa">Unlock the full potential of ChessEloBeth</p>
+
+        <ul class="benefits-list">
+            <li><i class="fas fa-book-open"></i> Learn Access</li>
+            <li><i class="fas fa-robot"></i> Unlimited Play Bot</li>
+            <li><i class="fas fa-crown"></i> Premium Title (💎)</li>
+        </ul>
+    </div>
+
+    <div class="ad-section">
+        <h3>Watch Ads</h3>
+        <p style="color:#aaa; font-size:0.9rem; margin-top:5px;">Watch 1 video to get 1 Day Premium</p>
+        <button class="btn-watch" onclick="watchAd()">
+            <i class="fas fa-play-circle"></i> WATCH
+        </button>
+    </div>
+
+    <div id="adOverlay">
+        <i class="fas fa-ad" style="font-size: 5rem; color: white;"></i>
+        <h2 style="color:white; margin-top:20px;">Advertisement</h2>
+        <p style="color:#ccc">Please wait...</p>
+        <div id="adTimer">5</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", authDomain: "chesselobeth.firebaseapp.com", projectId: "chesselobeth", storageBucket: "chesselobeth.firebasestorage.app", messagingSenderId: "829508204106", appId: "1:829508204106:web:e8952c359f63d49646d8b3" };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let curName = "";
+
+        onAuthStateChanged(auth, (u) => {
+            if(!u) window.location.href = "index.html";
+            curName = u.displayName;
+        });
+
+        window.watchAd = () => {
+            const overlay = document.getElementById('adOverlay');
+            const timer = document.getElementById('adTimer');
+            overlay.style.display = 'flex';
+            let timeLeft = 5; // 5 seconds simulation
+            
+            const interval = setInterval(() => {
+                timeLeft--;
+                timer.innerText = timeLeft;
+                if(timeLeft <= 0) {
+                    clearInterval(interval);
+                    finishAd();
+                }
+            }, 1000);
+        };
+
+        async function finishAd() {
+            document.getElementById('adOverlay').style.display = 'none';
+            
+            // Add 1 Day (24 hours)
+            const oneDay = 24 * 60 * 60 * 1000;
+            const newExpiry = Date.now() + oneDay;
+
+            try {
+                // Get current status to maybe extend instead of overwrite
+                const docSnap = await getDoc(doc(db, "users", curName));
+                let finalExpiry = newExpiry;
+
+                if (docSnap.exists() && docSnap.data().premiumUntil > Date.now()) {
+                    // Extend existing
+                    finalExpiry = docSnap.data().premiumUntil + oneDay;
+                }
+
+                await setDoc(doc(db, "users", curName), {
+                    isPremium: true,
+                    premiumUntil: finalExpiry
+                }, { merge: true });
+
+                alert("Success! You got 1 Day of Premium.");
+                window.location.href = "main.html";
+            } catch (e) {
+                alert("Error saving premium: " + e.message);
+            }
+        }
+    </script>
+</body>
+</html>
