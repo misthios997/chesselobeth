@@ -35,7 +35,7 @@
         .chat-input input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #1a1a1a; color: white; outline: none; }
         .game-over-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 7000; }
         .go-box { background: var(--panel); padding: 30px; border-radius: 20px; text-align: center; border: 2px solid var(--primary); width: 80%; max-width: 350px; }
-        .go-btn { background: var(--primary); border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; color: #000; font-size: 1rem; margin-top:15px; }
+        .go-btn { background: var(--primary); border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; color: #000; font-size: 1rem; margin-top:10px; }
         #promoModal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 9999; }
         .promo-box { background: var(--panel); padding: 20px; border-radius: 15px; display: flex; gap: 15px; border: 2px solid var(--primary); }
         .promo-opt { width: 60px; height: 60px; background: #444; border-radius: 8px; cursor: pointer; transition: 0.2s; border: 2px solid transparent; }
@@ -52,7 +52,15 @@
     </div>
     <div id="promoModal"><div class="promo-box" id="promoPieces"></div></div>
     <div id="gameChatOverlay"><div class="chat-header"><button onclick="toggleGameChat(false)" style="background:none;border:none;color:white;font-size:1.5rem"><i class="fas fa-arrow-left"></i></button><b>Chat</b></div><div id="chatBox"></div><div class="chat-input"><input id="chatIn" placeholder="Type..."><button onclick="sendGameChat()" class="btn" style="background:var(--primary);color:black;flex:0 0 auto;width:auto">SEND</button></div></div>
-    <div class="game-over-overlay" id="gameOverModal"><div class="go-box"><h1 id="goTitle" style="color:var(--primary)">GAME OVER</h1><p id="goReason" style="color:#ccc"></p><button class="go-btn" onclick="window.location.href='main.html'">LOBBY</button></div></div>
+    
+    <div class="game-over-overlay" id="gameOverModal">
+        <div class="go-box">
+            <h1 id="goTitle" style="color:var(--primary)">GAME OVER</h1>
+            <p id="goReason" style="color:#ccc"></p>
+            <button class="go-btn" id="btnSeeGame" style="background:#81b64c; color:white;">SEE YOUR GAME</button>
+            <button class="go-btn" onclick="window.location.href='main.html'">LOBBY</button>
+        </div>
+    </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
@@ -110,7 +118,8 @@
                 document.getElementById('oppName').innerText = oppName;
                 document.getElementById('oppAva').src = "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
 
-                if (d.lastFen && d.lastFen !== game.fen()) { game.load(d.lastFen); board.position(d.lastFen); }
+                if(d.pgn) { game.load_pgn(d.pgn); board.position(game.fen()); }
+                else if (d.lastFen && d.lastFen !== game.fen()) { game.load(d.lastFen); board.position(d.lastFen); }
                 
                 if (d.pocket) pocket = d.pocket;
                 if (d.timeLeft) timeLeft = d.timeLeft;
@@ -149,49 +158,22 @@
             });
         }
 
-        // --- FIX POCKET DROP RESET ---
         async function handlePocketDrop(square) {
             if (isMoving || selectedPocketIdx === null || game.turn() !== myColor) return;
-            if (game.get(square)) return; // Must be empty
-
+            if (game.get(square)) return;
             const type = pocket[myColor][selectedPocketIdx];
-            
-            // 1. Check Move Validity without altering game yet
-            const test = new Chess(game.fen());
-            const putSuccess = test.put({ type: type, color: myColor }, square);
-            if (!putSuccess) return; 
+            const test = new Chess(game.fen()); test.put({ type: type, color: myColor }, square);
+            const fenParts = test.fen().split(' '); fenParts[1] = (myColor==='w'?'b':'w');
+            const val = new Chess(fenParts.join(' '));
+            if(val.in_check()) { alert("Cannot drop: King in check!"); return; }
 
-            // Manually switch turn in temp FEN to validate check
-            const fenParts = test.fen().split(' ');
-            fenParts[1] = (myColor==='w'?'b':'w');
-            const nextFen = fenParts.join(' ');
-            const val = new Chess(nextFen);
-            
-            // Note: In chess.js dropping is tricky. This validation is basic.
-            // If King is attacked after drop (impossible usually unless checking invalidly)
-            // Real issue: chess.js doesn't support drops directly.
-            
-            isMoving = true;
-            
-            // 2. Execute on Real Game
-            game.put({ type: type, color: myColor }, square);
-            pocket[myColor].splice(selectedPocketIdx, 1);
-            selectedPocketIdx = null;
-            
-            // 3. Update FEN manually to switch turn
-            let f = game.fen().split(' ');
-            f[1] = (myColor==='w'?'b':'w'); // Switch turn
-            // Reset halfmove clock and fullmove number if needed, but keeping simple
-            
-            const newFen = f.join(' ');
-            game.load(newFen); // Load new state
-            
-            board.position(newFen); // Force board update
-            await sync();
-            isMoving = false;
+            isMoving = true; game.put({ type: type, color: myColor }, square);
+            pocket[myColor].splice(selectedPocketIdx, 1); selectedPocketIdx = null;
+            let t = game.fen().split(' '); t[1] = (myColor==='w'?'b':'w'); game.load(t.join(' '));
+            board.position(game.fen()); await sync(); isMoving = false;
         }
 
-        async function sync() { isMoving=true; await updateDoc(doc(db, "rooms", roomId), { lastFen: game.fen(), pocket: pocket, timeLeft: timeLeft, lastMove: Date.now() }); isMoving=false; }
+        async function sync() { isMoving=true; await updateDoc(doc(db, "rooms", roomId), { lastFen: game.fen(), pgn: game.pgn(), pocket: pocket, timeLeft: timeLeft, lastMove: Date.now() }); isMoving=false; }
 
         function updateUI() {
             const f = (t) => { const m=Math.floor(t/60); const s=t%60; return `${m}:${s.toString().padStart(2,'0')}`; };
@@ -229,6 +211,8 @@
                         player: curName, opp: document.getElementById('oppName').innerText, 
                         res: r, pgn: game.pgn(), timestamp: Date.now() 
                     });
+                    // LINK TOMBOL SEE YOUR GAME
+                    document.getElementById('btnSeeGame').onclick = () => window.location.href = `review.html?id=${uniqueId}`;
                     historySaved = true;
                 }
             }
