@@ -47,7 +47,7 @@
         .premium-icon { font-size: 4rem; color: var(--premium); margin-bottom: 15px; text-shadow: 0 0 15px rgba(0, 210, 255, 0.6); }
         h1 { margin: 10px 0; color: var(--premium); }
 
-        /* CSS STATUS BARU */
+        /* STATUS DISPLAY */
         .status-display {
             background: rgba(0,0,0,0.3);
             padding: 12px;
@@ -89,12 +89,6 @@
             flex-direction: column; justify-content: center; align-items: center;
             text-align: center; padding: 20px;
         }
-
-        .video-loader {
-            width: 80px; height: 80px; border: 5px solid #333; border-top: 5px solid var(--premium);
-            border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         #timerCircle {
             width: 100px; height: 100px; border-radius: 50%; border: 5px solid var(--green);
@@ -148,10 +142,9 @@
     </div>
 
     <div id="rewardOverlay">
-        <div id="loaderUI" class="video-loader"></div>
-        <div id="timerCircle" style="display:none">15</div>
-        <h2 id="adStatus" style="color:white; margin-top:10px;">Loading Ad...</h2>
-        <p class="status-text">Please keep this tab open to receive reward.</p>
+        <div id="timerCircle">15</div>
+        <h2 id="adStatus" style="color:white; margin-top:10px;">Verifying Ad...</h2>
+        <p class="status-text">Please keep this tab open.</p>
     </div>
 
     <script type="module">
@@ -171,20 +164,20 @@
         onAuthStateChanged(auth, async (u) => {
             if(!u) window.location.href = "index.html";
             curName = u.displayName;
-            checkStatus(); // Cek status pas load
+            checkStatus(); // Panggil cek status
         });
 
-        // FUNGSI CEK STATUS PREMIUM
+        // FUNGSI CEK STATUS (Fixed)
         async function checkStatus() {
             const statusDiv = document.getElementById('premiumStatus');
+            if(!curName) return;
+
             try {
                 const uDoc = await getDoc(doc(db, "users", curName));
                 if (uDoc.exists()) {
                     const data = uDoc.data();
-                    // Cek apakah premium dan apakah waktunya masih ada
                     if (data.isPremium && data.premiumUntil > Date.now()) {
                         const date = new Date(data.premiumUntil);
-                        // Format Tanggal: 17/02/2026 20:30
                         const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                         
                         statusDiv.innerHTML = `Your Premium Expired:<br><span style="color:white">${dateStr}</span>`;
@@ -199,40 +192,36 @@
                 }
             } catch (e) {
                 console.error(e);
-                statusDiv.innerText = "Status: Unknown";
+                statusDiv.innerText = "Status: Check Failed";
             }
         }
 
+        // FUNGSI IKLAN (Fixed: Langsung Buka Tab, Baru Timer)
         window.startRewardedAd = () => {
+            // 1. BUKA IKLAN DULUAN (Wajib baris pertama biar gak diblokir browser)
+            window.open(DIRECT_LINK, '_blank');
+
+            // 2. Tampilkan Overlay
             const overlay = document.getElementById('rewardOverlay');
             const status = document.getElementById('adStatus');
             const timerDiv = document.getElementById('timerCircle');
-            const loader = document.getElementById('loaderUI');
             
             overlay.style.display = 'flex';
-            status.innerText = "Opening Ad...";
-
-            setTimeout(() => {
-                window.open(DIRECT_LINK, '_blank');
-                
-                loader.style.display = 'none';
-                timerDiv.style.display = 'flex';
-                status.innerText = "Verifying View...";
-                
-                let timeLeft = 15;
+            status.innerText = "Verifying View...";
+            
+            // 3. Jalankan Timer
+            let timeLeft = 15;
+            timerDiv.innerText = timeLeft;
+            
+            const interval = setInterval(() => {
+                timeLeft--;
                 timerDiv.innerText = timeLeft;
                 
-                const interval = setInterval(() => {
-                    timeLeft--;
-                    timerDiv.innerText = timeLeft;
-                    
-                    if(timeLeft <= 0) {
-                        clearInterval(interval);
-                        finishReward();
-                    }
-                }, 1000);
-                
-            }, 1500);
+                if(timeLeft <= 0) {
+                    clearInterval(interval);
+                    finishReward();
+                }
+            }, 1000);
         };
 
         async function finishReward() {
@@ -256,4 +245,17 @@
                     premiumUntil: finalExpiry
                 }, { merge: true });
 
-                alert("SUCCESS! 💎 Premium
+                alert("SUCCESS! 💎 Premium activated for 24 Hours.");
+                
+                // Tutup Overlay & Update Status
+                document.getElementById('rewardOverlay').style.display = 'none';
+                checkStatus(); 
+
+            } catch (e) {
+                alert("Error saving data: " + e.message);
+                document.getElementById('rewardOverlay').style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
