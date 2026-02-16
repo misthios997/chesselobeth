@@ -6,8 +6,6 @@
     <title>Get Premium Free</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
-    <script>(function(s){s.dataset.zone='10616582',s.src='https://gizokraijaw.net/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-
     <style>
         :root {
             --bg: #1a1a1a;
@@ -15,7 +13,7 @@
             --text: #ffffff;
             --primary: #ffd700;
             --premium: #00d2ff;
-            --gray: #888;
+            --green: #81b64c;
         }
 
         body {
@@ -30,24 +28,8 @@
             min-height: 100vh;
         }
 
-        .header {
-            width: 100%;
-            max-width: 500px;
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .btn-back {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.2rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .header { width: 100%; max-width: 500px; margin-bottom: 20px; }
+        .btn-back { background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; gap: 10px; }
 
         .premium-card {
             background: linear-gradient(145deg, #2d2d2d, #1f1f1f);
@@ -57,76 +39,57 @@
             width: 100%;
             max-width: 400px;
             text-align: center;
-            box-shadow: 0 0 20px rgba(0, 210, 255, 0.2);
+            box-shadow: 0 0 25px rgba(0, 210, 255, 0.15);
             margin-bottom: 25px;
         }
 
-        .premium-icon {
-            font-size: 4rem;
-            color: var(--premium);
-            margin-bottom: 15px;
-            text-shadow: 0 0 15px rgba(0, 210, 255, 0.6);
-        }
-
+        .premium-icon { font-size: 4rem; color: var(--premium); margin-bottom: 15px; text-shadow: 0 0 15px rgba(0, 210, 255, 0.6); }
         h1 { margin: 10px 0; color: var(--premium); }
         
-        .benefits-list {
-            text-align: left;
-            margin: 25px 0;
-            list-style: none;
-            padding: 0;
-        }
-
-        .benefits-list li {
-            padding: 12px 0;
-            border-bottom: 1px solid #444;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
+        .benefits-list { text-align: left; margin: 25px 0; list-style: none; padding: 0; }
+        .benefits-list li { padding: 12px 0; border-bottom: 1px solid #444; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
         .benefits-list li i { color: var(--primary); width: 25px; }
 
         .ad-section {
-            background: #333;
+            background: #222;
             padding: 25px;
             border-radius: 15px;
             width: 100%;
             max-width: 400px;
             text-align: center;
-            border: 1px solid #444;
+            border: 1px dashed var(--premium);
         }
 
-        /* TOMBOL WATCH AD */
         .btn-watch {
-            background: var(--premium);
-            color: black;
-            border: none;
-            padding: 18px;
-            width: 100%;
-            border-radius: 12px;
-            font-weight: 900;
-            font-size: 1.2rem;
-            cursor: pointer;
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            transition: 0.2s;
-            box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3);
+            background: var(--premium); color: black; border: none; padding: 18px; width: 100%;
+            border-radius: 12px; font-weight: 900; font-size: 1.2rem; cursor: pointer; margin-top: 20px;
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+            box-shadow: 0 4px 20px rgba(0, 210, 255, 0.4); animation: pulse 2s infinite;
         }
-        .btn-watch:active { transform: scale(0.98); }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
 
-        /* ADS SIMULATION MODAL (VERIFICATION) */
-        #adOverlay {
+        /* UI PURA-PURA VIDEO PLAYER (OVERLAY) */
+        #rewardOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); z-index: 9999; display: none;
             flex-direction: column; justify-content: center; align-items: center;
             text-align: center; padding: 20px;
         }
-        #adTimer { font-size: 3rem; color: var(--premium); margin-top: 20px; font-weight: bold; }
+
+        .video-loader {
+            width: 80px; height: 80px; border: 5px solid #333; border-top: 5px solid var(--premium);
+            border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #timerCircle {
+            width: 100px; height: 100px; border-radius: 50%; border: 5px solid var(--green);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 3rem; font-weight: bold; color: white; margin: 20px 0;
+            background: #222;
+        }
+
+        .status-text { color: #aaa; font-size: 0.9rem; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -139,30 +102,30 @@
 
     <div class="premium-card">
         <i class="fas fa-gem premium-icon"></i>
-        <h1>Premium Access</h1>
-        <p style="color:#aaa">Unlock your special features</p>
+        <h1>Premium Status</h1>
+        <p style="color:#aaa">Unlock Learn Mode & Unlimited Bot</p>
 
         <ul class="benefits-list">
-            <li><i class="fas fa-book-open"></i> Access Learning</li>
+            <li><i class="fas fa-book-open"></i> Access All Learning</li>
             <li><i class="fas fa-robot"></i> Unlimited Play Bot</li>
-            <li><i class="fas fa-crown"></i> Premium Title (💎)</li>
+            <li><i class="fas fa-crown"></i> 💎 Title Badge</li>
         </ul>
     </div>
 
     <div class="ad-section">
-        <h2 style="color:white; margin:0 0 10px 0;">Get Premium Free</h2>
-        <p style="color:#aaa; font-size:0.95rem;">Watch the full advertisement to get <b>24 Hours</b> of Premium instantly.</p>
+        <h2 style="color:white; margin:0 0 5px 0;">Watch Ad to Unlock</h2>
+        <p style="color:#aaa; font-size:0.9rem;">Watch 1 advertisement to get <b>24 Hours Premium</b>.</p>
         
-        <button class="btn-watch" onclick="watchAd()">
-            <i class="fas fa-play-circle"></i> WATCH AD
+        <button class="btn-watch" onclick="startRewardedAd()">
+            <i class="fas fa-play-circle"></i> WATCH VIDEO
         </button>
     </div>
 
-    <div id="adOverlay">
-        <i class="fas fa-ad" style="font-size: 5rem; color: white;"></i>
-        <h2 style="color:white; margin-top:20px;">Verifying Ad...</h2>
-        <p style="color:#ccc">Please wait on this page while the ad is verified.</p>
-        <div id="adTimer">15</div>
+    <div id="rewardOverlay">
+        <div id="loaderUI" class="video-loader"></div>
+        <div id="timerCircle" style="display:none">15</div>
+        <h2 id="adStatus" style="color:white; margin-top:10px;">Loading Ad...</h2>
+        <p class="status-text">Please keep this tab open to receive reward.</p>
     </div>
 
     <script type="module">
@@ -175,8 +138,8 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
-        // --- DIRECT LINK IKLAN MONETAG KAMU ---
-        const AD_LINK = "https://omg10.com/4/10616896"; 
+        // DIRECT LINK MONETAG KAMU
+        const DIRECT_LINK = "https://omg10.com/4/10616896"; 
         
         let curName = "";
 
@@ -185,32 +148,45 @@
             curName = u.displayName;
         });
 
-        window.watchAd = () => {
-            // 1. Buka Tab Baru ke Iklan (Direct Link)
-            window.open(AD_LINK, '_blank');
-
-            // 2. Tampilkan Timer di halaman ini
-            const overlay = document.getElementById('adOverlay');
-            const timer = document.getElementById('adTimer');
+        window.startRewardedAd = () => {
+            // 1. Tampilkan UI Loading
+            const overlay = document.getElementById('rewardOverlay');
+            const status = document.getElementById('adStatus');
+            const timerDiv = document.getElementById('timerCircle');
+            const loader = document.getElementById('loaderUI');
+            
             overlay.style.display = 'flex';
-            
-            let timeLeft = 15; // Wajib nunggu 15 detik
-            timer.innerText = timeLeft;
-            
-            const interval = setInterval(() => {
-                timeLeft--;
-                timer.innerText = timeLeft;
-                if(timeLeft <= 0) {
-                    clearInterval(interval);
-                    finishAd();
-                }
-            }, 1000);
+            status.innerText = "Opening Ad...";
+
+            // 2. Delay 1.5 detik biar kerasa 'loading', baru buka iklan
+            setTimeout(() => {
+                window.open(DIRECT_LINK, '_blank');
+                
+                // 3. Ganti UI jadi Timer Hitung Mundur
+                loader.style.display = 'none';
+                timerDiv.style.display = 'flex';
+                status.innerText = "Verifying View...";
+                
+                let timeLeft = 15; // Timer 15 detik
+                timerDiv.innerText = timeLeft;
+                
+                const interval = setInterval(() => {
+                    timeLeft--;
+                    timerDiv.innerText = timeLeft;
+                    
+                    if(timeLeft <= 0) {
+                        clearInterval(interval);
+                        finishReward();
+                    }
+                }, 1000);
+                
+            }, 1500);
         };
 
-        async function finishAd() {
-            document.getElementById('adOverlay').style.display = 'none';
+        async function finishReward() {
+            const status = document.getElementById('adStatus');
+            status.innerText = "Claiming Reward...";
             
-            // Hadiah 1 Hari (24 Jam)
             const oneDay = 24 * 60 * 60 * 1000;
             const newExpiry = Date.now() + oneDay;
 
@@ -219,7 +195,6 @@
                 const docSnap = await getDoc(docRef);
                 let finalExpiry = newExpiry;
 
-                // Jika sudah premium, perpanjang waktunya
                 if (docSnap.exists() && docSnap.data().premiumUntil > Date.now()) {
                     finalExpiry = docSnap.data().premiumUntil + oneDay;
                 }
@@ -229,11 +204,11 @@
                     premiumUntil: finalExpiry
                 }, { merge: true });
 
-                alert("Congratulations! 1 Day of Premium Activated.");
+                alert("SUCCESS! 💎 Premium activated for 24 Hours.");
                 window.location.href = "main.html";
             } catch (e) {
-                alert("Database Error: " + e.message);
-                document.getElementById('adOverlay').style.display = 'none';
+                alert("Error saving data: " + e.message);
+                document.getElementById('rewardOverlay').style.display = 'none';
             }
         }
     </script>
@@ -241,7 +216,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js')
-            .then(() => console.log('Monetag Push Ads Ready'))
+            .then(() => console.log('Monetag Ready'))
             .catch(err => console.error('Monetag Error:', err));
         }
     </script>
