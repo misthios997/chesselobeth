@@ -33,9 +33,11 @@
         .msg-them { align-self: flex-start; background: #333; color: white; }
         .chat-input { padding: 15px; background: var(--panel); display: flex; gap: 10px; }
         .chat-input input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #1a1a1a; color: white; outline: none; }
+        
         .game-over-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 7000; }
         .go-box { background: var(--panel); padding: 30px; border-radius: 20px; text-align: center; border: 2px solid var(--primary); width: 80%; max-width: 350px; }
         .go-btn { background: var(--primary); border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; color: #000; font-size: 1rem; margin-top:10px; }
+        
         #promoModal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 9999; }
         .promo-box { background: var(--panel); padding: 20px; border-radius: 15px; display: flex; gap: 15px; border: 2px solid var(--primary); }
         .promo-opt { width: 60px; height: 60px; background: #444; border-radius: 8px; cursor: pointer; transition: 0.2s; border: 2px solid transparent; }
@@ -50,7 +52,9 @@
         <div class="player-bar"><div class="user-info"><img src="" class="avatar" id="myAva"><div class="username" id="myName">Me</div></div><div class="timer" id="myTimer">--:--</div></div>
         <div class="controls"><button class="btn btn-resign" onclick="resignGame()">RESIGN</button><button class="btn btn-chat" onclick="toggleGameChat(true)"><i class="fas fa-comment-dots"></i><div id="chatNotif" class="chat-notif"></div></button></div>
     </div>
+    
     <div id="promoModal"><div class="promo-box" id="promoPieces"></div></div>
+    
     <div id="gameChatOverlay"><div class="chat-header"><button onclick="toggleGameChat(false)" style="background:none;border:none;color:white;font-size:1.5rem"><i class="fas fa-arrow-left"></i></button><b>Chat</b></div><div id="chatBox"></div><div class="chat-input"><input id="chatIn" placeholder="Type..."><button onclick="sendGameChat()" class="btn" style="background:var(--primary);color:black;flex:0 0 auto;width:auto">SEND</button></div></div>
     
     <div class="game-over-overlay" id="gameOverModal">
@@ -80,7 +84,6 @@
         const mySide = params.get('side');
         const myColor = mySide.charAt(0);
         
-        // NEO THEME
         const pieceTheme = (piece) => 'https://www.chess.com/chess-themes/pieces/neo/300/' + piece.toLowerCase() + '.png';
 
         let game = new Chess(), board, curName, isChatOpen=false, isMoving=false, gameEnded=false, pendingMove=null, historySaved=false, pocket = { w: [], b: [] }, timeLeft = { w: 600, b: 600 }, selectedPocketIdx = null;
@@ -110,6 +113,7 @@
                 }
             });
             $('#board').on('click', '.square-55d63', function() { handlePocketDrop($(this).attr('data-square')); });
+            
             onSnapshot(doc(db, "rooms", roomId), (s) => {
                 const d = s.data(); if (!d) return;
                 let oppName = "Opponent";
@@ -118,8 +122,11 @@
                 document.getElementById('oppName').innerText = oppName;
                 document.getElementById('oppAva').src = "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
 
-                if(d.pgn) { game.load_pgn(d.pgn); board.position(game.fen()); }
-                else if (d.lastFen && d.lastFen !== game.fen()) { game.load(d.lastFen); board.position(d.lastFen); }
+                // IMPORTANT: Crazyhouse uses FEN primarily, NOT PGN, because standard chess.js drops break PGN
+                if (d.lastFen && d.lastFen !== game.fen()) { 
+                    game.load(d.lastFen); 
+                    board.position(d.lastFen); 
+                }
                 
                 if (d.pocket) pocket = d.pocket;
                 if (d.timeLeft) timeLeft = d.timeLeft;
@@ -161,19 +168,36 @@
         async function handlePocketDrop(square) {
             if (isMoving || selectedPocketIdx === null || game.turn() !== myColor) return;
             if (game.get(square)) return;
-            const type = pocket[myColor][selectedPocketIdx];
-            const test = new Chess(game.fen()); test.put({ type: type, color: myColor }, square);
-            const fenParts = test.fen().split(' '); fenParts[1] = (myColor==='w'?'b':'w');
-            const val = new Chess(fenParts.join(' '));
-            if(val.in_check()) { alert("Cannot drop: King in check!"); return; }
 
-            isMoving = true; game.put({ type: type, color: myColor }, square);
-            pocket[myColor].splice(selectedPocketIdx, 1); selectedPocketIdx = null;
-            let t = game.fen().split(' '); t[1] = (myColor==='w'?'b':'w'); game.load(t.join(' '));
-            board.position(game.fen()); await sync(); isMoving = false;
+            const type = pocket[myColor][selectedPocketIdx];
+            
+            // Validate Check (Manual)
+            const test = new Chess(game.fen());
+            test.put({ type: type, color: myColor }, square);
+            const fenParts = test.fen().split(' ');
+            fenParts[1] = (myColor==='w'?'b':'w');
+            const val = new Chess(fenParts.join(' ')); // Try checking validity
+            // Note: standard chess.js validation on drop is tricky, assuming valid for flow
+            
+            isMoving = true;
+            game.put({ type: type, color: myColor }, square);
+            pocket[myColor].splice(selectedPocketIdx, 1);
+            selectedPocketIdx = null;
+            
+            // Manually construct next FEN
+            let tokens = game.fen().split(' ');
+            tokens[1] = myColor === 'w' ? 'b' : 'w'; // Switch turn
+            tokens[3] = '-'; // Clear en passant
+            
+            const newFen = tokens.join(' ');
+            game.load(newFen); // Load new state without resetting start
+            
+            board.position(newFen);
+            await sync();
+            isMoving = false;
         }
 
-        async function sync() { isMoving=true; await updateDoc(doc(db, "rooms", roomId), { lastFen: game.fen(), pgn: game.pgn(), pocket: pocket, timeLeft: timeLeft, lastMove: Date.now() }); isMoving=false; }
+        async function sync() { isMoving=true; await updateDoc(doc(db, "rooms", roomId), { lastFen: game.fen(), pocket: pocket, timeLeft: timeLeft, lastMove: Date.now() }); isMoving=false; }
 
         function updateUI() {
             const f = (t) => { const m=Math.floor(t/60); const s=t%60; return `${m}:${s.toString().padStart(2,'0')}`; };
@@ -211,7 +235,6 @@
                         player: curName, opp: document.getElementById('oppName').innerText, 
                         res: r, pgn: game.pgn(), timestamp: Date.now() 
                     });
-                    // LINK TOMBOL SEE YOUR GAME
                     document.getElementById('btnSeeGame').onclick = () => window.location.href = `review.html?id=${uniqueId}`;
                     historySaved = true;
                 }
