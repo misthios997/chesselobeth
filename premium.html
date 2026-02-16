@@ -32,7 +32,7 @@
             max-width: 500px;
             display: flex;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .btn-back {
@@ -85,15 +85,17 @@
 
         .benefits-list li i { color: var(--primary); width: 25px; }
 
-        .ad-section {
+        .ad-section, .pay-section {
             background: #333;
             padding: 20px;
             border-radius: 15px;
             width: 100%;
             max-width: 400px;
             text-align: center;
+            margin-bottom: 15px;
         }
 
+        /* TOMBOL NONTON IKLAN */
         .btn-watch {
             background: var(--premium);
             color: black;
@@ -111,16 +113,45 @@
             gap: 10px;
             transition: 0.2s;
         }
-
         .btn-watch:active { transform: scale(0.98); }
 
+        /* TOMBOL BAYAR */
+        .btn-pay {
+            background: white;
+            color: black;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            border-radius: 10px;
+            font-weight: 900;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Ikon E-Wallet */
+        .wallet-icon {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+
         /* ADS SIMULATION MODAL */
-        #adOverlay {
+        #adOverlay, #confirmOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: black; z-index: 9999; display: none;
+            background: rgba(0,0,0,0.95); z-index: 9999; display: none;
             flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; padding: 20px;
         }
         #adTimer { font-size: 2rem; color: white; margin-top: 20px; font-weight: bold; }
+        
+        .confirm-box {
+            background: var(--card); padding: 30px; border-radius: 20px; width: 100%; max-width: 350px; border: 1px solid #555;
+        }
     </style>
 </head>
 <body>
@@ -134,7 +165,7 @@
     <div class="premium-card">
         <i class="fas fa-gem premium-icon"></i>
         <h1>Premium Access</h1>
-        <p style="color:#aaa">Unlock the full potential of ChessEloBeth</p>
+        <p style="color:#aaa">Unlock the full potential</p>
 
         <ul class="benefits-list">
             <li><i class="fas fa-book-open"></i> Learn Access</li>
@@ -144,18 +175,43 @@
     </div>
 
     <div class="ad-section">
-        <h3>Watch Ads</h3>
-        <p style="color:#aaa; font-size:0.9rem; margin-top:5px;">Watch 1 video to get 1 Day Premium</p>
+        <h3>Option 1: Free (1 Day)</h3>
+        <p style="color:#aaa; font-size:0.9rem; margin-top:5px;">Watch a short ad to get 24 hours access.</p>
         <button class="btn-watch" onclick="watchAd()">
-            <i class="fas fa-play-circle"></i> WATCH
+            <i class="fas fa-play-circle"></i> WATCH AD
+        </button>
+    </div>
+
+    <div class="pay-section">
+        <h3>Option 2: Buy (Support Us)</h3>
+        <p style="color:#aaa; font-size:0.9rem; margin-top:5px;">Pay via GoPay/DANA via Saweria.</p>
+        
+        <button class="btn-pay" onclick="window.open('https://saweria.co/chesselobeth', '_blank'); openConfirmModal()">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" class="wallet-icon">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" class="wallet-icon">
+            PAY NOW
         </button>
     </div>
 
     <div id="adOverlay">
         <i class="fas fa-ad" style="font-size: 5rem; color: white;"></i>
         <h2 style="color:white; margin-top:20px;">Advertisement</h2>
-        <p style="color:#ccc">Please wait...</p>
-        <div id="adTimer">5</div>
+        <p style="color:#ccc">Please do not close the new tab...</p>
+        <div id="adTimer">15</div>
+    </div>
+
+    <div id="confirmOverlay">
+        <div class="confirm-box">
+            <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--accent);"></i>
+            <h2 style="margin:15px 0;">Payment Confirmation</h2>
+            <p style="color:#ccc; font-size:0.9rem; margin-bottom:20px;">
+                Have you completed the payment? If yes, please contact Admin (Jovan) to activate your Permanent Premium.
+            </p>
+            <button class="btn-watch" onclick="window.location.href='https://wa.me/6281234567890?text=Halo+min+saya+sudah+bayar+premium+username+saya+' + encodeURIComponent(window.curName)">
+                <i class="fab fa-whatsapp"></i> CONTACT ADMIN
+            </button>
+            <button class="btn-pay" style="background:#444; color:white; margin-top:10px" onclick="document.getElementById('confirmOverlay').style.display='none'">CLOSE</button>
+        </div>
     </div>
 
     <script type="module">
@@ -168,18 +224,30 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
+        // --- GANTI LINK INI DENGAN LINK DIRECT AD MONETAG LO ---
+        const AD_LINK = "https://google.com"; 
+        
         let curName = "";
 
         onAuthStateChanged(auth, (u) => {
             if(!u) window.location.href = "index.html";
             curName = u.displayName;
+            window.curName = curName;
         });
 
+        window.openConfirmModal = () => document.getElementById('confirmOverlay').style.display = 'flex';
+
         window.watchAd = () => {
+            // 1. Open Direct Ad Link
+            window.open(AD_LINK, '_blank');
+
+            // 2. Timer verifikasi
             const overlay = document.getElementById('adOverlay');
             const timer = document.getElementById('adTimer');
             overlay.style.display = 'flex';
-            let timeLeft = 5; // 5 seconds simulation
+            
+            let timeLeft = 15; // 15 detik
+            timer.innerText = timeLeft;
             
             const interval = setInterval(() => {
                 timeLeft--;
@@ -194,21 +262,19 @@
         async function finishAd() {
             document.getElementById('adOverlay').style.display = 'none';
             
-            // Add 1 Day (24 hours)
             const oneDay = 24 * 60 * 60 * 1000;
             const newExpiry = Date.now() + oneDay;
 
             try {
-                // Get current status to maybe extend instead of overwrite
-                const docSnap = await getDoc(doc(db, "users", curName));
+                const docRef = doc(db, "users", curName);
+                const docSnap = await getDoc(docRef);
                 let finalExpiry = newExpiry;
 
                 if (docSnap.exists() && docSnap.data().premiumUntil > Date.now()) {
-                    // Extend existing
                     finalExpiry = docSnap.data().premiumUntil + oneDay;
                 }
 
-                await setDoc(doc(db, "users", curName), {
+                await setDoc(docRef, {
                     isPremium: true,
                     premiumUntil: finalExpiry
                 }, { merge: true });
@@ -216,22 +282,17 @@
                 alert("Success! You got 1 Day of Premium.");
                 window.location.href = "main.html";
             } catch (e) {
-                alert("Error saving premium: " + e.message);
+                alert("Error: " + e.message);
             }
         }
     </script>
-    <script>
-    // Script untuk Mengaktifkan Iklan Monetag (Service Worker)
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-        .then((registration) => {
-            console.log('Monetag Service Worker Registered');
-        })
-        .catch((error) => {
-            console.error('Monetag Error:', error);
-        });
-    }
-</script>
 
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+            .then(() => console.log('Monetag Ads Active'))
+            .catch(err => console.error('Monetag Error:', err));
+        }
+    </script>
 </body>
 </html>
