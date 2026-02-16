@@ -700,6 +700,10 @@
                         <i class="fas fa-robot"></i> Play Bot
                     </a>
                     
+                    <a href="gamereview.html" style="color:var(--accent-color)">
+                        <i class="fas fa-chart-line"></i> Game Review
+                    </a>
+                    
                     <a href="learn.html" style="color:var(--primary-color)">
                         <i class="fas fa-book-open"></i> Learn Chess
                     </a>
@@ -1011,6 +1015,7 @@
                 user = u; curName = u.displayName;
                 checkBanStatus(curName);
                 
+                // Save User Info on Login
                 await setDoc(doc(db, "users", curName), { 
                     name: curName, 
                     photo: u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg" 
@@ -1083,6 +1088,7 @@
             const s = await getDocs(q);
             s.forEach(d => foundUsers.push(d.data()));
 
+            // Exact match fallback
             const dDoc = await getDoc(doc(db, "users", val));
             if(dDoc.exists() && !foundUsers.some(u => u.name === dDoc.data().name)) foundUsers.push(dDoc.data());
 
@@ -1116,10 +1122,13 @@
 
         window.deleteFriend = async (friendName) => {
             if(!confirm("Unfriend?")) return;
+            // Mutual Delete
             const q1 = query(collection(db, "friends"), where("user", "==", curName), where("friend", "==", friendName));
             const s1 = await getDocs(q1); s1.forEach(async (d) => await deleteDoc(doc(db, "friends", d.id)));
+            
             const q2 = query(collection(db, "friends"), where("user", "==", friendName), where("friend", "==", curName));
             const s2 = await getDocs(q2); s2.forEach(async (d) => await deleteDoc(doc(db, "friends", d.id)));
+            
             alert("Unfriended.");
             loadFriendList();
         };
@@ -1144,7 +1153,7 @@
             });
         }
 
-        // --- INBOX SYSTEM ---
+        // --- 7. INBOX SYSTEM ---
         function listenInbox() {
             onSnapshot(query(collection(db, "inbox"), where("to", "==", curName)), (s) => {
                 const list = document.getElementById('inboxContent'); list.innerHTML = "";
@@ -1169,7 +1178,7 @@
 
         window.delInbox = async(id) => await deleteDoc(doc(db, "inbox", id));
 
-        // --- MATCHMAKING ---
+        // --- 8. MATCHMAKING ---
         window.setTimer = (v, b) => { timerVal = v; document.querySelectorAll('#timerGrid .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
         window.setVariant = (v, b) => { variant = v; document.querySelectorAll('#variantGrid .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
         window.setBotLvl = (v, b) => { botLvl = v; document.querySelectorAll('#botGrid .btn-opt').forEach(x => x.classList.remove('active')); b.classList.add('active'); };
@@ -1239,13 +1248,40 @@
             window.location.href = `${v}.html?id=${newRoomId}&side=${mySide}`;
         };
 
-        // --- CHAT SYSTEM ---
+        // --- 9. CHAT SYSTEM ---
         window.toggleChat = (s) => document.getElementById('chatOverlay').style.display = s ? 'flex' : 'none';
-        window.sendChat = async () => { const i = document.getElementById('chatIn'); if(i.value.trim()){ await addDoc(collection(db, "chats"), { name: curName, title: myTitle, text: i.value, photo: user.photoURL, timestamp: Date.now() }); i.value = ""; } };
-        window.openPrivateChat = (target) => { document.getElementById('pChatTarget').innerText = target; document.getElementById('pChatOverlay').style.display = 'flex'; const chatID = [curName, target].sort().join("_"); if(unsubPChat) unsubPChat(); unsubPChat = onSnapshot(query(collection(db, "p_chats"), where("chatID", "==", chatID), orderBy("timestamp", "asc")), (s) => { const b = document.getElementById('pChatBox'); b.innerHTML = ""; s.forEach(d => { const m = d.data(); b.innerHTML += `<div class="msg-wrap ${m.from === curName ? 'msg-self' : ''}"><div class="msg-content"><div class="msg-bubble">${m.text}</div></div></div>`; }); b.scrollTop = b.scrollHeight; }); };
-        window.sendPrivateChat = async () => { const t = document.getElementById('pChatIn'); const target = document.getElementById('pChatTarget').innerText; if(!t.value) return; const chatID = [curName, target].sort().join("_"); await addDoc(collection(db, "p_chats"), { chatID, from: curName, to: target, text: t.value, timestamp: Date.now() }); t.value = ""; };
+        
+        window.sendChat = async () => { 
+            const i = document.getElementById('chatIn'); if(i.value.trim()){ 
+                await addDoc(collection(db, "chats"), { name: curName, title: myTitle, text: i.value, photo: user.photoURL, timestamp: Date.now() }); i.value = ""; 
+            } 
+        };
 
-        // --- OWNER & UTILS ---
+        window.openPrivateChat = (target) => {
+            document.getElementById('pChatTarget').innerText = target;
+            document.getElementById('pChatOverlay').style.display = 'flex';
+            const chatID = [curName, target].sort().join("_");
+            if(unsubPChat) unsubPChat();
+            unsubPChat = onSnapshot(query(collection(db, "p_chats"), where("chatID", "==", chatID), orderBy("timestamp", "asc")), (s) => {
+                const b = document.getElementById('pChatBox'); b.innerHTML = "";
+                s.forEach(d => {
+                    const m = d.data();
+                    b.innerHTML += `<div class="msg-wrap ${m.from === curName ? 'msg-self' : ''}"><div class="msg-content"><div class="msg-bubble">${m.text}</div></div></div>`;
+                });
+                b.scrollTop = b.scrollHeight;
+            });
+        };
+
+        window.sendPrivateChat = async () => {
+            const t = document.getElementById('pChatIn');
+            const target = document.getElementById('pChatTarget').innerText;
+            if(!t.value) return;
+            const chatID = [curName, target].sort().join("_");
+            await addDoc(collection(db, "p_chats"), { chatID, from: curName, to: target, text: t.value, timestamp: Date.now() });
+            t.value = "";
+        };
+
+        // --- 10. OWNER & UTILS ---
         window.openOwnerTools = () => { document.getElementById('ownerToolsModal').style.display = 'flex'; window.toggleDropdown(); };
         window.openAddModal = () => document.getElementById('addModal').style.display = 'flex';
         window.openUpdateModal = () => {
@@ -1275,6 +1311,7 @@
             document.getElementById('infoModal').style.display='flex';
         };
 
+        // --- ADMIN FUNCTIONS ---
         window.addAccess = async () => { await setDoc(doc(db, "access", document.getElementById('accName').value), { hasAccess: true }); alert("Done"); };
         window.addTitle = async () => { await setDoc(doc(db, "titles", document.getElementById('titleName').value), { title: document.getElementById('titlePick').value }); alert("Done"); };
         window.banUser = async () => { await setDoc(doc(db, "bans", document.getElementById('banName').value), { name: document.getElementById('banName').value, expiry: Date.now() + 999999999 }); alert("Banned"); };
