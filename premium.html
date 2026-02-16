@@ -161,7 +161,7 @@
     <div id="adOverlay">
         <i class="fas fa-ad" style="font-size: 5rem; color: white;"></i>
         <h2 style="color:white; margin-top:20px;">Verifying Ad...</h2>
-        <p style="color:#ccc">The ad will appear shortly. Please do not close this page.</p>
+        <p style="color:#ccc">Please wait on this page while the ad is verified.</p>
         <div id="adTimer">15</div>
     </div>
 
@@ -175,6 +175,9 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
+        // --- DIRECT LINK IKLAN MONETAG KAMU ---
+        const AD_LINK = "https://omg10.com/4/10616896"; 
+        
         let curName = "";
 
         onAuthStateChanged(auth, (u) => {
@@ -183,14 +186,15 @@
         });
 
         window.watchAd = () => {
-            // Script Vignette Monetag otomatis akan mendeteksi klik ini 
-            // dan memunculkan iklan full screen.
+            // 1. Buka Tab Baru ke Iklan (Direct Link)
+            window.open(AD_LINK, '_blank');
 
+            // 2. Tampilkan Timer di halaman ini
             const overlay = document.getElementById('adOverlay');
             const timer = document.getElementById('adTimer');
             overlay.style.display = 'flex';
             
-            let timeLeft = 15; // User harus di halaman ini minimal 15 detik biar valid
+            let timeLeft = 15; // Wajib nunggu 15 detik
             timer.innerText = timeLeft;
             
             const interval = setInterval(() => {
@@ -206,6 +210,7 @@
         async function finishAd() {
             document.getElementById('adOverlay').style.display = 'none';
             
+            // Hadiah 1 Hari (24 Jam)
             const oneDay = 24 * 60 * 60 * 1000;
             const newExpiry = Date.now() + oneDay;
 
@@ -214,7 +219,7 @@
                 const docSnap = await getDoc(docRef);
                 let finalExpiry = newExpiry;
 
-                // Jika sudah premium, tambahkan durasinya (extend)
+                // Jika sudah premium, perpanjang waktunya
                 if (docSnap.exists() && docSnap.data().premiumUntil > Date.now()) {
                     finalExpiry = docSnap.data().premiumUntil + oneDay;
                 }
