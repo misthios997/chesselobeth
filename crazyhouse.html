@@ -20,6 +20,7 @@
         .reserve-piece { width: 35px; height: 35px; cursor: pointer; transition: 0.2s; }
         .reserve-piece.selected { background: rgba(255,215,0,0.3); border-radius: 5px; transform: scale(1.1); box-shadow: 0 0 5px var(--primary); }
         #board { width: 100%; aspect-ratio: 1/1; }
+        .highlight-check { box-shadow: inset 0 0 30px #ff0000 !important; }
         .controls { display: flex; gap: 10px; padding: 0 10px; }
         .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
         .btn-resign { background: var(--red); color: white; }
@@ -54,7 +55,6 @@
     </div>
     
     <div id="promoModal"><div class="promo-box" id="promoPieces"></div></div>
-    
     <div id="gameChatOverlay"><div class="chat-header"><button onclick="toggleGameChat(false)" style="background:none;border:none;color:white;font-size:1.5rem"><i class="fas fa-arrow-left"></i></button><b>Chat</b></div><div id="chatBox"></div><div class="chat-input"><input id="chatIn" placeholder="Type..."><button onclick="sendGameChat()" class="btn" style="background:var(--primary);color:black;flex:0 0 auto;width:auto">SEND</button></div></div>
     
     <div class="game-over-overlay" id="gameOverModal">
@@ -84,6 +84,16 @@
         const mySide = params.get('side');
         const myColor = mySide.charAt(0);
         
+        // SOUNDS
+        const sounds = {
+            move: new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-self.mp3'),
+            capture: new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3'),
+            check: new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-check.mp3'),
+            castle: new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/castle.mp3'),
+            promote: new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/promote.mp3'),
+            notify: new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/notify.mp3')
+        };
+
         const pieceTheme = (piece) => 'https://www.chess.com/chess-themes/pieces/neo/300/' + piece.toLowerCase() + '.png';
 
         let game = new Chess(), board, curName, isChatOpen=false, isMoving=false, gameEnded=false, pendingMove=null, historySaved=false, pocket = { w: [], b: [] }, timeLeft = { w: 600, b: 600 }, selectedPocketIdx = null;
@@ -94,6 +104,7 @@
             document.getElementById('myName').innerText = curName;
             document.getElementById('myAva').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
             initMatch(); listenChat();
+            sounds.notify.play().catch(()=>{});
         });
 
         function initMatch() {
@@ -109,7 +120,10 @@
                     const move = game.move(moveObj);
                     if (!move) return 'snapback';
                     if (move.captured) pocket[game.turn() === 'b' ? 'w' : 'b'].push(move.captured);
-                    board.position(game.fen()); sync();
+                    board.position(game.fen());
+                    playMoveSound(move);
+                    highlightCheck();
+                    sync();
                 }
             });
             $('#board').on('click', '.square-55d63', function() { handlePocketDrop($(this).attr('data-square')); });
@@ -122,10 +136,11 @@
                 document.getElementById('oppName').innerText = oppName;
                 document.getElementById('oppAva').src = "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
 
-                // IMPORTANT: Crazyhouse uses FEN primarily, NOT PGN, because standard chess.js drops break PGN
                 if (d.lastFen && d.lastFen !== game.fen()) { 
                     game.load(d.lastFen); 
                     board.position(d.lastFen); 
+                    sounds.move.play();
+                    highlightCheck();
                 }
                 
                 if (d.pocket) pocket = d.pocket;
@@ -142,7 +157,16 @@
                 const img = document.createElement('img');
                 img.src = 'https://www.chess.com/chess-themes/pieces/neo/300/' + (myColor + p).toLowerCase() + '.png';
                 img.className = 'promo-opt';
-                img.onclick = () => { document.getElementById('promoModal').style.display='none'; const m=game.move({ ...pendingMove, promotion: p }); if(m && m.captured) pocket[game.turn() === 'b' ? 'w' : 'b'].push(m.captured); board.position(game.fen()); sync(); pendingMove=null; };
+                img.onclick = () => { 
+                    document.getElementById('promoModal').style.display='none'; 
+                    const m=game.move({ ...pendingMove, promotion: p }); 
+                    if(m && m.captured) pocket[game.turn() === 'b' ? 'w' : 'b'].push(m.captured); 
+                    board.position(game.fen()); 
+                    playMoveSound(m);
+                    highlightCheck();
+                    sync(); 
+                    pendingMove=null; 
+                };
                 c.appendChild(img);
             });
             document.getElementById('promoModal').style.display = 'flex';
@@ -165,39 +189,71 @@
             });
         }
 
+        // --- NEW SOUND & HIGHLIGHT ---
+        function playMoveSound(move) {
+            if (game.in_check()) {
+                sounds.check.play();
+            } else if (move.flags.includes('p')) {
+                sounds.promote.play();
+            } else if (move.flags.includes('k') || move.flags.includes('q')) {
+                sounds.castle.play();
+            } else if (move.captured) {
+                sounds.capture.play();
+            } else {
+                sounds.move.play();
+            }
+        }
+
+        function highlightCheck() {
+            $('.square-55d63').removeClass('highlight-check'); 
+            if (game.in_check()) {
+                const boardConfig = game.board();
+                const turn = game.turn();
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        const p = boardConfig[r][c];
+                        if (p && p.type === 'k' && p.color === turn) {
+                            const files = ['a','b','c','d','e','f','g','h'];
+                            const ranks = ['8','7','6','5','4','3','2','1'];
+                            $('.square-' + files[c] + ranks[r]).addClass('highlight-check');
+                        }
+                    }
+                }
+            }
+        }
+
         async function handlePocketDrop(square) {
             if (isMoving || selectedPocketIdx === null || game.turn() !== myColor) return;
             if (game.get(square)) return;
 
             const type = pocket[myColor][selectedPocketIdx];
-            
-            // Validate Check (Manual)
             const test = new Chess(game.fen());
             test.put({ type: type, color: myColor }, square);
             const fenParts = test.fen().split(' ');
             fenParts[1] = (myColor==='w'?'b':'w');
-            const val = new Chess(fenParts.join(' ')); // Try checking validity
-            // Note: standard chess.js validation on drop is tricky, assuming valid for flow
-            
+            const val = new Chess(fenParts.join(' ')); // Basic validation
+
             isMoving = true;
             game.put({ type: type, color: myColor }, square);
             pocket[myColor].splice(selectedPocketIdx, 1);
             selectedPocketIdx = null;
             
-            // Manually construct next FEN
+            // Construct next FEN manually for Crazyhouse drop
             let tokens = game.fen().split(' ');
-            tokens[1] = myColor === 'w' ? 'b' : 'w'; // Switch turn
-            tokens[3] = '-'; // Clear en passant
-            
+            tokens[1] = myColor === 'w' ? 'b' : 'w'; 
+            tokens[3] = '-'; 
             const newFen = tokens.join(' ');
-            game.load(newFen); // Load new state without resetting start
             
+            game.load(newFen);
             board.position(newFen);
+            sounds.move.play();
+            highlightCheck();
+            
             await sync();
             isMoving = false;
         }
 
-        async function sync() { isMoving=true; await updateDoc(doc(db, "rooms", roomId), { lastFen: game.fen(), pocket: pocket, timeLeft: timeLeft, lastMove: Date.now() }); isMoving=false; }
+        async function sync() { isMoving=true; await updateDoc(doc(db, "rooms", roomId), { lastFen: game.fen(), pgn: game.pgn(), pocket: pocket, timeLeft: timeLeft, lastMove: Date.now() }); isMoving=false; }
 
         function updateUI() {
             const f = (t) => { const m=Math.floor(t/60); const s=t%60; return `${m}:${s.toString().padStart(2,'0')}`; };
@@ -225,6 +281,7 @@
             
             if(t && !gameEnded) {
                 gameEnded = true;
+                sounds.notify.play();
                 document.getElementById('goTitle').innerText = t;
                 document.getElementById('goReason').innerText = r;
                 document.getElementById('gameOverModal').style.display = 'flex';
