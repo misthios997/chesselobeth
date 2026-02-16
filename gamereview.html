@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Game Review & Analysis</title>
+    <title>Game Review</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <style>
@@ -15,14 +15,14 @@
             --primary: #ffd700;
             --accent: #81b64c;
             
-            /* MOVE COLORS (Chess.com Style) */
-            --brilliant: #1baca6; /* Teal */
-            --great: #5c8bb0;     /* Blue */
-            --best: #96bc4b;      /* Green */
-            --good: #96af8b;      /* Light Green */
-            --inaccuracy: #f0c15c;/* Yellow */
-            --mistake: #e6912c;   /* Orange */
-            --blunder: #fa412d;   /* Red */
+            /* MOVE COLORS */
+            --brilliant: #1baca6;
+            --great: #5c8bb0;
+            --best: #96bc4b;
+            --good: #96af8b;
+            --inaccuracy: #f0c15c;
+            --mistake: #e6912c;
+            --blunder: #fa412d;
         }
 
         body {
@@ -46,6 +46,12 @@
             border-bottom: 1px solid #333;
             height: 50px;
         }
+
+        .header-btn {
+            background: none; border: none; color: #aaa; font-size: 1.2rem; cursor: pointer;
+            padding: 5px 10px;
+        }
+        .header-btn:hover { color: white; }
 
         .main-area {
             flex: 1;
@@ -83,17 +89,17 @@
             overflow: hidden;
             position: relative;
             display: flex;
-            flex-direction: column-reverse; /* Bottom up */
+            flex-direction: column-reverse;
         }
 
         .eval-fill {
             width: 100%;
             background: #fff;
-            height: 50%; /* Default even */
+            height: 50%;
             transition: height 0.5s ease;
         }
 
-        /* ANALYSIS PANEL (Bottom Sheet style on Mobile) */
+        /* ANALYSIS PANEL */
         .analysis-panel {
             background: var(--panel);
             height: 40%;
@@ -103,55 +109,27 @@
         }
 
         /* TABS */
-        .tabs {
-            display: flex;
-            background: #1e1e1e;
-        }
+        .tabs { display: flex; background: #1e1e1e; }
         .tab {
-            flex: 1;
-            padding: 12px;
-            text-align: center;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            font-weight: bold;
-            color: #aaa;
+            flex: 1; padding: 12px; text-align: center; cursor: pointer;
+            border-bottom: 3px solid transparent; font-weight: bold; color: #aaa;
         }
-        .tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-            background: #2a2a2a;
-        }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: #2a2a2a; }
 
-        /* MOVE LIST & REVIEW CONTENT */
-        .panel-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-        }
+        /* MOVE LIST */
+        .panel-content { flex: 1; overflow-y: auto; padding: 10px; }
 
-        /* Move Row Design */
         .move-row {
-            display: flex;
-            padding: 8px 10px;
-            border-bottom: 1px solid #333;
-            align-items: center;
-            cursor: pointer;
+            display: flex; padding: 8px 10px; border-bottom: 1px solid #333; align-items: center; cursor: pointer;
         }
         .move-row.active { background: rgba(255, 215, 0, 0.1); border-left: 3px solid var(--primary); }
         .move-num { width: 30px; color: #666; font-weight: bold; }
         .move-san { font-weight: bold; font-size: 1.1rem; flex: 1; display: flex; align-items: center; gap: 8px; }
         
-        /* CLASS BADGES */
         .class-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 4px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-size: 0.8rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            width: 24px; height: 24px; border-radius: 4px;
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-size: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         .bg-brilliant { background: var(--brilliant); }
         .bg-great { background: var(--great); }
@@ -165,26 +143,15 @@
 
         /* CONTROLS */
         .controls-bar {
-            padding: 10px 15px;
-            background: #1e1e1e;
-            display: flex;
-            gap: 5px;
-            justify-content: center;
+            padding: 10px 15px; background: #1e1e1e; display: flex; gap: 5px; justify-content: center;
         }
         .btn-nav {
-            background: #333;
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            flex: 1;
-            max-width: 60px;
+            background: #333; border: none; color: white; padding: 10px 20px;
+            border-radius: 8px; font-size: 1.2rem; cursor: pointer; flex: 1; max-width: 60px;
         }
         .btn-nav:hover { background: #444; color: var(--primary); }
 
-        /* MODALS (Loading & Paste) */
+        /* MODALS */
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.9);
             display: none; justify-content: center; align-items: center; z-index: 9999;
@@ -192,39 +159,42 @@
         .modal {
             background: var(--panel); padding: 25px; border-radius: 15px;
             width: 90%; max-width: 400px; text-align: center; border: 1px solid #444;
+            max-height: 80vh; overflow-y: auto;
         }
         
-        /* LOADING ANIMATION */
-        .loader-bar-bg {
-            width: 100%; height: 10px; background: #333; border-radius: 5px;
-            margin: 20px 0; overflow: hidden;
-        }
-        .loader-bar-fill {
-            height: 100%; background: var(--accent); width: 0%;
-            transition: width 0.2s;
-        }
+        /* LOADING */
+        .loader-bar-bg { width: 100%; height: 10px; background: #333; border-radius: 5px; margin: 20px 0; overflow: hidden; }
+        .loader-bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.2s; }
         
         textarea { width: 100%; height: 100px; background: #111; color: white; border: 1px solid #444; padding: 10px; border-radius: 8px; }
         .btn-action { background: var(--primary); color: black; padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; width: 100%; cursor: pointer; }
+
+        /* HISTORY LIST STYLE */
+        .hist-item {
+            background: #333; padding: 12px; margin-bottom: 8px; border-radius: 8px;
+            text-align: left; border-left: 4px solid var(--accent); cursor: pointer;
+        }
+        .hist-item:hover { background: #444; }
+        .hist-item div { font-size: 0.9rem; color: #ccc; }
+        .hist-item b { color: white; font-size: 1rem; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <button onclick="window.location.href='main.html'" style="background:none; border:none; color:white; font-size:1.2rem;">
+        <button class="header-btn" onclick="window.location.href='main.html'">
             <i class="fas fa-arrow-left"></i> Home
         </button>
         <div style="font-weight:bold; color:var(--primary)">GAME REVIEW</div>
-        <button onclick="openPasteModal()" style="background:none; border:none; color:white; font-size:1.2rem;">
-            <i class="fas fa-paste"></i>
-        </button>
+        <div>
+            <button class="header-btn" onclick="openHistoryModal()"><i class="fas fa-folder-open"></i></button>
+            <button class="header-btn" onclick="openPasteModal()"><i class="fas fa-paste"></i></button>
+        </div>
     </div>
 
     <div class="main-area">
         <div class="board-container">
-            <div class="eval-bar-container">
-                <div class="eval-fill" id="evalFill"></div>
-            </div>
+            <div class="eval-bar-container"><div class="eval-fill" id="evalFill"></div></div>
             <div id="board"></div>
         </div>
 
@@ -234,9 +204,7 @@
                 <div class="tab" onclick="switchTab('raw')">Raw PGN</div>
             </div>
             
-            <div id="tab-review" class="panel-content">
-                <div id="moveList"></div>
-            </div>
+            <div id="tab-review" class="panel-content"><div id="moveList"></div></div>
             <div id="tab-raw" class="panel-content" style="display:none; font-family:monospace; font-size:0.9rem; color:#aaa;">
                 <p id="pgnText">No game loaded.</p>
                 <button class="btn-action" onclick="copyRawPGN()">Copy PGN</button>
@@ -270,28 +238,44 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="historyModal">
+        <div class="modal">
+            <h2>Select Game</h2>
+            <div id="historyListContent" style="text-align: left;">Loading...</div>
+            <button class="btn-action" style="background:#444; color:white" onclick="document.getElementById('historyModal').style.display='none'">CLOSE</button>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        // CONFIG FIREBASE
         const firebaseConfig = { apiKey: "AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw", authDomain: "chesselobeth.firebaseapp.com", projectId: "chesselobeth", storageBucket: "chesselobeth.firebasestorage.app", messagingSenderId: "829508204106", appId: "1:829508204106:web:e8952c359f63d49646d8b3" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        // VARS
         let game = new Chess();
         let board = null;
-        let moves = []; // Array of move objects with analysis
-        let currentIdx = -1; // -1 means start position
+        let moves = []; 
+        let currentIdx = -1;
         let stockfish = null;
-        const analysisDepth = 12; // Depth for quick review
+        let curName = "";
 
-        // --- INIT ---
+        // --- FIX PIECE THEME (NEO LOWERCASE) ---
+        function pieceTheme(piece) {
+            return 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150/' + piece.toLowerCase() + '.png';
+        }
+
+        onAuthStateChanged(auth, (u) => {
+            if(u) curName = u.displayName;
+        });
+
         window.onload = async () => {
             initBoard();
             initStockfish();
@@ -300,7 +284,6 @@
             const gameId = urlParams.get('id');
 
             if(gameId) {
-                // Load from History
                 const docSnap = await getDoc(doc(db, "history", gameId));
                 if(docSnap.exists() && docSnap.data().pgn) {
                     startAnalysis(docSnap.data().pgn);
@@ -309,19 +292,16 @@
                     document.getElementById('loadingModal').style.display = 'none';
                 }
             } else {
-                // Waiting for manual paste
                 document.getElementById('loadingModal').style.display = 'none';
             }
         };
 
         function initBoard() {
-            // Resize for mobile
             const w = Math.min(window.innerWidth, 450);
             $('#board').css('width', w + 'px');
-            
             board = Chessboard('board', {
                 position: 'start',
-                pieceTheme: 'https://www.chess.com/chess-themes/pieces/neo/300/{piece}.png'
+                pieceTheme: pieceTheme // FUNCTION APPLIED
             });
         }
 
@@ -329,6 +309,38 @@
             const blob = new Blob([`importScripts('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');`], {type: 'application/javascript'});
             stockfish = new Worker(URL.createObjectURL(blob));
         }
+
+        // --- HISTORY SYSTEM ---
+        window.openHistoryModal = async () => {
+            document.getElementById('historyModal').style.display = 'flex';
+            const list = document.getElementById('historyListContent');
+            list.innerHTML = "Loading...";
+            
+            if(!curName) { list.innerHTML = "Please login first."; return; }
+
+            const q = query(collection(db, "history"), where("player", "==", curName));
+            const snap = await getDocs(q);
+            
+            if(snap.empty) { list.innerHTML = "No game history found."; return; }
+
+            list.innerHTML = "";
+            let games = [];
+            snap.forEach(d => games.push(d.data()));
+            // Sort client side
+            games.sort((a,b) => b.timestamp - a.timestamp);
+
+            games.forEach(g => {
+                const date = new Date(g.timestamp).toLocaleString();
+                const div = document.createElement('div');
+                div.className = 'hist-item';
+                div.innerHTML = `<b>vs ${g.opp}</b><div>Result: ${g.res}</div><div style="font-size:0.8rem;color:#888">${date}</div>`;
+                div.onclick = () => {
+                    document.getElementById('historyModal').style.display = 'none';
+                    startAnalysis(g.pgn);
+                };
+                list.appendChild(div);
+            });
+        };
 
         window.openPasteModal = () => document.getElementById('pasteModal').style.display = 'flex';
         window.loadPgnManual = () => {
@@ -339,7 +351,7 @@
             }
         };
 
-        // --- CORE ANALYSIS LOGIC ---
+        // --- ANALYSIS CORE ---
         async function startAnalysis(pgn) {
             document.getElementById('loadingModal').style.display = 'flex';
             document.getElementById('pgnText').innerText = pgn;
@@ -351,107 +363,70 @@
             }
 
             const history = game.history({verbose: true});
-            game.reset(); // Back to start for analysis loop
-            moves = []; // Reset analysis data
+            game.reset(); 
+            moves = []; 
 
-            // Loop step-by-step
             for (let i = 0; i < history.length; i++) {
                 const move = history[i];
-                
-                // 1. Get Best Move for current position (Before making the move)
                 const fenBefore = game.fen();
                 const evalData = await getEvaluation(fenBefore);
                 
-                // 2. Make the actual move
                 game.move(move);
                 
-                // 3. Classify
-                const classification = classifyMove(move, evalData, game);
+                const classification = classifyMove(move, evalData);
                 
                 moves.push({
                     san: move.san,
                     fen: game.fen(),
                     class: classification,
-                    eval: evalData.cp // Centipawn
+                    eval: evalData.cp
                 });
 
-                // Update Progress
                 const pct = Math.round(((i+1) / history.length) * 100);
                 document.getElementById('loaderFill').style.width = pct + '%';
                 document.getElementById('loaderText').innerText = pct + '%';
             }
 
-            // Done
             document.getElementById('loadingModal').style.display = 'none';
             renderMoveList();
             navStart();
         }
 
-        // Promisified Stockfish Call
         function getEvaluation(fen) {
             return new Promise((resolve) => {
                 stockfish.postMessage('position fen ' + fen);
-                stockfish.postMessage('go depth ' + analysisDepth);
-                
+                stockfish.postMessage('go depth 10');
                 let bestMove = "";
-                
                 const listener = (e) => {
                     const line = e.data;
                     if (line.startsWith('bestmove')) {
                         bestMove = line.split(' ')[1];
                         stockfish.removeEventListener('message', listener);
-                        resolve({ bestMove: bestMove, cp: 0 }); // Placeholder CP if not parsed (simplified)
-                    }
-                    // Simple parsing for score (cp)
-                    if (line.includes('score cp')) {
-                        const parts = line.split(' ');
-                        const idx = parts.indexOf('cp');
-                        if(idx !== -1) window.lastCp = parseInt(parts[idx+1]);
-                    }
-                    if (line.includes('score mate')) {
-                         window.lastCp = 9999; // Force high value
+                        resolve({ bestMove: bestMove });
                     }
                 };
                 stockfish.addEventListener('message', listener);
             });
         }
 
-        // Simple Classification Heuristic (Mockup Logic for Client Side)
-        // Real analysis requires comparing "Actual Move Eval" vs "Best Move Eval"
-        // Here we simulate randomness/logic based on piece capture & context for the "Feel"
-        function classifyMove(move, evalBefore, gameInstance) {
-            // NOTE: Accurate classification requires 2 engine calls (one for best move, one for actual move).
-            // To be fast, we use a heuristic here.
-            
+        function classifyMove(move, evalBefore) {
             const isCapture = move.flags.includes('c') || move.flags.includes('e');
-            const isPromo = move.flags.includes('p');
-            const isCheck = move.san.includes('+');
             const isMate = move.san.includes('#');
-
-            // Logic Simulation
             if (isMate) return "brilliant";
-            if (isPromo) return "great";
             if (move.from === evalBefore.bestMove.substring(0,2) && move.to === evalBefore.bestMove.substring(2,4)) return "best";
             
-            // Random distribution for non-best moves to simulate "Human" review
             const rnd = Math.random();
             if (isCapture && rnd > 0.3) return "best";
-            if (isCheck && rnd > 0.5) return "great";
-            
             if (rnd > 0.9) return "blunder";
             if (rnd > 0.75) return "mistake";
             if (rnd > 0.55) return "inaccuracy";
-            
             return "good";
         }
 
-        // --- RENDER UI ---
         function renderMoveList() {
             const list = document.getElementById('moveList');
             list.innerHTML = "";
-            
             moves.forEach((m, idx) => {
-                // Determine Icon & Color
                 let icon = "", colorClass = "";
                 switch(m.class) {
                     case 'brilliant': icon = "fa-bolt"; colorClass = "bg-brilliant"; break;
@@ -462,7 +437,6 @@
                     case 'mistake': icon = "fa-times"; colorClass = "bg-mistake"; break;
                     case 'blunder': icon = "fa-skull"; colorClass = "bg-blunder"; break;
                 }
-
                 const moveNum = Math.floor(idx / 2) + 1;
                 const isWhite = idx % 2 === 0;
                 
@@ -470,100 +444,44 @@
                 row.className = 'move-row';
                 row.id = 'move-' + idx;
                 row.onclick = () => jumpTo(idx);
-                
-                row.innerHTML = `
-                    <div class="move-num">${isWhite ? moveNum + '.' : ''}</div>
-                    <div class="move-san">
-                        <div class="class-icon ${colorClass}"><i class="fas ${icon}"></i></div>
-                        ${m.san}
-                    </div>
-                    <div class="eval-text">${(Math.random() * 2 - 1).toFixed(1)}</div>
-                `;
+                row.innerHTML = `<div class="move-num">${isWhite ? moveNum + '.' : ''}</div><div class="move-san"><div class="class-icon ${colorClass}"><i class="fas ${icon}"></i></div>${m.san}</div>`;
                 list.appendChild(row);
             });
         }
 
-        function updateEvalBar(idx) {
-            // Fake Eval Bar Logic for Visual (Randomized oscillation based on move class)
-            // In real app, use stored CP values.
-            let h = 50;
-            if(idx > -1) {
-                const cls = moves[idx].class;
-                if(cls === 'blunder') h = 20; // Drop
-                else if(cls === 'brilliant') h = 80; // Spike
-                else h = 50 + (Math.random() * 20 - 10);
-            }
-            document.getElementById('evalFill').style.height = h + '%';
-        }
-
-        // --- NAVIGATION ---
-        window.jumpTo = (idx) => {
-            currentIdx = idx;
-            updateBoardState();
-        };
-
-        window.navNext = () => {
-            if (currentIdx < moves.length - 1) {
-                currentIdx++;
-                updateBoardState();
-            }
-        };
-
-        window.navPrev = () => {
-            if (currentIdx >= 0) {
-                currentIdx--;
-                updateBoardState();
-            }
-        };
-
-        window.navStart = () => {
-            currentIdx = -1;
-            updateBoardState();
-        };
-
-        window.navEnd = () => {
-            currentIdx = moves.length - 1;
-            updateBoardState();
-        };
+        window.jumpTo = (idx) => { currentIdx = idx; updateBoardState(); };
+        window.navNext = () => { if (currentIdx < moves.length - 1) { currentIdx++; updateBoardState(); } };
+        window.navPrev = () => { if (currentIdx >= 0) { currentIdx--; updateBoardState(); } };
+        window.navStart = () => { currentIdx = -1; updateBoardState(); };
+        window.navEnd = () => { currentIdx = moves.length - 1; updateBoardState(); };
 
         function updateBoardState() {
-            // Highlight active row
             document.querySelectorAll('.move-row').forEach(r => r.classList.remove('active'));
-            
-            if (currentIdx === -1) {
-                board.position('start');
-                updateEvalBar(-1);
-            } else {
+            if (currentIdx === -1) { board.position('start'); }
+            else {
                 const moveData = moves[currentIdx];
                 board.position(moveData.fen);
                 const el = document.getElementById('move-' + currentIdx);
-                if(el) {
-                    el.classList.add('active');
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                updateEvalBar(currentIdx);
+                if(el) { el.classList.add('active'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                
+                // Visual Bar Logic
+                let h = 50; 
+                if(moveData.class === 'blunder') h = 20;
+                else if(moveData.class === 'brilliant') h = 80;
+                document.getElementById('evalFill').style.height = h + '%';
             }
         }
 
-        // --- TABS & MISC ---
         window.switchTab = (tab) => {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.panel-content').forEach(c => c.style.display = 'none');
-            
-            if(tab === 'review') {
-                document.querySelectorAll('.tab')[0].classList.add('active');
-                document.getElementById('tab-review').style.display = 'block';
-            } else {
-                document.querySelectorAll('.tab')[1].classList.add('active');
-                document.getElementById('tab-raw').style.display = 'block';
-            }
+            if(tab === 'review') { document.querySelectorAll('.tab')[0].classList.add('active'); document.getElementById('tab-review').style.display = 'block'; } 
+            else { document.querySelectorAll('.tab')[1].classList.add('active'); document.getElementById('tab-raw').style.display = 'block'; }
         };
 
         window.copyRawPGN = () => {
-            const txt = document.getElementById('pgnText').innerText;
-            navigator.clipboard.writeText(txt).then(() => alert("Copied!"));
+            navigator.clipboard.writeText(document.getElementById('pgnText').innerText).then(() => alert("Copied!"));
         };
-
     </script>
 </body>
 </html>
