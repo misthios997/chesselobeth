@@ -21,7 +21,7 @@ header{background:var(--card);padding:0 20px;height:65px;display:flex;align-item
 .drop-m a{color:#fff;padding:16px 20px;text-decoration:none;display:flex;align-items:center;gap:15px;border-bottom:1px solid #444;transition:.2s}
 .drop-m a:hover{background:var(--primary);color:#000}
 .prof-trig{width:42px;height:42px;border-radius:50%;border:2px solid var(--primary);object-fit:cover}
-#updNot{text-align:center;font-size:.9rem;margin-top:15px;color:var(--muted)}
+#updNot{text-align:center;font-size:.9rem;margin-top:15px;color:var(--muted);font-weight:bold}
 .bc-box{margin:15px 20px;background:linear-gradient(135deg,#b8860b,#daa520);color:#000;padding:15px;border-radius:var(--rad);font-weight:700;display:flex;align-items:center;gap:15px}
 .cont{max-width:var(--w);margin:0 auto;padding:10px 20px}
 .welc{font-size:1.8rem;font-weight:900;margin-bottom:25px;color:var(--primary)}
@@ -39,6 +39,7 @@ header{background:var(--card);padding:0 20px;height:65px;display:flex;align-item
 input,select,textarea{width:100%;padding:15px;margin-top:10px;background:#1a1a1a;border:1px solid #444;border-radius:12px;color:#fff;font-size:1rem}
 input::placeholder{color:#666}
 .btn-g{background:var(--primary);color:#000;border:none;padding:16px;width:100%;border-radius:12px;font-weight:900;margin-top:20px}
+/* CHAT BARU */
 .chat-ov{position:fixed;bottom:0;right:0;width:100%;height:100%;background:var(--bg);display:none;flex-direction:column;z-index:6000}
 .chat-h{background:#2d2d2d;padding:15px 20px;display:flex;justify-content:space-between}
 .chat-b{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:15px}
@@ -65,6 +66,8 @@ input::placeholder{color:#666}
 .bot-l{position:absolute;top:0;left:0;width:100%;height:100%;background:#0009;border-radius:13px;display:flex;justify-content:center;align-items:center;font-size:1.5rem;color:var(--prem)}
 .hist-w{font-weight:bold;color:var(--accent)}.hist-l{font-weight:bold;color:var(--danger)}.hist-d{font-weight:bold;color:#aaa}
 .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.btn-star{background:var(--primary);color:#000;border:none;width:35px;height:35px;border-radius:8px;cursor:pointer;display:flex;justify-content:center;align-items:center;margin-left:auto}
+.ver-footer{text-align:center;margin-top:40px;color:#444;font-size:0.8rem;font-weight:bold}
 </style>
 </head>
 <body>
@@ -133,6 +136,11 @@ input::placeholder{color:#666}
         <h2 style="color:var(--primary)">Top Players</h2>
         <div id="dataFeed"></div>
     </div>
+
+    <div class="ver-footer">
+        chesselobeth©<br>
+        version: <span id="appVer">...</span>
+    </div>
 </div>
 
 <button class="fab" id="ownerFab" onclick="openAdd()"><i class="fas fa-plus"></i></button>
@@ -168,8 +176,8 @@ input::placeholder{color:#666}
 <div class="modal-ov" id="ownerMod"><div class="modal"><h2>Owner Actions</h2>
     <input id="bcIn" placeholder="Broadcast Message"><button class="btn-g" onclick="setBc()">SET BROADCAST</button>
     <div class="action-grid">
-        <input id="updVer" placeholder="Ver (e.g. 1.2)">
-        <button class="btn-g" style="margin:0" onclick="setUpd()">SET UPDATE</button>
+        <input id="updVer" placeholder="Ver (e.g. 1.5)">
+        <button class="btn-g" style="margin:0;background:#444" onclick="setUpd()">SET UPDATE</button>
     </div>
     <hr style="border:0;border-top:1px solid #444;margin:15px 0">
     <input id="accName" placeholder="Username (Target)">
@@ -250,12 +258,30 @@ input::placeholder{color:#666}
 
     function loadD(){
         onSnapshot(doc(db,"config","broadcastMsg"), (d) => { if(d.exists()) document.getElementById('bcText').innerText = d.data().text; });
-        onSnapshot(doc(db,"config","settings"), (d) => { if(d.exists()){ svV = d.data().latestVersion || 0; const l = parseInt(localStorage.getItem('av')) || 0; document.getElementById('updNot').innerText = svV > l ? "Update Available!" : "Up to date"; }});
+        
+        // UPDATE CHECKER (FIXED)
+        onSnapshot(doc(db,"config","settings"), (d) => { 
+            if(d.exists()){ 
+                svV = d.data().latestVersion || 1.0; 
+                document.getElementById('appVer').innerText = svV; // Set footer version
+                
+                const l = parseFloat(localStorage.getItem('av')) || 1.0; 
+                const notif = document.getElementById('updNot');
+                
+                if(svV > l) {
+                    notif.innerText = "There Are Update, Please check the update in \"Update Status\"";
+                    notif.style.color = "var(--accent)";
+                } else {
+                    notif.innerText = "Up to date";
+                    notif.style.color = "var(--muted)";
+                }
+            }
+        });
+
         onSnapshot(query(collection(db,"players"), orderBy("timestamp","desc"), limit(20)), (s) => {
             const f = document.getElementById('dataFeed'); f.innerHTML = '';
             s.forEach(d => { 
                 const v = d.data(); 
-                // DELETE DATA BUTTON FOR OWNER
                 const delBtn = isAdmin ? `<button style="background:var(--danger);border:none;color:white;padding:5px 10px;border-radius:5px;cursor:pointer" onclick="delPlayerData('${d.id}')">X</button>` : '';
                 f.innerHTML += `<div class="data-c"><div><h3>${v.rank?`[${v.rank}] `:''}${v.name}</h3><p>Elo: ${v.elo}</p></div>${delBtn}</div>`; 
             });
@@ -263,13 +289,8 @@ input::placeholder{color:#666}
         onSnapshot(query(collection(db,"chats"), orderBy("timestamp","asc"), limit(50)), (s) => {
             const b = document.getElementById('chatBox'); b.innerHTML = '';
             s.forEach(d => { 
-                const m = d.data(); 
-                const self = m.name === nm;
-                b.innerHTML += `
-                <div class="msg-c ${self?'msg-self':''}">
-                    <div class="msg-h">${self ? `<span>${m.name}</span> <img src="${m.photo}" class="msg-a">` : `<img src="${m.photo}" class="msg-a"> <span>${m.name}</span>`}</div>
-                    <div class="msg-b">${m.text}</div>
-                </div>`;
+                const m = d.data(); const self = m.name === nm;
+                b.innerHTML += `<div class="msg-c ${self?'msg-self':''}"><div class="msg-h">${self ? `<span>${m.name}</span> <img src="${m.photo}" class="msg-a">` : `<img src="${m.photo}" class="msg-a"> <span>${m.name}</span>`}</div><div class="msg-b">${m.text}</div></div>`;
             });
             b.scrollTop = b.scrollHeight;
         });
@@ -278,26 +299,15 @@ input::placeholder{color:#666}
             s.forEach(d => { 
                 const m = d.data(); if(!m.read) h = true;
                 let c = `<div class="l-item"><span><b>${m.from}</b>: ${m.text}</span> <button class="btn-sm" style="background:var(--danger);color:white;border:none;padding:5px 10px;border-radius:5px" onclick="delIn('${d.id}')">X</button></div>`;
-                
-                if(m.type === 'req') {
-                    c = `<div class="l-item" style="flex-direction:column;align-items:flex-start">
-                            <span><b>${m.from}</b> sent friend request.</span>
-                            <div style="display:flex;gap:10px;width:100%"><button class="btn-g" style="margin:0;padding:8px" onclick="accFr('${d.id}','${m.from}')">ACCEPT</button><button class="btn-g" style="margin:0;padding:8px;background:var(--danger)" onclick="delIn('${d.id}')">DECLINE</button></div>
-                        </div>`;
-                }
-                if(m.type === 'chal') {
-                    c = `<div class="l-item" style="flex-direction:column;align-items:flex-start">
-                            <span><b>${m.from}</b> challenges you!</span>
-                            <div style="display:flex;gap:10px;width:100%"><button class="btn-g" style="margin:0;padding:8px;background:var(--accent)" onclick="joinChal('${m.roomId}','${d.id}')">ACCEPT & PLAY</button><button class="btn-g" style="margin:0;padding:8px;background:var(--danger)" onclick="delIn('${d.id}')">DECLINE</button></div>
-                        </div>`;
-                }
+                if(m.type === 'req') c = `<div class="l-item" style="flex-direction:column;align-items:flex-start"><span><b>${m.from}</b> sent friend request.</span><div style="display:flex;gap:10px;width:100%"><button class="btn-g" style="margin:0;padding:8px" onclick="accFr('${d.id}','${m.from}')">ACCEPT</button><button class="btn-g" style="margin:0;padding:8px;background:var(--danger)" onclick="delIn('${d.id}')">DECLINE</button></div></div>`;
+                if(m.type === 'chal') c = `<div class="l-item" style="flex-direction:column;align-items:flex-start"><span><b>${m.from}</b> challenges you!</span><div style="display:flex;gap:10px;width:100%"><button class="btn-g" style="margin:0;padding:8px;background:var(--accent)" onclick="joinChal('${m.roomId}','${d.id}')">ACCEPT & PLAY</button><button class="btn-g" style="margin:0;padding:8px;background:var(--danger)" onclick="delIn('${d.id}')">DECLINE</button></div></div>`;
                 l.innerHTML += c;
             });
             document.getElementById('inboxCount').innerText = h ? '(!)' : ''; document.getElementById('inboxDot').style.display = h ? 'block' : 'none';
         });
     }
 
-    // HISTORY (PROFILE) FIX
+    // HISTORY (PROFILE) + REVIEW BUTTON
     window.openHistory = async () => {
         toggleDropdown();
         document.getElementById('histMod').style.display='flex';
@@ -307,19 +317,14 @@ input::placeholder{color:#666}
         const l = document.getElementById('histList'); l.innerHTML = 'Loading...';
         
         try {
-            // Fetch as P1
             const q1 = query(collection(db,"rooms"), where("player1.name", "==", nm), where("status", "==", "finished"), limit(10));
             const snap1 = await getDocs(q1);
-            
-            // Fetch as P2
             const q2 = query(collection(db,"rooms"), where("player2.name", "==", nm), where("status", "==", "finished"), limit(10));
             const snap2 = await getDocs(q2);
 
             const games = [];
-            snap1.forEach(d => games.push(d.data()));
-            snap2.forEach(d => games.push(d.data()));
-
-            // Sort by Date Descending
+            snap1.forEach(d => games.push({id: d.id, ...d.data()}));
+            snap2.forEach(d => games.push({id: d.id, ...d.data()}));
             games.sort((a,b) => b.createdAt - a.createdAt);
 
             l.innerHTML = '';
@@ -332,87 +337,30 @@ input::placeholder{color:#666}
                 const draw = g.winner === 'draw';
                 const resClass = win ? 'hist-w' : (draw ? 'hist-d' : 'hist-l');
                 const resText = win ? 'WON' : (draw ? 'DRAW' : 'LOST');
-                l.innerHTML += `<div class="l-item"><span>vs <b>${vs}</b></span> <span class="${resClass}">${resText}</span></div>`;
+                
+                // REVIEW BUTTON ADDED
+                l.innerHTML += `
+                <div class="l-item">
+                    <span>vs <b>${vs}</b> <span class="${resClass}">(${resText})</span></span>
+                    <button class="btn-star" onclick="location.href='review.html?id=${g.id}'"><i class="fas fa-star"></i></button>
+                </div>`;
             });
-        } catch(e) {
-            console.error(e);
-            l.innerHTML = '<p style="color:red">Error loading history</p>';
-        }
+        } catch(e) { console.error(e); l.innerHTML = '<p style="color:red">Error loading history</p>'; }
     }
 
-    // FRIEND SYSTEM
+    // FRIEND & MATCHMAKING
     window.openFriend = async () => { toggleDropdown(); document.getElementById('friendMod').style.display='flex'; loadFriends(); }
-    window.schFr = async () => {
-        const t = document.getElementById('frIn').value;
-        const resDiv = document.getElementById('frRes'); resDiv.innerHTML = 'Searching...';
-        const docSnap = await getDoc(doc(db, "users", t));
-        resDiv.innerHTML = '';
-        if(docSnap.exists()){
-            resDiv.innerHTML = `<div class="l-item"><span>${t}</span> <button class="btn-sm" style="background:var(--primary);color:black;border:none;padding:5px" onclick="reqFriend('${t}')">ADD</button></div>`;
-        } else { resDiv.innerHTML = `<span style="color:var(--danger)">User not found</span>`; }
-    }
-    window.reqFriend = async (t) => {
-        if(t === nm) return alert("Can't add self");
-        await addDoc(collection(db, "inbox"), { to: t, from: nm, text: "Sent a friend request", type: "req", read: false });
-        alert("Request Sent!");
-    }
-    window.accFr = async (id, friendName) => {
-        await setDoc(doc(db, "users", nm, "friends", friendName), { since: Date.now() });
-        await setDoc(doc(db, "users", friendName, "friends", nm), { since: Date.now() });
-        await deleteDoc(doc(db, "inbox", id));
-        alert("Friend Added!");
-    }
-    async function loadFriends(){
-        const l = document.getElementById('frList'); l.innerHTML = "Loading...";
-        const snap = await getDocs(collection(db, "users", nm, "friends"));
-        l.innerHTML = "";
-        if(snap.empty) l.innerHTML = "<p style='color:#aaa'>No friends yet.</p>";
-        snap.forEach(d => {
-            l.innerHTML += `<div class="l-item"><span>${d.id}</span> <button style="background:var(--primary);border:none;border-radius:5px;padding:5px 10px;cursor:pointer" onclick="sendChal('${d.id}')">Challenge</button></div>`;
-        });
-    }
-
-    // CHALLENGE SYSTEM FIX
-    window.sendChal = async (t) => {
-        // 1. Create room with status 'pending_accept'
-        const nr = await addDoc(collection(db,"rooms"), { player1:{name:nm}, status:"pending_accept", timer:10, variant:"standard", createdAt:Date.now() });
-        // 2. Send Inbox
-        await addDoc(collection(db, "inbox"), { to: t, from: nm, text: "Challenges you to a game!", type: "chal", roomId: nr.id, read: false });
-        
-        // 3. Show Waiting Modal
-        document.getElementById('srcMod').style.display = 'flex';
-        document.getElementById('srcStat').innerText = `Waiting for ${t} to accept...`;
-        
-        // 4. Listen for Accept
-        rId = nr.id;
-        unR = onSnapshot(doc(db,"rooms",rId), (s) => {
-            if(s.exists() && s.data().status === "playing") {
-                // Opponent accepted!
-                goGm(rId, 'white');
-            }
-        });
-    }
-    window.joinChal = async (rid, inboxId) => {
-        // Update room to playing
-        await updateDoc(doc(db,"rooms",rid), { player2:{name:nm}, status:"playing" });
-        await deleteDoc(doc(db,"inbox",inboxId)); // remove msg
-        goGm(rid, 'black');
-    }
-
-    // MATCHMAKING (RANDOM)
-    window.findMatch = async () => {
-        document.getElementById('srcMod').style.display = 'flex';
-        document.getElementById('srcStat').innerText = "Searching for opponent...";
-        let s = 0; sInt = setInterval(() => { s++; document.getElementById('srcTime').innerText = `00:${s<10?'0'+s:s}`; }, 1000);
-        const q = query(collection(db,"rooms"), where("status","==","waiting"), where("timer","==",tm), where("variant","==",vr), limit(1));
-        const sn = await getDocs(q);
-        if(!sn.empty){ rId = sn.docs[0].id; await updateDoc(doc(db,"rooms",rId), { player2:{name:nm}, status:"playing" }); goGm(rId, 'black'); } 
-        else { const nr = await addDoc(collection(db,"rooms"), { player1:{name:nm}, status:"waiting", timer:tm, variant:vr, createdAt:Date.now() }); rId = nr.id; unR = onSnapshot(doc(db,"rooms",rId), (s) => { if(s.exists() && s.data().status === "playing") goGm(rId, 'white'); }); }
-    };
+    window.schFr = async () => { const t = document.getElementById('frIn').value; const resDiv = document.getElementById('frRes'); resDiv.innerHTML = 'Searching...'; const docSnap = await getDoc(doc(db, "users", t)); resDiv.innerHTML = ''; if(docSnap.exists()){ resDiv.innerHTML = `<div class="l-item"><span>${t}</span> <button class="btn-sm" style="background:var(--primary);color:black;border:none;padding:5px" onclick="reqFriend('${t}')">ADD</button></div>`; } else { resDiv.innerHTML = `<span style="color:var(--danger)">User not found</span>`; } }
+    window.reqFriend = async (t) => { if(t === nm) return alert("Can't add self"); await addDoc(collection(db, "inbox"), { to: t, from: nm, text: "Sent a friend request", type: "req", read: false }); alert("Request Sent!"); }
+    window.accFr = async (id, friendName) => { await setDoc(doc(db, "users", nm, "friends", friendName), { since: Date.now() }); await setDoc(doc(db, "users", friendName, "friends", nm), { since: Date.now() }); await deleteDoc(doc(db, "inbox", id)); alert("Friend Added!"); }
+    async function loadFriends(){ const l = document.getElementById('frList'); l.innerHTML = "Loading..."; const snap = await getDocs(collection(db, "users", nm, "friends")); l.innerHTML = ""; if(snap.empty) l.innerHTML = "<p style='color:#aaa'>No friends yet.</p>"; snap.forEach(d => { l.innerHTML += `<div class="l-item"><span>${d.id}</span> <button style="background:var(--primary);border:none;border-radius:5px;padding:5px 10px;cursor:pointer" onclick="sendChal('${d.id}')">Challenge</button></div>`; }); }
+    window.sendChal = async (t) => { const nr = await addDoc(collection(db,"rooms"), { player1:{name:nm}, status:"pending_accept", timer:10, variant:"standard", createdAt:Date.now() }); await addDoc(collection(db, "inbox"), { to: t, from: nm, text: "Challenges you to a game!", type: "chal", roomId: nr.id, read: false }); document.getElementById('srcMod').style.display = 'flex'; document.getElementById('srcStat').innerText = `Waiting for ${t} to accept...`; rId = nr.id; unR = onSnapshot(doc(db,"rooms",rId), (s) => { if(s.exists() && s.data().status === "playing") { goGm(rId, 'white'); } }); }
+    window.joinChal = async (rid, inboxId) => { await updateDoc(doc(db,"rooms",rid), { player2:{name:nm}, status:"playing" }); await deleteDoc(doc(db,"inbox",inboxId)); goGm(rid, 'black'); }
+    window.findMatch = async () => { document.getElementById('srcMod').style.display = 'flex'; document.getElementById('srcStat').innerText = "Searching for opponent..."; let s = 0; sInt = setInterval(() => { s++; document.getElementById('srcTime').innerText = `00:${s<10?'0'+s:s}`; }, 1000); const q = query(collection(db,"rooms"), where("status","==","waiting"), where("timer","==",tm), where("variant","==",vr), limit(1)); const sn = await getDocs(q); if(!sn.empty){ rId = sn.docs[0].id; await updateDoc(doc(db,"rooms",rId), { player2:{name:nm}, status:"playing" }); goGm(rId, 'black'); } else { const nr = await addDoc(collection(db,"rooms"), { player1:{name:nm}, status:"waiting", timer:tm, variant:vr, createdAt:Date.now() }); rId = nr.id; unR = onSnapshot(doc(db,"rooms",rId), (s) => { if(s.exists() && s.data().status === "playing") goGm(rId, 'white'); }); } };
     window.cancSrc = async () => { clearInterval(sInt); if(unR) unR(); if(rId){ const r = await getDoc(doc(db,"rooms",rId)); if(r.exists() && r.data().player1.name === nm) await deleteDoc(doc(db,"rooms",rId)); } document.getElementById('srcMod').style.display = 'none'; };
     function goGm(id, sd) { clearInterval(sInt); if(unR) unR(); window.location.href = `${vr==='crazyhouse'?'crazyhouse':'game'}.html?id=${id}&side=${sd}`; }
 
-    // UTILS
+    // UTILS & ACTIONS
     window.openInbox = () => { document.getElementById('inboxMod').style.display='flex'; toggleDropdown(); };
     window.delIn = async (id) => await deleteDoc(doc(db,"inbox",id));
     window.openOwner = () => { document.getElementById('ownerMod').style.display='flex'; toggleDropdown(); };
@@ -429,7 +377,7 @@ input::placeholder{color:#666}
 
     window.openAdd = () => document.getElementById('addMod').style.display='flex';
     window.subData = async () => { await addDoc(collection(db,"players"), { name: document.getElementById('dName').value, elo: document.getElementById('dElo').value, rank: document.getElementById('dRank').value, timestamp: Date.now() }); closeM(); };
-    window.updModal = () => { const l = parseInt(localStorage.getItem('av'))||0; document.getElementById('updCt').innerHTML = svV > l ? `<h3 style="color:#81b64c">Update Available</h3><button class="btn-g" onclick="localStorage.setItem('av',${svV});location.reload()">UPDATE</button>` : `Up to date`; document.getElementById('updMod').style.display='flex'; toggleDropdown(); };
+    window.updModal = () => { const l = parseFloat(localStorage.getItem('av'))||0; document.getElementById('updCt').innerHTML = svV > l ? `<h3 style="color:#81b64c">Update Available (v${svV})</h3><button class="btn-g" onclick="localStorage.setItem('av',${svV});location.reload()">UPDATE NOW</button>` : `Your version (v${l}) is up to date.`; document.getElementById('updMod').style.display='flex'; toggleDropdown(); };
     window.openAva = () => document.getElementById('avaMod').style.display='flex';
     window.setAva = async (s) => { await updateProfile(auth.currentUser, {photoURL:s}); location.reload(); };
     window.toggleChat = (s) => { document.getElementById('chatOv').style.display=s?'flex':'none'; };
