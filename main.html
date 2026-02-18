@@ -21,7 +21,7 @@ header{background:var(--card);padding:0 20px;height:65px;display:flex;align-item
 .drop-m a{color:#fff;padding:16px 20px;text-decoration:none;display:flex;align-items:center;gap:15px;border-bottom:1px solid #444;transition:.2s}
 .drop-m a:hover{background:var(--primary);color:#000}
 .prof-trig{width:42px;height:42px;border-radius:50%;border:2px solid var(--primary);object-fit:cover}
-#updNot{text-align:center;font-size:.9rem;margin-top:15px;color:var(--muted);font-weight:bold}
+#updNot{text-align:center;font-size:.9rem;margin-top:15px;color:var(--muted);font-weight:bold;transition:0.3s}
 .bc-box{margin:15px 20px;background:linear-gradient(135deg,#b8860b,#daa520);color:#000;padding:15px;border-radius:var(--rad);font-weight:700;display:flex;align-items:center;gap:15px}
 .cont{max-width:var(--w);margin:0 auto;padding:10px 20px}
 .welc{font-size:1.8rem;font-weight:900;margin-bottom:25px;color:var(--primary)}
@@ -67,7 +67,7 @@ input::placeholder{color:#666}
 .hist-w{font-weight:bold;color:var(--accent)}.hist-l{font-weight:bold;color:var(--danger)}.hist-d{font-weight:bold;color:#aaa}
 .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 .btn-star{background:var(--primary);color:#000;border:none;width:35px;height:35px;border-radius:8px;cursor:pointer;display:flex;justify-content:center;align-items:center;margin-left:auto}
-.ver-footer{text-align:center;margin-top:40px;color:#444;font-size:0.8rem;font-weight:bold}
+.ver-footer{text-align:center;margin-top:40px;color:#444;font-size:0.8rem;font-weight:bold;padding-bottom:20px}
 </style>
 </head>
 <body>
@@ -139,7 +139,7 @@ input::placeholder{color:#666}
 
     <div class="ver-footer">
         chesselobeth©<br>
-        version: <span id="appVer">...</span>
+        version: <span id="localVerDisp">...</span>
     </div>
 </div>
 
@@ -170,7 +170,9 @@ input::placeholder{color:#666}
 </div></div>
 
 <div class="modal-ov" id="srcMod"><div class="modal" style="text-align:center"><h2>Matchmaking</h2><h1 id="srcTime" style="color:var(--primary)">...</h1><p id="srcStat">Searching for opponent...</p><button class="btn-g" style="background:var(--danger)" onclick="cancSrc()">CANCEL</button></div></div>
-<div class="modal-ov" id="updMod"><div class="modal"><h2>Update</h2><div id="updCt"></div><button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button></div></div>
+
+<div class="modal-ov" id="updMod"><div class="modal"><h2>Update Status</h2><div id="updCt"></div><button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button></div></div>
+
 <div class="modal-ov" id="avaMod"><div class="modal"><h2>Choose Avatar</h2><div class="grid" style="grid-template-columns:1fr 1fr;gap:20px"><img class="ava-sel" src="https://i.ibb.co.com/Fb6FJQ9g/54b19ada-d53e-4ee9-8882-9dfed1bf1396.jpg" onclick="setAva(this.src)"><img class="ava-sel" src="https://i.ibb.co.com/jZhYZky2/68f9ebed-9db3-458f-aa15-b5b6dfc8566c.jpg" onclick="setAva(this.src)"></div><button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button></div></div>
 
 <div class="modal-ov" id="ownerMod"><div class="modal"><h2>Owner Actions</h2>
@@ -204,7 +206,11 @@ input::placeholder{color:#666}
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    let u, nm, isPrem=false, isAdmin=false, tm=10, vr="standard", sInt, rId, unR, svV=0;
+    let u, nm, isPrem=false, isAdmin=false, tm=10, vr="standard", sInt, rId, unR, svV=1.0, locV=1.0;
+
+    // INIT LOCAL VERSION
+    locV = parseFloat(localStorage.getItem('av')) || 1.0;
+    document.getElementById('localVerDisp').innerText = locV; // Footer
 
     window.closeM = () => document.querySelectorAll('.modal-ov').forEach(m => m.style.display='none');
     window.toggleDropdown = () => { const m = document.getElementById('mainMenu'); m.style.display = m.style.display==='block'?'none':'block'; };
@@ -259,16 +265,13 @@ input::placeholder{color:#666}
     function loadD(){
         onSnapshot(doc(db,"config","broadcastMsg"), (d) => { if(d.exists()) document.getElementById('bcText').innerText = d.data().text; });
         
-        // UPDATE CHECKER (FIXED)
+        // UPDATE LOGIC (FIXED)
         onSnapshot(doc(db,"config","settings"), (d) => { 
             if(d.exists()){ 
                 svV = d.data().latestVersion || 1.0; 
-                document.getElementById('appVer').innerText = svV; // Set footer version
-                
-                const l = parseFloat(localStorage.getItem('av')) || 1.0; 
                 const notif = document.getElementById('updNot');
                 
-                if(svV > l) {
+                if(svV > locV) {
                     notif.innerText = "There Are Update, Please check the update in \"Update Status\"";
                     notif.style.color = "var(--accent)";
                 } else {
@@ -313,23 +316,18 @@ input::placeholder{color:#666}
         document.getElementById('histMod').style.display='flex';
         document.getElementById('histName').innerText = nm;
         document.getElementById('histAva').src = u.photoURL;
-        
         const l = document.getElementById('histList'); l.innerHTML = 'Loading...';
-        
         try {
             const q1 = query(collection(db,"rooms"), where("player1.name", "==", nm), where("status", "==", "finished"), limit(10));
             const snap1 = await getDocs(q1);
             const q2 = query(collection(db,"rooms"), where("player2.name", "==", nm), where("status", "==", "finished"), limit(10));
             const snap2 = await getDocs(q2);
-
             const games = [];
             snap1.forEach(d => games.push({id: d.id, ...d.data()}));
             snap2.forEach(d => games.push({id: d.id, ...d.data()}));
             games.sort((a,b) => b.createdAt - a.createdAt);
-
             l.innerHTML = '';
             if(games.length === 0) { l.innerHTML = '<p style="text-align:center;color:#aaa">No games yet.</p>'; return; }
-
             games.forEach(g => {
                 const meWhite = g.player1.name === nm;
                 const vs = meWhite ? g.player2.name : g.player1.name;
@@ -337,16 +335,27 @@ input::placeholder{color:#666}
                 const draw = g.winner === 'draw';
                 const resClass = win ? 'hist-w' : (draw ? 'hist-d' : 'hist-l');
                 const resText = win ? 'WON' : (draw ? 'DRAW' : 'LOST');
-                
-                // REVIEW BUTTON ADDED
-                l.innerHTML += `
-                <div class="l-item">
-                    <span>vs <b>${vs}</b> <span class="${resClass}">(${resText})</span></span>
-                    <button class="btn-star" onclick="location.href='review.html?id=${g.id}'"><i class="fas fa-star"></i></button>
-                </div>`;
+                l.innerHTML += `<div class="l-item"><span>vs <b>${vs}</b> <span class="${resClass}">(${resText})</span></span><button class="btn-star" onclick="location.href='review.html?id=${g.id}'"><i class="fas fa-star"></i></button></div>`;
             });
         } catch(e) { console.error(e); l.innerHTML = '<p style="color:red">Error loading history</p>'; }
     }
+
+    // UPDATE SYSTEM (MODAL & ACTION)
+    window.updModal = () => { 
+        const ct = document.getElementById('updCt');
+        if(svV > locV) {
+            ct.innerHTML = `<h3 style="color:#81b64c;margin-bottom:10px">Update Available (v${svV})</h3><p style="color:#aaa;font-size:0.9rem">New features are ready.</p><button class="btn-g" onclick="doUpdate()">UPDATE NOW</button>`;
+        } else {
+            ct.innerHTML = `<h3 style="color:var(--primary);margin-bottom:10px">Up to date</h3><p style="color:#aaa;font-size:0.9rem">You are on version ${locV}</p>`;
+        }
+        document.getElementById('updMod').style.display='flex'; 
+        toggleDropdown(); 
+    };
+    
+    window.doUpdate = () => {
+        localStorage.setItem('av', svV);
+        location.reload(); // REFRESH WEBSITE
+    };
 
     // FRIEND & MATCHMAKING
     window.openFriend = async () => { toggleDropdown(); document.getElementById('friendMod').style.display='flex'; loadFriends(); }
@@ -377,7 +386,6 @@ input::placeholder{color:#666}
 
     window.openAdd = () => document.getElementById('addMod').style.display='flex';
     window.subData = async () => { await addDoc(collection(db,"players"), { name: document.getElementById('dName').value, elo: document.getElementById('dElo').value, rank: document.getElementById('dRank').value, timestamp: Date.now() }); closeM(); };
-    window.updModal = () => { const l = parseFloat(localStorage.getItem('av'))||0; document.getElementById('updCt').innerHTML = svV > l ? `<h3 style="color:#81b64c">Update Available (v${svV})</h3><button class="btn-g" onclick="localStorage.setItem('av',${svV});location.reload()">UPDATE NOW</button>` : `Your version (v${l}) is up to date.`; document.getElementById('updMod').style.display='flex'; toggleDropdown(); };
     window.openAva = () => document.getElementById('avaMod').style.display='flex';
     window.setAva = async (s) => { await updateProfile(auth.currentUser, {photoURL:s}); location.reload(); };
     window.toggleChat = (s) => { document.getElementById('chatOv').style.display=s?'flex':'none'; };
