@@ -87,7 +87,7 @@ input::placeholder{color:#666}
                 <a href="#" onclick="openInbox()"><i class="fas fa-envelope"></i> Inbox <span id="inboxCount" style="color:var(--danger)"></span></a>
                 <a href="#" onclick="openFriend()"><i class="fas fa-users"></i> Friends</a>
                 <a href="#" onclick="swSec('elo')"><i class="fas fa-list-ol"></i> Players</a>
-                <a href="#" onclick="updModal()"><i class="fas fa-sync"></i> Update</a>
+                <a href="#" onclick="updModal()"><i class="fas fa-sync"></i> Update Status</a>
                 <a href="#" id="ownerBtn" style="display:none;color:var(--primary)" onclick="openOwner()"><i class="fas fa-shield-alt"></i> Owner</a>
                 <a href="#" onclick="logout()" style="color:var(--danger)"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </div>
@@ -171,7 +171,11 @@ input::placeholder{color:#666}
 
 <div class="modal-ov" id="srcMod"><div class="modal" style="text-align:center"><h2>Matchmaking</h2><h1 id="srcTime" style="color:var(--primary)">...</h1><p id="srcStat">Searching for opponent...</p><button class="btn-g" style="background:var(--danger)" onclick="cancSrc()">CANCEL</button></div></div>
 
-<div class="modal-ov" id="updMod"><div class="modal"><h2>Update Status</h2><div id="updCt"></div><button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button></div></div>
+<div class="modal-ov" id="updMod"><div class="modal">
+    <h2>Update Status</h2>
+    <div id="updCt"></div>
+    <button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button>
+</div></div>
 
 <div class="modal-ov" id="avaMod"><div class="modal"><h2>Choose Avatar</h2><div class="grid" style="grid-template-columns:1fr 1fr;gap:20px"><img class="ava-sel" src="https://i.ibb.co.com/Fb6FJQ9g/54b19ada-d53e-4ee9-8882-9dfed1bf1396.jpg" onclick="setAva(this.src)"><img class="ava-sel" src="https://i.ibb.co.com/jZhYZky2/68f9ebed-9db3-458f-aa15-b5b6dfc8566c.jpg" onclick="setAva(this.src)"></div><button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button></div></div>
 
@@ -310,6 +314,33 @@ input::placeholder{color:#666}
         });
     }
 
+    // UPDATE SYSTEM (MODAL & ACTION)
+    window.updModal = () => { 
+        const ct = document.getElementById('updCt');
+        let html = '';
+        
+        // Cek update
+        if(svV > locV) {
+            html += `<h2 style="color:#81b64c;margin-bottom:10px">UPDATE AVAILABLE</h2>`;
+            html += `<p>Server: <b>v${svV}</b> | You: v${locV}</p>`;
+            html += `<button class="btn-g" onclick="doUpdate()">DOWNLOAD & REFRESH</button>`;
+        } else {
+            html += `<h2 style="color:var(--primary);margin-bottom:10px">UP TO DATE</h2>`;
+            html += `<p>Server: <b>v${svV}</b> | You: v${locV}</p>`;
+            // TOMBOL FORCE REFRESH YANG KAMU MINTA
+            html += `<button class="btn-g" style="background:#444;margin-top:15px" onclick="location.reload()">FORCE REFRESH</button>`;
+        }
+        
+        ct.innerHTML = html;
+        document.getElementById('updMod').style.display='flex'; 
+        toggleDropdown(); 
+    };
+    
+    window.doUpdate = () => {
+        localStorage.setItem('av', svV);
+        location.reload(); 
+    };
+
     // HISTORY (PROFILE) + REVIEW BUTTON
     window.openHistory = async () => {
         toggleDropdown();
@@ -339,23 +370,6 @@ input::placeholder{color:#666}
             });
         } catch(e) { console.error(e); l.innerHTML = '<p style="color:red">Error loading history</p>'; }
     }
-
-    // UPDATE SYSTEM (MODAL & ACTION)
-    window.updModal = () => { 
-        const ct = document.getElementById('updCt');
-        if(svV > locV) {
-            ct.innerHTML = `<h3 style="color:#81b64c;margin-bottom:10px">Update Available (v${svV})</h3><p style="color:#aaa;font-size:0.9rem">New features are ready.</p><button class="btn-g" onclick="doUpdate()">UPDATE NOW</button>`;
-        } else {
-            ct.innerHTML = `<h3 style="color:var(--primary);margin-bottom:10px">Up to date</h3><p style="color:#aaa;font-size:0.9rem">You are on version ${locV}</p>`;
-        }
-        document.getElementById('updMod').style.display='flex'; 
-        toggleDropdown(); 
-    };
-    
-    window.doUpdate = () => {
-        localStorage.setItem('av', svV);
-        location.reload(); // REFRESH WEBSITE
-    };
 
     // FRIEND & MATCHMAKING
     window.openFriend = async () => { toggleDropdown(); document.getElementById('friendMod').style.display='flex'; loadFriends(); }
