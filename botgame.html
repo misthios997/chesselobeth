@@ -5,262 +5,306 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Playing Bot</title>
     
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    
     <style>
+        /* UI STYLE (Mirip Game.html) */
+        :root {
+            --bg: #1a1a1a;
+            --card: #2d2d2d;
+            --text: #ffffff;
+            --primary: #ffd700;
+            --accent: #81b64c;
+        }
+
         body {
-            background-color: #1a1a1a;
-            color: #fff;
-            font-family: 'Segoe UI', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding-top: 20px;
-        }
-
-        .game-area {
-            width: 100%;
-            max-width: 450px;
-            padding: 20px;
+            padding: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden; /* Mencegah scroll saat drag */
         }
 
-        .player-info {
-            display: flex;
-            align-items: center;
+        .game-container {
             width: 100%;
-            background: #2d2d2d;
+            max-width: 600px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* PLAYER CARDS */
+        .player-card {
+            background: var(--card);
             padding: 10px 15px;
             border-radius: 12px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border-left: 5px solid transparent;
         }
+        
+        .player-card.opponent { border-left-color: var(--primary); }
+        .player-card.me { border-left-color: var(--accent); margin-top: 5px; }
 
-        .avatar {
+        .ava {
             width: 50px;
             height: 50px;
             border-radius: 50%;
-            border: 2px solid #ffd700;
-            margin-right: 15px;
             object-fit: cover;
+            border: 2px solid #444;
         }
 
-        .avatar-icon {
+        .ava-icon {
             width: 50px;
             height: 50px;
             border-radius: 50%;
-            border: 2px solid #ffd700;
-            margin-right: 15px;
+            background: #333;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 25px;
-            background: #333;
+            font-size: 24px;
+            border: 2px solid var(--primary);
         }
 
-        .name { font-weight: bold; font-size: 1.1rem; }
-        .elo { color: #888; font-size: 0.9rem; }
+        .info { flex: 1; }
+        .name { font-weight: 700; font-size: 1.1rem; line-height: 1.2; }
+        .rating { font-size: 0.85rem; color: #888; font-weight: 600; }
 
         /* PAPAN CATUR FIX */
+        .board-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin: 5px 0;
+        }
+
         #board {
             width: 100%;
-            touch-action: none; /* Biar gak scroll pas geser bidak di HP */
-            margin: 10px 0;
+            /* Pastikan papan selalu kotak agar tidak hilang */
+            aspect-ratio: 1 / 1; 
         }
 
-        .status {
-            margin-top: 15px;
-            color: #aaa;
-            font-style: italic;
-            font-weight: bold;
-        }
-
+        /* CONTROLS */
         .controls {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 10px;
-            width: 100%;
-            margin-top: 20px;
+            margin-top: 5px;
         }
 
         .btn {
             background: #333;
-            color: white;
             border: none;
+            color: #fff;
             padding: 15px;
             border-radius: 12px;
             font-weight: bold;
-            cursor: pointer;
-            flex: 1;
             font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
             transition: 0.2s;
         }
-        .btn:active { transform: scale(0.95); }
-        .btn-home { background: #ffd700; color: black; }
+        .btn:active { transform: scale(0.95); background: #444; }
+        .btn-home { background: var(--primary); color: #000; }
+
+        .status-bar {
+            text-align: center;
+            color: #aaa;
+            font-size: 0.9rem;
+            font-style: italic;
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="game-area">
-        <div class="player-info">
-            <div id="botAvatarCont"></div>
-            <div>
-                <div class="name" id="botName">Loading...</div>
-                <div class="elo" id="botElo"></div>
-            </div>
-        </div>
-
-        <div id="board"></div>
-
-        <div class="player-info" style="margin-top: 15px;">
-            <img src="https://i.ibb.co.com/8LpY5v7/avatar1.jpg" class="avatar">
-            <div>
-                <div class="name">You</div>
-            </div>
-        </div>
+    <div class="game-container">
         
-        <div class="status" id="status">White to move</div>
+        <div class="player-card opponent">
+            <div id="botAvaCont"></div>
+            <div class="info">
+                <div class="name" id="botName">Loading...</div>
+                <div class="rating" id="botElo">...</div>
+            </div>
+        </div>
+
+        <div class="status-bar" id="status">White to move</div>
+
+        <div class="board-wrapper">
+            <div id="board"></div>
+        </div>
+
+        <div class="player-card me">
+            <img src="https://i.ibb.co.com/8LpY5v7/avatar1.jpg" class="ava" id="myAva">
+            <div class="info">
+                <div class="name">You</div>
+                <div class="rating">Playing vs Bot</div>
+            </div>
+        </div>
 
         <div class="controls">
-            <button class="btn btn-home" onclick="location.href='main.html'"><i class="fas fa-home"></i></button>
-            <button class="btn" onclick="undoMove()"><i class="fas fa-undo"></i></button>
-            <button class="btn" onclick="resetGame()"><i class="fas fa-sync"></i></button>
+            <button class="btn btn-home" onclick="window.location.href='main.html'">
+                <i class="fas fa-home"></i>
+            </button>
+            <button class="btn" onclick="undoMove()">
+                <i class="fas fa-undo"></i> Undo
+            </button>
+            <button class="btn" onclick="resetGame()">
+                <i class="fas fa-sync-alt"></i> New
+            </button>
         </div>
+
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 
     <script>
-        // Tunggu halaman siap sepenuhnya
-        $(document).ready(function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const botId = urlParams.get('bot') || 'pieter';
-            const botElo = urlParams.get('elo') || '1250';
-            
-            const BOTS_DB = {
-                'pieter': { n:'Pieter', i:'https://i.ibb.co.com/Wv34J1qd/1771424229420.png', depth: 1, skill: 0 },
-                'maria': { n:'Maria', i:'https://i.ibb.co.com/WvqDx4nn/1771422684683.png', depth: 4, skill: 5 },
-                'hikaru': { n:'Hikaru', i:'https://i.ibb.co.com/HvvdN1n/1771421778737.png', depth: 10, skill: 10 },
-                'magnus': { n:'Magnus', i:'https://i.ibb.co.com/Q3DM9Vhr/1771421721788.png', depth: 15, skill: 20 },
-                'engine': { n:'Engine', icon:'💿', depth: 18, skill: 20 }
-            };
+        // CONFIG BOT
+        const urlParams = new URLSearchParams(window.location.search);
+        const botId = urlParams.get('bot') || 'pieter';
+        const botElo = urlParams.get('elo') || '1250';
 
-            const currentBot = BOTS_DB[botId] || BOTS_DB['pieter'];
+        const BOTS_DB = {
+            'pieter': { n:'Pieter', i:'https://i.ibb.co.com/Wv34J1qd/1771424229420.png', depth: 2, skill: 1 },
+            'maria': { n:'Maria', i:'https://i.ibb.co.com/WvqDx4nn/1771422684683.png', depth: 6, skill: 5 },
+            'hikaru': { n:'Hikaru', i:'https://i.ibb.co.com/HvvdN1n/1771421778737.png', depth: 12, skill: 15 },
+            'magnus': { n:'Magnus', i:'https://i.ibb.co.com/Q3DM9Vhr/1771421721788.png', depth: 15, skill: 20 },
+            'engine': { n:'Engine', icon:'💿', depth: 18, skill: 20 }
+        };
 
-            // UI SETUP
-            $('#botName').text(currentBot.n);
-            $('#botElo').text(`Rating: ${botElo}`);
-            
-            const avaCont = document.getElementById('botAvatarCont');
-            if(currentBot.icon) {
-                avaCont.innerHTML = `<div class="avatar-icon">${currentBot.icon}</div>`;
+        const currentBot = BOTS_DB[botId] || BOTS_DB['pieter'];
+
+        // SETUP UI
+        document.getElementById('botName').innerText = currentBot.n;
+        document.getElementById('botElo').innerText = botElo;
+        
+        const avaCont = document.getElementById('botAvaCont');
+        if(currentBot.icon) {
+            avaCont.innerHTML = `<div class="ava-icon">${currentBot.icon}</div>`;
+        } else {
+            avaCont.innerHTML = `<img src="${currentBot.i}" class="ava">`;
+        }
+
+        // CHESS LOGIC
+        var board = null;
+        var game = new Chess();
+        var stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js');
+
+        // Init Engine
+        stockfish.postMessage('uci');
+        stockfish.postMessage(`setoption name Skill Level value ${currentBot.skill}`);
+
+        function onDragStart (source, piece) {
+            if (game.game_over()) return false;
+            // User selalu Putih (b)lack piece tidak bisa digerakkan user
+            if (piece.search(/^b/) !== -1) return false; 
+        }
+
+        function onDrop (source, target) {
+            var move = game.move({
+                from: source,
+                to: target,
+                promotion: 'q'
+            });
+
+            if (move === null) return 'snapback';
+
+            updateStatus();
+            // Bot mikir sebentar (250ms) biar natural
+            window.setTimeout(makeBotMove, 250);
+        }
+
+        function onSnapEnd () {
+            board.position(game.fen());
+        }
+
+        function makeBotMove() {
+            if (game.game_over()) return;
+
+            document.getElementById('status').innerText = `${currentBot.n} is thinking...`;
+            stockfish.postMessage('position fen ' + game.fen());
+            stockfish.postMessage(`go depth ${currentBot.depth}`);
+        }
+
+        stockfish.onmessage = function(event) {
+            if(event.data.startsWith('bestmove')) {
+                const bestMove = event.data.split(' ')[1];
+                if(bestMove) {
+                    game.move({
+                        from: bestMove.substring(0, 2),
+                        to: bestMove.substring(2, 4),
+                        promotion: bestMove.length > 4 ? bestMove.substring(4, 5) : 'q'
+                    });
+                    board.position(game.fen());
+                    updateStatus();
+                }
+            }
+        };
+
+        function updateStatus() {
+            var status = '';
+            var moveColor = 'White';
+            if (game.turn() === 'b') moveColor = 'Black';
+
+            if (game.in_checkmate()) {
+                status = 'Game Over: ' + moveColor + ' Checkmated!';
+            } else if (game.in_draw()) {
+                status = 'Game Over: Draw';
             } else {
-                avaCont.innerHTML = `<img src="${currentBot.i}" class="avatar">`;
+                status = moveColor + ' to move';
+                if (game.in_check()) status += ' (CHECK!)';
             }
+            document.getElementById('status').innerText = status;
+        }
 
-            // GAME LOGIC
-            var board = null;
-            var game = new Chess();
-            var stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js');
+        // FUNGSI BUTTON
+        window.undoMove = function() {
+            game.undo(); // Undo Bot
+            game.undo(); // Undo Player
+            board.position(game.fen());
+            updateStatus();
+        };
 
-            stockfish.postMessage('uci');
-            stockfish.postMessage(`setoption name Skill Level value ${currentBot.skill}`);
+        window.resetGame = function() {
+            game.reset();
+            board.start();
+            updateStatus();
+        };
 
-            function onDragStart (source, piece) {
-                if (game.game_over()) return false;
-                if (piece.search(/^b/) !== -1) return false; 
-            }
-
-            function onDrop (source, target) {
-                var move = game.move({
-                    from: source,
-                    to: target,
-                    promotion: 'q'
-                });
-
-                if (move === null) return 'snapback';
-
-                updateStatus();
-                window.setTimeout(makeBotMove, 250);
-            }
-
-            function onSnapEnd () {
-                board.position(game.fen());
-            }
-
-            function makeBotMove() {
-                if (game.game_over()) return;
-                
-                $('#status').text(currentBot.n + ' is thinking...');
-                stockfish.postMessage('position fen ' + game.fen());
-                stockfish.postMessage(`go depth ${currentBot.depth}`);
-            }
-
-            stockfish.onmessage = function(event) {
-                if(event.data.startsWith('bestmove')) {
-                    const bestMove = event.data.split(' ')[1];
-                    if(bestMove) {
-                        game.move({
-                            from: bestMove.substring(0, 2),
-                            to: bestMove.substring(2, 4),
-                            promotion: bestMove.length > 4 ? bestMove.substring(4, 5) : 'q'
-                        });
-                        board.position(game.fen());
-                        updateStatus();
-                    }
-                }
-            };
-
-            function updateStatus() {
-                var status = '';
-                var moveColor = 'White';
-                if (game.turn() === 'b') moveColor = 'Black';
-
-                if (game.in_checkmate()) {
-                    status = 'Game Over: ' + moveColor + ' is checkmated.';
-                } else if (game.in_draw()) {
-                    status = 'Game Over: Draw';
-                } else {
-                    status = moveColor + ' to move';
-                    if (game.in_check()) status += ' (Check!)';
-                }
-                $('#status').text(status);
-            }
-
-            // EXPOSE GLOBAL FUNCTIONS
-            window.undoMove = function() {
-                game.undo(); game.undo();
-                board.position(game.fen());
-                updateStatus();
-            };
-
-            window.resetGame = function() {
-                game.reset();
-                board.start();
-                updateStatus();
-            };
-
-            // INITIALIZE BOARD (PENTING: pieceTheme HARUS URL LENGKAP)
+        // INISIALISASI PAPAN (WAJIB SETELAH DOM READY)
+        $(document).ready(function() {
             var config = {
                 draggable: true,
                 position: 'start',
-                // INI YANG BIKIN BIDAKNYA MUNCUL (LINK KE ASSET WIKIPEDIA)
-                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+                // *** INI LINK ASET NEO (CHESS.COM STYLE) ***
+                pieceTheme: 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150/{piece}.png',
                 onDragStart: onDragStart,
                 onDrop: onDrop,
                 onSnapEnd: onSnapEnd
-            };
+            }
             
             board = Chessboard('board', config);
             
-            // RESPONSIVE RESIZE
+            // Fix ukuran papan saat resize window
             $(window).resize(board.resize);
+            
+            // Panggil resize sekali di awal untuk memastikan render
+            setTimeout(board.resize, 200);
         });
     </script>
 </body>
