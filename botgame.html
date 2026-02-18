@@ -9,10 +9,9 @@
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     
     <style>
-        /* UI STYLE (Mirip Game.html) */
         :root {
             --bg: #1a1a1a;
-            --card: #2d2d2d;
+            --card: #262626;
             --text: #ffffff;
             --primary: #ffd700;
             --accent: #81b64c;
@@ -28,284 +27,237 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            overflow: hidden; /* Mencegah scroll saat drag */
+            height: 100vh;
+            overflow: hidden;
         }
 
         .game-container {
             width: 100%;
-            max-width: 600px;
-            padding: 10px;
+            max-width: 500px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
 
-        /* PLAYER CARDS */
+        /* CARD PLAYER */
         .player-card {
             background: var(--card);
-            padding: 10px 15px;
+            padding: 8px 15px;
             border-radius: 12px;
             display: flex;
             align-items: center;
-            gap: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            border-left: 5px solid transparent;
+            gap: 12px;
+            border-left: 4px solid transparent;
         }
-        
-        .player-card.opponent { border-left-color: var(--primary); }
-        .player-card.me { border-left-color: var(--accent); margin-top: 5px; }
+        .player-card.top { border-left-color: var(--primary); }
+        .player-card.bot { border-left-color: var(--accent); margin-top: 5px; }
 
         .ava {
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid #444;
         }
-
         .ava-icon {
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             background: #333;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 24px;
+            font-size: 20px;
             border: 2px solid var(--primary);
         }
 
-        .info { flex: 1; }
-        .name { font-weight: 700; font-size: 1.1rem; line-height: 1.2; }
-        .rating { font-size: 0.85rem; color: #888; font-weight: 600; }
+        .info h3 { margin: 0; font-size: 1rem; }
+        .info p { margin: 0; font-size: 0.8rem; color: #888; }
 
-        /* PAPAN CATUR FIX */
-        .board-wrapper {
+        /* PAPAN CATUR FIX (WAJIB ADA UKURANNYA) */
+        .board-container {
             width: 100%;
             display: flex;
             justify-content: center;
+            align-items: center;
             margin: 5px 0;
         }
 
         #board {
-            width: 100%;
-            /* Pastikan papan selalu kotak agar tidak hilang */
-            aspect-ratio: 1 / 1; 
+            width: 90vw;
+            height: 90vw;
+            max-width: 400px;
+            max-height: 400px;
+            /* Border buat debugging kalo papan ga muncul */
+            border: 2px solid #333; 
+        }
+
+        .status-bar {
+            text-align: center;
+            color: #aaa;
+            font-style: italic;
+            font-size: 0.9rem;
+            min-height: 20px;
         }
 
         /* CONTROLS */
         .controls {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            margin-top: 5px;
+            gap: 8px;
         }
-
         .btn {
             background: #333;
+            color: white;
             border: none;
-            color: #fff;
-            padding: 15px;
-            border-radius: 12px;
+            padding: 12px;
+            border-radius: 8px;
             font-weight: bold;
-            font-size: 1rem;
+            font-size: 0.9rem;
             cursor: pointer;
             display: flex;
             justify-content: center;
-            align-items: center;
-            gap: 8px;
-            transition: 0.2s;
+            gap: 5px;
         }
-        .btn:active { transform: scale(0.95); background: #444; }
-        .btn-home { background: var(--primary); color: #000; }
-
-        .status-bar {
-            text-align: center;
-            color: #aaa;
-            font-size: 0.9rem;
-            font-style: italic;
-            margin-bottom: 5px;
-        }
+        .btn-y { background: var(--primary); color: black; }
     </style>
 </head>
 <body>
 
-    <div class="game-container">
-        
-        <div class="player-card opponent">
-            <div id="botAvaCont"></div>
-            <div class="info">
-                <div class="name" id="botName">Loading...</div>
-                <div class="rating" id="botElo">...</div>
-            </div>
+<div class="game-container">
+    
+    <div class="player-card top">
+        <div id="botAvaCont"></div>
+        <div class="info">
+            <h3 id="botName">Bot</h3>
+            <p id="botElo">...</p>
         </div>
-
-        <div class="status-bar" id="status">White to move</div>
-
-        <div class="board-wrapper">
-            <div id="board"></div>
-        </div>
-
-        <div class="player-card me">
-            <img src="https://i.ibb.co.com/8LpY5v7/avatar1.jpg" class="ava" id="myAva">
-            <div class="info">
-                <div class="name">You</div>
-                <div class="rating">Playing vs Bot</div>
-            </div>
-        </div>
-
-        <div class="controls">
-            <button class="btn btn-home" onclick="window.location.href='main.html'">
-                <i class="fas fa-home"></i>
-            </button>
-            <button class="btn" onclick="undoMove()">
-                <i class="fas fa-undo"></i> Undo
-            </button>
-            <button class="btn" onclick="resetGame()">
-                <i class="fas fa-sync-alt"></i> New
-            </button>
-        </div>
-
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <div class="status-bar" id="status">Ready</div>
 
-    <script>
-        // CONFIG BOT
-        const urlParams = new URLSearchParams(window.location.search);
-        const botId = urlParams.get('bot') || 'pieter';
-        const botElo = urlParams.get('elo') || '1250';
+    <div class="board-container">
+        <div id="board"></div>
+    </div>
 
-        const BOTS_DB = {
-            'pieter': { n:'Pieter', i:'https://i.ibb.co.com/Wv34J1qd/1771424229420.png', depth: 2, skill: 1 },
-            'maria': { n:'Maria', i:'https://i.ibb.co.com/WvqDx4nn/1771422684683.png', depth: 6, skill: 5 },
-            'hikaru': { n:'Hikaru', i:'https://i.ibb.co.com/HvvdN1n/1771421778737.png', depth: 12, skill: 15 },
-            'magnus': { n:'Magnus', i:'https://i.ibb.co.com/Q3DM9Vhr/1771421721788.png', depth: 15, skill: 20 },
-            'engine': { n:'Engine', icon:'💿', depth: 18, skill: 20 }
-        };
+    <div class="player-card bot">
+        <img src="https://ui-avatars.com/api/?name=You&background=random" class="ava">
+        <div class="info">
+            <h3>You</h3>
+            <p>Playing vs AI</p>
+        </div>
+    </div>
 
-        const currentBot = BOTS_DB[botId] || BOTS_DB['pieter'];
+    <div class="controls">
+        <button class="btn btn-y" onclick="location.href='main.html'"><i class="fas fa-home"></i></button>
+        <button class="btn" onclick="undoMove()"><i class="fas fa-undo"></i> Undo</button>
+        <button class="btn" onclick="resetGame()"><i class="fas fa-sync"></i> New</button>
+    </div>
 
-        // SETUP UI
-        document.getElementById('botName').innerText = currentBot.n;
-        document.getElementById('botElo').innerText = botElo;
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // 1. AMBIL PARAMETER URL
+    const params = new URLSearchParams(window.location.search);
+    const botId = params.get('bot') || 'pieter';
+    const botElo = params.get('elo') || '1250';
+
+    // 2. CONFIG BOT
+    const BOTS = {
+        'pieter': { n:'Pieter', i:'https://i.ibb.co.com/Wv34J1qd/1771424229420.png', d: 1, s: 0 },
+        'maria': { n:'Maria', i:'https://i.ibb.co.com/WvqDx4nn/1771422684683.png', d: 4, s: 5 },
+        'hikaru': { n:'Hikaru', i:'https://i.ibb.co.com/HvvdN1n/1771421778737.png', d: 8, s: 10 },
+        'magnus': { n:'Magnus', i:'https://i.ibb.co.com/Q3DM9Vhr/1771421721788.png', d: 12, s: 20 },
+        'engine': { n:'Engine', icon:'💿', d: 15, s: 20 }
+    };
+    const bot = BOTS[botId] || BOTS['pieter'];
+
+    // 3. SET UI
+    $('#botName').text(bot.n);
+    $('#botElo').text(botElo);
+    const avC = $('#botAvaCont');
+    if(bot.icon) avC.html(`<div class="ava-icon">${bot.icon}</div>`);
+    else avC.html(`<img src="${bot.i}" class="ava" onerror="this.src='https://ui-avatars.com/api/?name=${bot.n}'">`);
+
+    // 4. LOGIC CATUR
+    var board = null;
+    var game = new Chess();
+    var stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js');
+
+    // Init Engine
+    stockfish.postMessage('uci');
+    stockfish.postMessage(`setoption name Skill Level value ${bot.s}`);
+
+    function onDragStart(source, piece) {
+        if (game.game_over()) return false;
+        if (piece.search(/^b/) !== -1) return false; // Cuma boleh gerakin putih
+    }
+
+    function onDrop(source, target) {
+        var move = game.move({ from: source, to: target, promotion: 'q' });
+        if (move === null) return 'snapback';
         
-        const avaCont = document.getElementById('botAvaCont');
-        if(currentBot.icon) {
-            avaCont.innerHTML = `<div class="ava-icon">${currentBot.icon}</div>`;
-        } else {
-            avaCont.innerHTML = `<img src="${currentBot.i}" class="ava">`;
-        }
+        updateStatus();
+        window.setTimeout(makeBotMove, 500); // Delay dikit biar bot gak instan
+    }
 
-        // CHESS LOGIC
-        var board = null;
-        var game = new Chess();
-        var stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js');
+    function onSnapEnd() { board.position(game.fen()); }
 
-        // Init Engine
-        stockfish.postMessage('uci');
-        stockfish.postMessage(`setoption name Skill Level value ${currentBot.skill}`);
+    function makeBotMove() {
+        if (game.game_over()) return;
+        $('#status').text(bot.n + ' thinking...');
+        stockfish.postMessage('position fen ' + game.fen());
+        stockfish.postMessage(`go depth ${bot.d}`);
+    }
 
-        function onDragStart (source, piece) {
-            if (game.game_over()) return false;
-            // User selalu Putih (b)lack piece tidak bisa digerakkan user
-            if (piece.search(/^b/) !== -1) return false; 
-        }
-
-        function onDrop (source, target) {
-            var move = game.move({
-                from: source,
-                to: target,
-                promotion: 'q'
-            });
-
-            if (move === null) return 'snapback';
-
-            updateStatus();
-            // Bot mikir sebentar (250ms) biar natural
-            window.setTimeout(makeBotMove, 250);
-        }
-
-        function onSnapEnd () {
-            board.position(game.fen());
-        }
-
-        function makeBotMove() {
-            if (game.game_over()) return;
-
-            document.getElementById('status').innerText = `${currentBot.n} is thinking...`;
-            stockfish.postMessage('position fen ' + game.fen());
-            stockfish.postMessage(`go depth ${currentBot.depth}`);
-        }
-
-        stockfish.onmessage = function(event) {
-            if(event.data.startsWith('bestmove')) {
-                const bestMove = event.data.split(' ')[1];
-                if(bestMove) {
-                    game.move({
-                        from: bestMove.substring(0, 2),
-                        to: bestMove.substring(2, 4),
-                        promotion: bestMove.length > 4 ? bestMove.substring(4, 5) : 'q'
-                    });
-                    board.position(game.fen());
-                    updateStatus();
-                }
+    stockfish.onmessage = function(e) {
+        if(e.data.startsWith('bestmove')) {
+            const best = e.data.split(' ')[1];
+            if(best) {
+                game.move({ from: best.substring(0,2), to: best.substring(2,4), promotion: 'q' });
+                board.position(game.fen());
+                updateStatus();
             }
-        };
-
-        function updateStatus() {
-            var status = '';
-            var moveColor = 'White';
-            if (game.turn() === 'b') moveColor = 'Black';
-
-            if (game.in_checkmate()) {
-                status = 'Game Over: ' + moveColor + ' Checkmated!';
-            } else if (game.in_draw()) {
-                status = 'Game Over: Draw';
-            } else {
-                status = moveColor + ' to move';
-                if (game.in_check()) status += ' (CHECK!)';
-            }
-            document.getElementById('status').innerText = status;
         }
+    };
 
-        // FUNGSI BUTTON
-        window.undoMove = function() {
-            game.undo(); // Undo Bot
-            game.undo(); // Undo Player
-            board.position(game.fen());
-            updateStatus();
-        };
+    function updateStatus() {
+        var status = 'Your turn';
+        if (game.in_checkmate()) status = 'Game Over: You ' + (game.turn() === 'w' ? 'Lost' : 'Won');
+        else if (game.in_draw()) status = 'Game Over: Draw';
+        else if (game.in_check()) status = 'Check!';
+        $('#status').text(status);
+    }
 
-        window.resetGame = function() {
-            game.reset();
-            board.start();
-            updateStatus();
-        };
+    window.undoMove = () => { game.undo(); game.undo(); board.position(game.fen()); updateStatus(); };
+    window.resetGame = () => { game.reset(); board.start(); updateStatus(); };
 
-        // INISIALISASI PAPAN (WAJIB SETELAH DOM READY)
-        $(document).ready(function() {
-            var config = {
-                draggable: true,
-                position: 'start',
-                // *** INI LINK ASET NEO (CHESS.COM STYLE) ***
-                pieceTheme: 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150/{piece}.png',
-                onDragStart: onDragStart,
-                onDrop: onDrop,
-                onSnapEnd: onSnapEnd
-            }
-            
-            board = Chessboard('board', config);
-            
-            // Fix ukuran papan saat resize window
-            $(window).resize(board.resize);
-            
-            // Panggil resize sekali di awal untuk memastikan render
-            setTimeout(board.resize, 200);
-        });
-    </script>
+    // 5. INISIALISASI PAPAN (FIX ASET NEO)
+    // Kita pakai fallback CSS ChessboardJS default dulu kalau gambar gagal, 
+    // tapi kita override pieceTheme dengan link Neo yang valid.
+    
+    var config = {
+        draggable: true,
+        position: 'start',
+        // ASSET NEO (LINK INI STABIL)
+        pieceTheme: 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150/{piece}.png',
+        onDragStart: onDragStart,
+        onDrop: onDrop,
+        onSnapEnd: onSnapEnd
+    };
+
+    // INISIALISASI DENGAN DELAY DIKIT (BIAR DOM READY 100%)
+    setTimeout(() => {
+        board = Chessboard('board', config);
+        $(window).resize(board.resize);
+    }, 100);
+});
+</script>
 </body>
 </html>
