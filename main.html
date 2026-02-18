@@ -185,6 +185,8 @@ input::placeholder{color:#666}
         <input id="updVer" placeholder="Ver (e.g. 1.5)">
         <button class="btn-g" style="margin:0;background:#444" onclick="setUpd()">SET UPDATE</button>
     </div>
+    <button class="btn-g" style="background:var(--accent);margin-top:10px" onclick="resetMyVer()">RESET MY VERSION (DEBUG)</button>
+    
     <hr style="border:0;border-top:1px solid #444;margin:15px 0">
     <input id="accName" placeholder="Username (Target)">
     <div class="action-grid">
@@ -273,6 +275,10 @@ input::placeholder{color:#666}
         onSnapshot(doc(db,"config","settings"), (d) => { 
             if(d.exists()){ 
                 svV = d.data().latestVersion || 1.0; 
+                // Selalu cek ulang local version (biar kalau di reset langsung ngefek)
+                locV = parseFloat(localStorage.getItem('av')) || 1.0;
+                document.getElementById('localVerDisp').innerText = locV;
+
                 const notif = document.getElementById('updNot');
                 
                 if(svV > locV) {
@@ -317,9 +323,10 @@ input::placeholder{color:#666}
     // UPDATE SYSTEM (MODAL & ACTION)
     window.updModal = () => { 
         const ct = document.getElementById('updCt');
-        let html = '';
+        // RE-CHECK Local Version saat buka modal
+        locV = parseFloat(localStorage.getItem('av')) || 1.0;
         
-        // Cek update
+        let html = '';
         if(svV > locV) {
             html += `<h2 style="color:#81b64c;margin-bottom:10px">UPDATE AVAILABLE</h2>`;
             html += `<p>Server: <b>v${svV}</b> | You: v${locV}</p>`;
@@ -330,7 +337,6 @@ input::placeholder{color:#666}
             // TOMBOL FORCE REFRESH YANG KAMU MINTA
             html += `<button class="btn-g" style="background:#444;margin-top:15px" onclick="location.reload()">FORCE REFRESH</button>`;
         }
-        
         ct.innerHTML = html;
         document.getElementById('updMod').style.display='flex'; 
         toggleDropdown(); 
@@ -397,6 +403,9 @@ input::placeholder{color:#666}
     window.giveAccess = async () => { await setDoc(doc(db,"users",document.getElementById('accName').value), {role:"admin"}, {merge:true}); alert('Admin Access Given'); };
     window.setUpd = async () => { await setDoc(doc(db,"config","settings"), {latestVersion: parseFloat(document.getElementById('updVer').value)}, {merge:true}); alert("Update Version Set"); };
     window.delPlayerData = async (id) => { if(confirm("Delete this player data?")) await deleteDoc(doc(db,"players",id)); };
+    
+    // RESET MY VERSION (DEBUG)
+    window.resetMyVer = () => { localStorage.setItem('av', 1.0); location.reload(); };
 
     window.openAdd = () => document.getElementById('addMod').style.display='flex';
     window.subData = async () => { await addDoc(collection(db,"players"), { name: document.getElementById('dName').value, elo: document.getElementById('dElo').value, rank: document.getElementById('dRank').value, timestamp: Date.now() }); closeM(); };
