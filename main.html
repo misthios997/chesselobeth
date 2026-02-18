@@ -32,11 +32,13 @@ header{background:var(--card);padding:0 20px;height:65px;display:flex;align-item
 .btn-o.active{background:#2e401b;border-color:var(--accent);color:var(--accent)}
 .btn-m{background:var(--accent);color:#fff;width:100%;padding:20px;border:none;border-radius:15px;font-weight:900;font-size:1.3rem;cursor:pointer;display:flex;justify-content:center;gap:12px}
 .data-c{background:#262626;padding:18px;margin-bottom:12px;border-radius:12px;border-left:5px solid var(--primary)}
-.l-item{background:#262626;padding:15px;margin-bottom:12px;border-radius:12px;display:flex;gap:15px;border:1px solid #333}
+.l-item{background:#262626;padding:15px;margin-bottom:12px;border-radius:12px;display:flex;justify-content:space-between;align-items:center;gap:15px;border:1px solid #333}
 .fab{position:fixed;bottom:30px;right:30px;width:65px;height:65px;background:var(--primary);color:#000;border-radius:50%;display:none;justify-content:center;align-items:center;font-size:2rem;z-index:2000;box-shadow:0 5px 20px #0009}
 .modal-ov{position:fixed;top:0;left:0;width:100%;height:100%;background:#000e;display:none;justify-content:center;align-items:center;z-index:5000}
 .modal{background:#2d2d2d;padding:30px;border-radius:25px;width:90%;max-width:450px;max-height:85vh;overflow-y:auto;border:1px solid #444}
-input,select,textarea{width:100%;padding:15px;margin-top:10px;background:#1a1a1a;border:1px solid #444;border-radius:12px;color:#fff}
+/* INPUT FIX */
+input,select,textarea{width:100%;padding:15px;margin-top:10px;background:#1a1a1a;border:1px solid #444;border-radius:12px;color:#fff;font-size:1rem}
+input::placeholder{color:#666}
 .btn-g{background:var(--primary);color:#000;border:none;padding:16px;width:100%;border-radius:12px;font-weight:900;margin-top:20px}
 .chat-ov{position:fixed;bottom:0;right:0;width:100%;height:100%;background:var(--bg);display:none;flex-direction:column;z-index:6000}
 .chat-h{background:#2d2d2d;padding:15px 20px;display:flex;justify-content:space-between}
@@ -44,7 +46,7 @@ input,select,textarea{width:100%;padding:15px;margin-top:10px;background:#1a1a1a
 .chat-i{padding:15px;background:#2d2d2d;display:flex;gap:10px}
 .msg-w{display:flex;gap:12px}.msg-self{flex-direction:row-reverse}.msg-a{width:40px;height:40px;border-radius:50%;object-fit:cover}.msg-bub{background:#333;padding:12px;border-radius:15px;color:#fff;max-width:80%}.msg-self .msg-bub{background:var(--primary);color:#000}
 
-/* BOT UI NEW - CHESS.COM STYLE */
+/* BOT UI */
 .bot-top{text-align:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #444}
 .bot-sel-img{width:100px;height:100px;border-radius:20px;margin-bottom:10px;border:3px solid var(--primary);box-shadow:0 0 20px #ffd70033;object-fit:cover}
 .bot-sel-name{font-size:1.6rem;font-weight:900;color:#fff}
@@ -56,10 +58,17 @@ input,select,textarea{width:100%;padding:15px;margin-top:10px;background:#1a1a1a
 .bot-av{width:60px;height:60px;border-radius:12px;margin-bottom:8px;pointer-events:none;-webkit-user-select:none;user-select:none;object-fit:cover}
 .bot-n{font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bot-l{position:absolute;top:0;left:0;width:100%;height:100%;background:#0009;border-radius:13px;display:flex;justify-content:center;align-items:center;font-size:1.5rem;color:var(--prem)}
-.no-touch{-webkit-touch-callout:none}
+
+/* PROFILE UI */
+.prof-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}
+.stat-box{background:#222;padding:15px;border-radius:10px;text-align:center}
+.stat-val{font-size:1.2rem;font-weight:bold;color:var(--primary)}
+.stat-lbl{font-size:0.8rem;color:#aaa}
 </style>
 </head>
 <body>
+
+<div id="bannedOverlay" style="position:fixed;inset:0;background:#000;color:var(--danger);display:none;justify-content:center;align-items:center;z-index:9999;flex-direction:column"><h1>BANNED</h1><button class="btn-g" onclick="location.reload()" style="width:auto">REFRESH</button></div>
 
 <header>
     <div class="brand">CHESSELOBETH</div>
@@ -115,10 +124,8 @@ input,select,textarea{width:100%;padding:15px;margin-top:10px;background:#1a1a1a
                 <div id="selBName" class="bot-sel-name"></div>
                 <div id="selBElo" class="bot-sel-elo"></div>
             </div>
-
             <div class="lbl">Choose Opponent</div>
             <div id="botList" class="bot-grid"></div>
-
             <button class="btn-m" style="margin-top:20px" onclick="launchBot()">PLAY BOT ▶</button>
         </div>
     </div>
@@ -132,19 +139,48 @@ input,select,textarea{width:100%;padding:15px;margin-top:10px;background:#1a1a1a
 <button class="fab" id="ownerFab" onclick="openAdd()"><i class="fas fa-plus"></i></button>
 
 <div class="modal-ov" id="inboxMod"><div class="modal"><h2>Inbox</h2><div id="inboxList"></div><button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button></div></div>
-<div class="modal-ov" id="friendMod"><div class="modal"><h2>Friends</h2><input id="frIn" placeholder="Search"><button class="btn-g" onclick="schFr()">Search</button><div id="frRes"></div><div id="frList"></div><button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button></div></div>
+
+<div class="modal-ov" id="friendMod"><div class="modal">
+    <h2>Friends</h2>
+    <div style="display:flex;gap:5px">
+        <input id="frIn" placeholder="Search Username..." style="margin:0">
+        <button class="btn-g" onclick="schFr()" style="margin:0;width:auto"><i class="fas fa-search"></i></button>
+    </div>
+    <div id="frRes" style="margin:15px 0;border-bottom:1px solid #444;padding-bottom:10px"></div>
+    <div class="lbl">My Friends</div>
+    <div id="frList"></div>
+    <button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button>
+</div></div>
+
+<div class="modal-ov" id="profileMod"><div class="modal">
+    <div style="text-align:center">
+        <img id="profAva" style="width:100px;height:100px;border-radius:50%;border:3px solid var(--primary);object-fit:cover">
+        <h2 id="profName" style="margin-top:10px"></h2>
+        <p id="profTitle" style="color:var(--prem);font-weight:bold"></p>
+    </div>
+    <div class="prof-stat-grid">
+        <div class="stat-box"><div class="stat-val" id="profElo">-</div><div class="stat-lbl">ELO</div></div>
+        <div class="stat-box"><div class="stat-val" id="profWin" style="color:var(--accent)">-</div><div class="stat-lbl">WINS</div></div>
+        <div class="stat-box"><div class="stat-val" id="profLoss" style="color:var(--danger)">-</div><div class="stat-lbl">LOSS</div></div>
+        <div class="stat-box"><div class="stat-val" id="profDraw" style="color:#aaa">-</div><div class="stat-lbl">DRAW</div></div>
+    </div>
+    <button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button>
+</div></div>
+
 <div class="modal-ov" id="srcMod"><div class="modal" style="text-align:center"><h2>Searching...</h2><h1 id="srcTime" style="color:var(--primary)">00:00</h1><button class="btn-g" style="background:var(--danger)" onclick="cancSrc()">CANCEL</button></div></div>
 <div class="modal-ov" id="updMod"><div class="modal"><h2>Update</h2><div id="updCt"></div><button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button></div></div>
 <div class="modal-ov" id="avaMod"><div class="modal"><h2>Avatar</h2><div class="grid" style="grid-template-columns:1fr 1fr"><img src="https://i.ibb.co.com/Fb6FJQ9g/54b19ada-d53e-4ee9-8882-9dfed1bf1396.jpg" style="width:100%" onclick="setAva(this.src)"><img src="https://i.ibb.co.com/jZhYZky2/68f9ebed-9db3-458f-aa15-b5b6dfc8566c.jpg" style="width:100%" onclick="setAva(this.src)"></div><button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button></div></div>
-<div class="modal-ov" id="ownerMod"><div class="modal"><h2>Owner</h2><input id="bcIn" placeholder="Broadcast"><button class="btn-g" onclick="setBc()">SET BC</button><input id="premIn" placeholder="User"><input id="premD" placeholder="Days"><button class="btn-g" style="background:var(--prem)" onclick="givePrem()">GIVE PREMIUM</button><button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button></div></div>
-<div class="modal-ov" id="addMod"><div class="modal"><h2>Add Data</h2><input id="dName"><input id="dElo"><input id="dRank"><button class="btn-g" onclick="subData()">SAVE</button><button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button></div></div>
+
+<div class="modal-ov" id="ownerMod"><div class="modal"><h2>Owner Panel</h2><input id="bcIn" placeholder="Broadcast Msg"><button class="btn-g" onclick="setBc()">SET BROADCAST</button><hr style="border:0;border-top:1px solid #444;margin:15px 0"><input id="premIn" placeholder="Username"><input id="premD" placeholder="Days (e.g. 30)"><button class="btn-g" style="background:var(--prem)" onclick="givePrem()">GIVE PREMIUM</button><button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button></div></div>
+
+<div class="modal-ov" id="addMod"><div class="modal"><h2>Add Player Data</h2><input id="dName" placeholder="Name"><input id="dElo" placeholder="Elo"><input id="dRank" placeholder="Rank #"><button class="btn-g" onclick="subData()">SAVE</button><button class="btn-g" style="background:#444;color:#fff" onclick="closeM()">CLOSE</button></div></div>
 
 <div class="chat-ov" id="chatOv"><div class="chat-h"><b>GLOBAL CHAT</b><button onclick="toggleChat(0)" style="background:0 0;border:none;color:#fff">X</button></div><div class="chat-b" id="chatBox"></div><div class="chat-i"><input id="chatIn" placeholder="Type..."><button onclick="sendChat()" style="background:var(--primary);border:none;padding:10px;border-radius:5px">SEND</button></div></div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy, limit, where, getDocs, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot, query, orderBy, limit, where, getDocs, deleteDoc, setDoc, getDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const app = initializeApp({apiKey:"AIzaSyAkKDbf6qcWvZME8p8wP0gvKKpB8o0RPaw",authDomain:"chesselobeth.firebaseapp.com",projectId:"chesselobeth",storageBucket:"chesselobeth.firebasestorage.app",messagingSenderId:"829508204106",appId:"1:829508204106:web:e8952c359f63d49646d8b3"});
     const auth = getAuth(app);
@@ -152,19 +188,14 @@ input,select,textarea{width:100%;padding:15px;margin-top:10px;background:#1a1a1a
 
     let u, nm, isPrem=false, tm=10, vr="standard", sInt, rId, unR, svV=0;
 
-    // --- UI HELPERS ---
     window.closeM = () => document.querySelectorAll('.modal-ov').forEach(m => m.style.display='none');
     window.toggleDropdown = () => { const m = document.getElementById('mainMenu'); m.style.display = m.style.display==='block'?'none':'block'; };
-    window.swSec = (s) => { 
-        document.querySelectorAll('.sec').forEach(x => x.style.display='none'); 
-        document.getElementById('sec-'+s).style.display='block'; 
-        window.toggleDropdown(); 
-    };
+    window.swSec = (s) => { document.querySelectorAll('.sec').forEach(x => x.style.display='none'); document.getElementById('sec-'+s).style.display='block'; window.toggleDropdown(); };
     window.logout = () => signOut(auth).then(() => location.href='index.html');
     window.setTm = (v, b) => { tm=v; document.querySelectorAll('#tmGrid .btn-o').forEach(x=>x.classList.remove('active')); b.classList.add('active'); };
     window.setVr = (v, b) => { vr=v; b.parentElement.querySelectorAll('.btn-o').forEach(x=>x.classList.remove('active')); b.classList.add('active'); };
 
-    // --- BOT CONFIGURATION ---
+    /* BOT LOGIC */
     const BOTS = [
         {id:'pieter', n:'Pieter', e:1250, i:'https://i.ibb.co.com/Wv34J1qd/1771424229420.png', p:false},
         {id:'maria', n:'Maria', e:1600, i:'https://i.ibb.co.com/WvqDx4nn/1771422684683.png', p:false},
@@ -175,235 +206,147 @@ input,select,textarea{width:100%;padding:15px;margin-top:10px;background:#1a1a1a
     let selBot = BOTS[0];
 
     function initBots(){
-        const l = document.getElementById('botList');
-        l.innerHTML = '';
+        const l = document.getElementById('botList'); l.innerHTML = '';
         BOTS.forEach(b => {
             const isL = b.p && !isPrem;
-            const displayImg = b.icon 
-                ? `<div class="bot-av" style="background:#333;display:flex;justify-content:center;align-items:center;font-size:30px">${b.icon}</div>` 
-                : `<img src="${b.i}" class="bot-av" oncontextmenu="return false">`;
-            
-            l.innerHTML += `
-            <div class="bot-c ${isL?'locked':''} ${selBot.id===b.id?'active':''}" onclick="pickBot('${b.id}')">
-                ${displayImg}
-                <div class="bot-n">${b.n}</div>
-                <div style="font-size:.7rem;color:#aaa">(${b.e})</div>
-                ${isL ? `<div class="bot-l"><i class="fas fa-lock"></i></div>` : ''}
-            </div>`;
+            const displayImg = b.icon ? `<div class="bot-av" style="background:#333;display:flex;justify-content:center;align-items:center;font-size:30px;color:white">${b.icon}</div>` : `<img src="${b.i}" class="bot-av" oncontextmenu="return false">`;
+            l.innerHTML += `<div class="bot-c ${isL?'locked':''} ${selBot.id===b.id?'active':''}" onclick="pickBot('${b.id}')">${displayImg}<div class="bot-n">${b.n}</div><div style="font-size:.7rem;color:#aaa">(${b.e})</div>${isL ? `<div class="bot-l"><i class="fas fa-lock"></i></div>` : ''}</div>`;
         });
         updBotHead();
     }
-
     window.pickBot = (id) => {
         const b = BOTS.find(x => x.id === id);
-        if(b.p && !isPrem){ 
-            if(confirm("This bot requires PREMIUM. Go to Premium page?")) location.href='premium.html';
-            return; 
-        }
-        selBot = b; 
-        initBots();
+        if(b.p && !isPrem){ if(confirm("Premium Required. Upgrade?")) location.href='premium.html'; return; }
+        selBot = b; initBots();
     };
-
     function updBotHead(){
         document.getElementById('botHeader').style.display = 'block';
         document.getElementById('selBName').innerText = selBot.n;
         document.getElementById('selBElo').innerText = 'Rating: ' + selBot.e;
-        
         const imgCont = document.getElementById('selBImg');
-        if(selBot.icon){
-            // Kalo icon text
-            if(imgCont.tagName === 'IMG') {
-                const d = document.createElement('div');
-                d.id = 'selBImg'; d.className = 'bot-sel-img';
-                d.style = 'display:flex;justify-content:center;align-items:center;font-size:50px;background:#333;color:white';
-                d.innerHTML = selBot.icon;
-                imgCont.replaceWith(d);
-            } else {
-                imgCont.innerHTML = selBot.icon;
-            }
-        } else {
-            // Kalo image url
-            if(imgCont.tagName === 'DIV') {
-                const i = document.createElement('img');
-                i.id = 'selBImg'; i.className = 'bot-sel-img';
-                i.oncontextmenu = () => false;
-                i.src = selBot.i;
-                imgCont.replaceWith(i);
-            } else {
-                imgCont.src = selBot.i;
-            }
-        }
+        if(selBot.icon){ if(imgCont.tagName === 'IMG') { const d = document.createElement('div'); d.id = 'selBImg'; d.className = 'bot-sel-img'; d.style = 'display:flex;justify-content:center;align-items:center;font-size:50px;background:#333;color:white'; d.innerHTML = selBot.icon; imgCont.replaceWith(d); } else { imgCont.innerHTML = selBot.icon; }
+        } else { if(imgCont.tagName === 'DIV') { const i = document.createElement('img'); i.id = 'selBImg'; i.className = 'bot-sel-img'; i.oncontextmenu = () => false; i.src = selBot.i; imgCont.replaceWith(i); } else { imgCont.src = selBot.i; } }
     }
+    window.launchBot = () => location.href = `botgame.html?bot=${selBot.id}&elo=${selBot.e}`;
 
-    window.launchBot = () => {
-        location.href = `botgame.html?bot=${selBot.id}&elo=${selBot.e}`;
-    };
-
-    // --- AUTH & DATA LOADING ---
     onAuthStateChanged(auth, async (user) => {
         if(!user) { location.href="index.html"; return; }
-        u = user; 
-        nm = u.displayName;
-        
-        // 1. Load User Data
+        u = user; nm = u.displayName;
         const d = await getDoc(doc(db,"users",nm));
         if(d.exists()){ 
             const dt = d.data(); 
             if(dt.isPremium && dt.premiumUntil > Date.now()) isPrem = true;
-            
-            let dn = nm; 
-            if(dt.title) dn = `[${dt.title}] ${nm}`; 
-            if(isPrem) dn = `💎 ${dn}`;
+            let dn = nm; if(dt.title) dn = `[${dt.title}] ${nm}`; if(isPrem) dn = `💎 ${dn}`;
             document.getElementById('welcomeMsg').innerText = "Welcome, " + dn;
+            // OWNER CHECK FIXED
+            if(nm === "Jovan" || dt.role === "admin") {
+                document.getElementById('ownerFab').style.display='flex';
+                document.getElementById('ownerBtn').style.display='block';
+            }
         }
-
-        // 2. Avatar
         document.getElementById('myAvatar').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
-
-        // 3. Owner Check
-        if(nm === "Jovan") {
-            document.getElementById('ownerFab').style.display='flex';
-            document.getElementById('ownerBtn').style.display='block';
-        }
-
-        // 4. Load Broadcast & Listeners
-        loadD(); 
-        initBots(); // Refresh bot lock status
+        loadD(); initBots();
     });
 
     function loadD(){
-        // Broadcast
-        onSnapshot(doc(db,"config","broadcastMsg"), (d) => {
-            if(d.exists()) document.getElementById('bcText').innerText = d.data().text;
-            else document.getElementById('bcText').innerText = "No news.";
-        });
-
-        // Update Check
-        onSnapshot(doc(db,"config","settings"), (d) => {
-            if(d.exists()){
-                svV = d.data().latestVersion || 0;
-                const l = parseInt(localStorage.getItem('av')) || 0;
-                document.getElementById('updNot').innerText = svV > l ? "Update Available!" : "Up to date";
-            }
-        });
-
-        // Players Feed
+        onSnapshot(doc(db,"config","broadcastMsg"), (d) => { if(d.exists()) document.getElementById('bcText').innerText = d.data().text; });
+        onSnapshot(doc(db,"config","settings"), (d) => { if(d.exists()){ svV = d.data().latestVersion || 0; const l = parseInt(localStorage.getItem('av')) || 0; document.getElementById('updNot').innerText = svV > l ? "Update Available!" : "Up to date"; }});
         onSnapshot(query(collection(db,"players"), orderBy("timestamp","desc"), limit(20)), (s) => {
-            const f = document.getElementById('dataFeed'); 
-            f.innerHTML = '';
-            s.forEach(d => { 
-                const v = d.data(); 
-                f.innerHTML += `<div class="data-c"><h3>${v.rank?`[${v.rank}] `:''}${v.name}</h3><p>Elo: ${v.elo}</p></div>`; 
-            });
+            const f = document.getElementById('dataFeed'); f.innerHTML = '';
+            s.forEach(d => { const v = d.data(); f.innerHTML += `<div class="data-c"><h3>${v.rank?`[${v.rank}] `:''}${v.name}</h3><p>Elo: ${v.elo}</p></div>`; });
         });
-
-        // Chat
         onSnapshot(query(collection(db,"chats"), orderBy("timestamp","asc"), limit(50)), (s) => {
-            const b = document.getElementById('chatBox'); 
-            b.innerHTML = '';
-            s.forEach(d => {
-                const m = d.data();
-                b.innerHTML += `<div class="msg-w ${m.name===nm?'msg-self':''}"><img src="${m.photo}" class="msg-a"><div class="msg-bub"><b>${m.name}</b>: ${m.text}</div></div>`
-            });
+            const b = document.getElementById('chatBox'); b.innerHTML = '';
+            s.forEach(d => { const m = d.data(); b.innerHTML += `<div class="msg-w ${m.name===nm?'msg-self':''}"><img src="${m.photo}" class="msg-a"><div class="msg-bub"><b>${m.name}</b>: ${m.text}</div></div>` });
             b.scrollTop = b.scrollHeight;
         });
-
-        // Inbox Listener
         onSnapshot(query(collection(db,"inbox"), where("to","==",nm)), (s) => {
-            let hasUnread = false; 
-            const l = document.getElementById('inboxList'); 
-            l.innerHTML = '';
-            s.forEach(d => { 
-                const m = d.data(); 
-                if(!m.read) hasUnread = true; 
-                l.innerHTML += `<div class="l-item"><b>${m.from}</b>: ${m.text} <button class="btn-sm" style="background:var(--danger)" onclick="delIn('${d.id}')">Del</button></div>`;
-            });
-            document.getElementById('inboxCount').innerText = hasUnread ? '(!)' : '';
-            document.getElementById('inboxDot').style.display = hasUnread ? 'block' : 'none';
+            let h = false; const l = document.getElementById('inboxList'); l.innerHTML = '';
+            s.forEach(d => { const m = d.data(); if(!m.read) h = true; l.innerHTML += `<div class="l-item"><b>${m.from}</b>: ${m.text} <button class="btn-sm" style="background:var(--danger);color:white;border:none;padding:5px 10px;border-radius:5px" onclick="delIn('${d.id}')">Del</button></div>`; });
+            document.getElementById('inboxCount').innerText = h ? '(!)' : ''; document.getElementById('inboxDot').style.display = h ? 'block' : 'none';
         });
     }
 
-    // --- MATCHMAKING ---
+    // PROFILE
+    window.openProfile = async () => {
+        toggleDropdown();
+        document.getElementById('profileMod').style.display='flex';
+        document.getElementById('profName').innerText = "Loading...";
+        const d = await getDoc(doc(db,"users",nm));
+        if(d.exists()){
+            const dt = d.data();
+            document.getElementById('profName').innerText = nm;
+            document.getElementById('profTitle').innerText = isPrem ? "PREMIUM MEMBER 💎" : "Standard Member";
+            document.getElementById('profElo').innerText = dt.elo || 1200;
+            document.getElementById('profWin').innerText = dt.wins || 0;
+            document.getElementById('profLoss').innerText = dt.losses || 0;
+            document.getElementById('profDraw').innerText = dt.draws || 0;
+            document.getElementById('profAva').src = u.photoURL || "https://i.ibb.co.com/8LpY5v7/avatar1.jpg";
+        }
+    };
+
+    // FRIEND SYSTEM
+    window.openFriend = async () => {
+        toggleDropdown();
+        document.getElementById('friendMod').style.display='flex';
+        loadFriends();
+    }
+    window.schFr = async () => {
+        const t = document.getElementById('frIn').value;
+        const resDiv = document.getElementById('frRes');
+        resDiv.innerHTML = 'Searching...';
+        const q = query(collection(db, "users"), where("username", "==", t)); // Assuming users stored with lowercase username or exact
+        // Fallback: Check ID/DocName
+        const docSnap = await getDoc(doc(db, "users", t));
+        resDiv.innerHTML = '';
+        if(docSnap.exists()){
+            resDiv.innerHTML = `<div class="l-item"><span>${t}</span> <button class="btn-sm" style="background:var(--primary);color:black;border:none;padding:5px" onclick="addFriend('${t}')">ADD</button></div>`;
+        } else {
+            resDiv.innerHTML = `<span style="color:var(--danger)">User not found (Case Sensitive)</span>`;
+        }
+    }
+    window.addFriend = async (target) => {
+        if(target === nm) return alert("Can't add yourself");
+        await setDoc(doc(db, "users", nm, "friends", target), { since: Date.now() });
+        alert("Added!");
+        loadFriends();
+    }
+    async function loadFriends(){
+        const list = document.getElementById('frList');
+        list.innerHTML = "Loading...";
+        const snap = await getDocs(collection(db, "users", nm, "friends"));
+        list.innerHTML = "";
+        if(snap.empty) list.innerHTML = "<p style='color:#aaa'>No friends yet.</p>";
+        snap.forEach(d => {
+            list.innerHTML += `<div class="l-item"><span>${d.id}</span> <button style="background:var(--primary);border:none;border-radius:5px;padding:5px 10px;cursor:pointer">Challenge</button></div>`;
+        });
+    }
+
+    // MATCHMAKING
     window.findMatch = async () => {
         document.getElementById('srcMod').style.display = 'flex';
-        let s = 0; 
-        sInt = setInterval(() => {
-            s++; 
-            document.getElementById('srcTime').innerText = `00:${s<10?'0'+s:s}`;
-        }, 1000);
-
+        let s = 0; sInt = setInterval(() => { s++; document.getElementById('srcTime').innerText = `00:${s<10?'0'+s:s}`; }, 1000);
         const q = query(collection(db,"rooms"), where("status","==","waiting"), where("timer","==",tm), where("variant","==",vr), limit(1));
         const sn = await getDocs(q);
-
-        if(!sn.empty){ 
-            rId = sn.docs[0].id; 
-            await updateDoc(doc(db,"rooms",rId), { player2:{name:nm}, status:"playing" }); 
-            goGm(rId, 'black'); 
-        } else { 
-            const nr = await addDoc(collection(db,"rooms"), { player1:{name:nm}, status:"waiting", timer:tm, variant:vr, createdAt:Date.now() }); 
-            rId = nr.id; 
-            unR = onSnapshot(doc(db,"rooms",rId), (s) => {
-                if(s.exists() && s.data().status === "playing") goGm(rId, 'white');
-            }); 
-        }
+        if(!sn.empty){ rId = sn.docs[0].id; await updateDoc(doc(db,"rooms",rId), { player2:{name:nm}, status:"playing" }); goGm(rId, 'black'); } 
+        else { const nr = await addDoc(collection(db,"rooms"), { player1:{name:nm}, status:"waiting", timer:tm, variant:vr, createdAt:Date.now() }); rId = nr.id; unR = onSnapshot(doc(db,"rooms",rId), (s) => { if(s.exists() && s.data().status === "playing") goGm(rId, 'white'); }); }
     };
+    window.cancSrc = async () => { clearInterval(sInt); if(unR) unR(); if(rId){ const r = await getDoc(doc(db,"rooms",rId)); if(r.exists() && r.data().player1.name === nm) await deleteDoc(doc(db,"rooms",rId)); } document.getElementById('srcMod').style.display = 'none'; };
+    function goGm(id, sd) { clearInterval(sInt); if(unR) unR(); window.location.href = `${vr==='crazyhouse'?'crazyhouse':'game'}.html?id=${id}&side=${sd}`; }
 
-    window.cancSrc = async () => {
-        clearInterval(sInt); 
-        if(unR) unR(); 
-        if(rId){
-            const r = await getDoc(doc(db,"rooms",rId));
-            if(r.exists() && r.data().player1.name === nm) await deleteDoc(doc(db,"rooms",rId));
-        }
-        document.getElementById('srcMod').style.display = 'none';
-    };
-
-    function goGm(id, sd) {
-        clearInterval(sInt); 
-        if(unR) unR(); 
-        window.location.href = `${vr==='crazyhouse'?'crazyhouse':'game'}.html?id=${id}&side=${sd}`;
-    }
-
-    // --- UTILS ---
+    // UTILS
     window.openInbox = () => { document.getElementById('inboxMod').style.display='flex'; toggleDropdown(); };
     window.delIn = async (id) => await deleteDoc(doc(db,"inbox",id));
-    window.openFriend = () => { document.getElementById('friendMod').style.display='flex'; toggleDropdown(); };
     window.openOwner = () => { document.getElementById('ownerMod').style.display='flex'; toggleDropdown(); };
     window.setBc = async () => { await setDoc(doc(db,"config","broadcastMsg"), {text:document.getElementById('bcIn').value}); closeM(); };
-    window.givePrem = async () => {
-        const n = document.getElementById('premIn').value;
-        const d = parseInt(document.getElementById('premD').value);
-        await setDoc(doc(db,"users",n), {isPremium:true, premiumUntil:Date.now()+(d*86400000)}, {merge:true});
-        alert('Done');
-    };
+    window.givePrem = async () => { await setDoc(doc(db,"users",document.getElementById('premIn').value), {isPremium:true, premiumUntil:Date.now()+(parseInt(document.getElementById('premD').value)*86400000)}, {merge:true}); alert('Done'); };
     window.openAdd = () => document.getElementById('addMod').style.display='flex';
-    window.subData = async () => {
-        await addDoc(collection(db,"players"), {
-            name: document.getElementById('dName').value,
-            elo: document.getElementById('dElo').value,
-            rank: document.getElementById('dRank').value,
-            timestamp: Date.now()
-        });
-        closeM();
-    };
-    window.updModal = () => {
-        const l = parseInt(localStorage.getItem('av'))||0; 
-        document.getElementById('updCt').innerHTML = svV > l 
-            ? `<h3 style="color:#81b64c">Update Available</h3><button class="btn-g" onclick="localStorage.setItem('av',${svV});location.reload()">UPDATE</button>` 
-            : `Up to date`; 
-        document.getElementById('updMod').style.display='flex'; 
-        toggleDropdown();
-    };
+    window.subData = async () => { await addDoc(collection(db,"players"), { name: document.getElementById('dName').value, elo: document.getElementById('dElo').value, rank: document.getElementById('dRank').value, timestamp: Date.now() }); closeM(); };
+    window.updModal = () => { const l = parseInt(localStorage.getItem('av'))||0; document.getElementById('updCt').innerHTML = svV > l ? `<h3 style="color:#81b64c">Update Available</h3><button class="btn-g" onclick="localStorage.setItem('av',${svV});location.reload()">UPDATE</button>` : `Up to date`; document.getElementById('updMod').style.display='flex'; toggleDropdown(); };
     window.openAva = () => document.getElementById('avaMod').style.display='flex';
     window.setAva = async (s) => { await updateProfile(auth.currentUser, {photoURL:s}); location.reload(); };
     window.toggleChat = (s) => { document.getElementById('chatOv').style.display=s?'flex':'none'; };
-    window.sendChat = async () => {
-        const i = document.getElementById('chatIn');
-        if(i.value){
-            await addDoc(collection(db,"chats"), {name:nm, text:i.value, photo:u.photoURL, timestamp:Date.now()});
-            i.value='';
-        }
-    };
+    window.sendChat = async () => { const i = document.getElementById('chatIn'); if(i.value){ await addDoc(collection(db,"chats"), {name:nm, text:i.value, photo:u.photoURL, timestamp:Date.now()}); i.value=''; } };
 </script>
 </body>
 </html>
