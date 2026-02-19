@@ -75,7 +75,7 @@
         .info h3 { margin: 0; font-size: 1rem; }
         .info p { margin: 0; font-size: 0.8rem; color: #888; }
 
-        /* PAPAN CATUR FIX (WAJIB ADA UKURANNYA) */
+        /* PAPAN CATUR */
         .board-container {
             width: 100%;
             display: flex;
@@ -85,12 +85,8 @@
         }
 
         #board {
-            width: 90vw;
-            height: 90vw;
-            max-width: 400px;
-            max-height: 400px;
-            /* Border buat debugging kalo papan ga muncul */
-            border: 2px solid #333; 
+            width: 100%;
+            max-width: 450px;
         }
 
         .status-bar {
@@ -238,25 +234,24 @@ $(document).ready(function() {
     window.undoMove = () => { game.undo(); game.undo(); board.position(game.fen()); updateStatus(); };
     window.resetGame = () => { game.reset(); board.start(); updateStatus(); };
 
-    // 5. INISIALISASI PAPAN (FIX ASET NEO)
-    // Kita pakai fallback CSS ChessboardJS default dulu kalau gambar gagal, 
-    // tapi kita override pieceTheme dengan link Neo yang valid.
-    
+    // 5. INISIALISASI PAPAN (FIX ASET NEO - MENGGUNAKAN FUNCTION)
     var config = {
         draggable: true,
         position: 'start',
-        // ASSET NEO (LINK INI STABIL)
-        pieceTheme: 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150/{piece}.png',
+        // MENGGUNAKAN FUNCTION AGAR NAMA FILE OTOMATIS JADI HURUF KECIL SEMUA (wp.png, bk.png, dll)
+        pieceTheme: function(piece) {
+            return 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150/' + piece.toLowerCase() + '.png';
+        },
         onDragStart: onDragStart,
         onDrop: onDrop,
         onSnapEnd: onSnapEnd
     };
 
-    // INISIALISASI DENGAN DELAY DIKIT (BIAR DOM READY 100%)
-    setTimeout(() => {
-        board = Chessboard('board', config);
-        $(window).resize(board.resize);
-    }, 100);
+    // Render papan
+    board = Chessboard('board', config);
+    
+    // Pastikan papan responsif mengikuti layar HP
+    $(window).resize(board.resize);
 });
 </script>
 </body>
