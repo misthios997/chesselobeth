@@ -164,7 +164,26 @@ $(document).ready(function() {
     const botId = params.get('bot') || 'pieter';
     const botElo = params.get('elo') || '1250';
 
-    // 2. CONFIG BOT
+    // 2. AUDIO SOUND EFFECTS
+    const sndMove = new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-self.mp3');
+    const sndCapture = new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/capture.mp3');
+    const sndCheck = new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/move-check.mp3');
+    const sndEnd = new Audio('https://images.chesscomfiles.com/chess-themes/sounds/_MP3_/default/game-end.mp3');
+
+    function playSound(moveInfo) {
+        if (game.game_over()) {
+            sndEnd.play();
+        } else if (game.in_check()) {
+            sndCheck.play();
+        } else if (moveInfo.flags.includes('c') || moveInfo.flags.includes('e')) {
+            // 'c' = capture, 'e' = en passant
+            sndCapture.play();
+        } else {
+            sndMove.play();
+        }
+    }
+
+    // 3. CONFIG BOT
     const BOTS = {
         'pieter': { n:'Pieter', i:'https://i.ibb.co.com/Wv34J1qd/1771424229420.png', d: 1, s: 0 },
         'maria': { n:'Maria', i:'https://i.ibb.co.com/WvqDx4nn/1771422684683.png', d: 4, s: 5 },
@@ -174,19 +193,19 @@ $(document).ready(function() {
     };
     const bot = BOTS[botId] || BOTS['pieter'];
 
-    // 3. SET UI
+    // 4. SET UI
     $('#botName').text(bot.n);
     $('#botElo').text('Rating: ' + botElo);
     const avC = $('#botAvaCont');
     if(bot.icon) avC.html(`<div class="ava-icon">${bot.icon}</div>`);
     else avC.html(`<img src="${bot.i}" class="ava" onerror="this.src='https://ui-avatars.com/api/?name=${bot.n}'">`);
 
-    // 4. LOGIC CATUR & ENGINE
+    // 5. LOGIC CATUR & ENGINE
     var board = null;
     var game = new Chess();
     var stockfish;
 
-    // FIX: BYPASS CORS BLOCK UNTUK WEB WORKER
+    // BYPASS CORS BLOCK UNTUK WEB WORKER
     try {
         var blob = new Blob([
             "importScripts('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js');"
@@ -201,9 +220,15 @@ $(document).ready(function() {
             if(e.data.startsWith('bestmove')) {
                 const best = e.data.split(' ')[1];
                 if(best) {
-                    game.move({ from: best.substring(0,2), to: best.substring(2,4), promotion: 'q' });
+                    var botMove = game.move({ 
+                        from: best.substring(0,2), 
+                        to: best.substring(2,4), 
+                        promotion: 'q' 
+                    });
+                    
                     board.position(game.fen());
                     updateStatus();
+                    if(botMove) playSound(botMove);
                 }
             }
         };
@@ -221,6 +246,7 @@ $(document).ready(function() {
         var move = game.move({ from: source, to: target, promotion: 'q' });
         if (move === null) return 'snapback';
         
+        playSound(move);
         updateStatus();
         window.setTimeout(makeBotMove, 500);
     }
@@ -245,7 +271,7 @@ $(document).ready(function() {
     window.undoMove = () => { game.undo(); game.undo(); board.position(game.fen()); updateStatus(); };
     window.resetGame = () => { game.reset(); board.start(); updateStatus(); };
 
-    // 5. INISIALISASI PAPAN (ASET NEO)
+    // 6. INISIALISASI PAPAN (ASET NEO)
     var config = {
         draggable: true,
         position: 'start',
