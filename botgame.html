@@ -138,7 +138,7 @@
     </div>
 
     <div class="player-card bot">
-        <img src="https://ui-avatars.com/api/?name=You&background=random" class="ava">
+        <img src="https://ui-avatars.com/api/?name=You&background=random" class="ava" id="myAva">
         <div class="info">
             <h3>You</h3>
             <p>Playing vs AI</p>
@@ -176,19 +176,41 @@ $(document).ready(function() {
 
     // 3. SET UI
     $('#botName').text(bot.n);
-    $('#botElo').text(botElo);
+    $('#botElo').text('Rating: ' + botElo);
     const avC = $('#botAvaCont');
     if(bot.icon) avC.html(`<div class="ava-icon">${bot.icon}</div>`);
     else avC.html(`<img src="${bot.i}" class="ava" onerror="this.src='https://ui-avatars.com/api/?name=${bot.n}'">`);
 
-    // 4. LOGIC CATUR
+    // 4. LOGIC CATUR & ENGINE
     var board = null;
     var game = new Chess();
-    var stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js');
+    var stockfish;
 
-    // Init Engine
-    stockfish.postMessage('uci');
-    stockfish.postMessage(`setoption name Skill Level value ${bot.s}`);
+    // FIX: BYPASS CORS BLOCK UNTUK WEB WORKER
+    try {
+        var blob = new Blob([
+            "importScripts('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.0/stockfish.js');"
+        ], { type: 'application/javascript' });
+        var workerUrl = URL.createObjectURL(blob);
+        stockfish = new Worker(workerUrl);
+
+        stockfish.postMessage('uci');
+        stockfish.postMessage(`setoption name Skill Level value ${bot.s}`);
+
+        stockfish.onmessage = function(e) {
+            if(e.data.startsWith('bestmove')) {
+                const best = e.data.split(' ')[1];
+                if(best) {
+                    game.move({ from: best.substring(0,2), to: best.substring(2,4), promotion: 'q' });
+                    board.position(game.fen());
+                    updateStatus();
+                }
+            }
+        };
+    } catch(err) {
+        console.error("Engine Error:", err);
+        $('#status').text("Error: Engine failed to load");
+    }
 
     function onDragStart(source, piece) {
         if (game.game_over()) return false;
@@ -200,28 +222,17 @@ $(document).ready(function() {
         if (move === null) return 'snapback';
         
         updateStatus();
-        window.setTimeout(makeBotMove, 500); // Delay dikit biar bot gak instan
+        window.setTimeout(makeBotMove, 500);
     }
 
     function onSnapEnd() { board.position(game.fen()); }
 
     function makeBotMove() {
-        if (game.game_over()) return;
-        $('#status').text(bot.n + ' thinking...');
+        if (game.game_over() || !stockfish) return;
+        $('#status').text(bot.n + ' is thinking...');
         stockfish.postMessage('position fen ' + game.fen());
         stockfish.postMessage(`go depth ${bot.d}`);
     }
-
-    stockfish.onmessage = function(e) {
-        if(e.data.startsWith('bestmove')) {
-            const best = e.data.split(' ')[1];
-            if(best) {
-                game.move({ from: best.substring(0,2), to: best.substring(2,4), promotion: 'q' });
-                board.position(game.fen());
-                updateStatus();
-            }
-        }
-    };
 
     function updateStatus() {
         var status = 'Your turn';
@@ -234,11 +245,11 @@ $(document).ready(function() {
     window.undoMove = () => { game.undo(); game.undo(); board.position(game.fen()); updateStatus(); };
     window.resetGame = () => { game.reset(); board.start(); updateStatus(); };
 
-    // 5. INISIALISASI PAPAN (FIX ASET NEO - MENGGUNAKAN FUNCTION)
+    // 5. INISIALISASI PAPAN (ASET NEO)
     var config = {
         draggable: true,
         position: 'start',
-        // MENGGUNAKAN FUNCTION AGAR NAMA FILE OTOMATIS JADI HURUF KECIL SEMUA (wp.png, bk.png, dll)
+        // Function toLowerCase() wajib buat baca file gambar Neo dari Chess.com
         pieceTheme: function(piece) {
             return 'https://images.chesscomfiles.com/chess-themes/pieces/neo/150/' + piece.toLowerCase() + '.png';
         },
@@ -247,10 +258,9 @@ $(document).ready(function() {
         onSnapEnd: onSnapEnd
     };
 
-    // Render papan
     board = Chessboard('board', config);
     
-    // Pastikan papan responsif mengikuti layar HP
+    // Bikin responsif
     $(window).resize(board.resize);
 });
 </script>
